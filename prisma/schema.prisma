@@ -1,0 +1,162 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+
+model User {
+  // ===========================
+  // Identity
+  // ===========================
+
+  id          String   @id @default(cuid())
+
+  // ===========================
+  // Authentication
+  // ===========================
+
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+
+  // ===========================
+  // Profile
+  // ===========================
+
+  displayName  String
+
+  avatarUrl    String?
+  coverPhotoUrl String?
+
+  bio          String?
+
+  // ===========================
+  // Contact
+  // ===========================
+
+  phoneNumber String? @unique
+
+  // ===========================
+  // Personal
+  // ===========================
+
+  dateOfBirth DateTime?
+
+  gender Gender?
+
+  // ===========================
+  // Location
+  // ===========================
+
+  country String?
+  state   String?
+  city    String?
+
+  // ===========================
+  // Preferences
+  // ===========================
+
+  language String @default("en")
+  timezone String @default("UTC")
+
+  // ===========================
+  // Privacy
+  // ===========================
+
+  isPrivate Boolean @default(false)
+
+  // ===========================
+  // Verification
+  // ===========================
+
+  isVerified Boolean @default(false)
+
+  // ===========================
+  // Presence
+  // ===========================
+
+  lastSeenAt DateTime?
+
+  // ===========================
+  // Account Status
+  // ===========================
+
+  status UserStatus @default(ACTIVE)
+
+  deletedAt DateTime?
+
+  // ===========================
+  // Audit
+  // ===========================
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  //=============================
+  //Token
+  //=============================
+
+  sessions UserSession[]
+}
+
+model UserSession {
+  id               String   @id @default(uuid())
+
+  /// Public session identifier stored in JWT ("sid")
+  sessionId        String   @unique @default(uuid())
+
+  /// User who owns this session
+  userId           String
+
+  /// Hashed refresh token (never store plaintext)
+  refreshTokenHash String
+
+  /// Expiration of the refresh token
+  expiresAt        DateTime
+
+  /// Last time this session successfully refreshed
+  lastUsedAt       DateTime @default(now())
+
+  /// Device information
+  deviceName       String?
+  userAgent        String?
+  ipAddress        String?
+
+  /// Session state
+  isRevoked        Boolean  @default(false)
+
+  /// Audit fields
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  /// Relations
+user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Indexes
+  @@index([userId])
+  @@index([sessionId])
+  @@index([expiresAt])
+  @@index([isRevoked])
+
+  @@map("user_sessions")
+}
