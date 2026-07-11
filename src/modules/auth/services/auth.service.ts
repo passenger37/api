@@ -124,15 +124,10 @@ async refresh(
     );
 
   const session =
-    await this.sessionsService.findBySessionId(
+    await this.sessionsService.verifyRefreshToken(
       payload.sid,
+      dto.refreshToken,
     );
-
-  if (!session) {
-    throw new UnauthorizedException(
-      'Session not found',
-    );
-  }
 
   if (session.isRevoked) {
     throw new UnauthorizedException(
@@ -146,6 +141,34 @@ async refresh(
     );
   }
 
-  // Remaining logic comes next lecture
+  const user =
+    await this.usersService.findById(
+      payload.sub,
+    );
+
+  if (!user) {
+    throw new UnauthorizedException();
+  }
+
+  const accessToken =
+    await this.tokenService.generateAccessToken(
+      user,
+    );
+
+  const refreshToken =
+    await this.tokenService.generateRefreshToken(
+      user.id,
+      session.sessionId,
+    );
+
+  await this.sessionsService.rotateRefreshToken(
+    session.id,
+    refreshToken,
+  );
+
+  return {
+    accessToken,
+    refreshToken,
+  };
 }
 }

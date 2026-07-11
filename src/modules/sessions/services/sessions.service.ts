@@ -6,6 +6,8 @@ import { SessionsRepository } from '../repositories';
 
 import { CreateSessionDto } from '../dto';
 
+import { UnauthorizedException } from '@nestjs/common';
+
 @Injectable()
 export class SessionsService {
   constructor(
@@ -68,19 +70,48 @@ async findBySessionId(
 }
 
 async rotateRefreshToken(
-  sessionId: string,
+  id: string,
   refreshToken: string,
 ) {
   const refreshTokenHash =
     await bcrypt.hash(refreshToken, 10);
 
   return this.sessionsRepository.update(
-    sessionId,
+    id,
     {
       refreshTokenHash,
       lastUsedAt: new Date(),
     },
   );
 }
+
+async verifyRefreshToken(
+  sessionId: string,
+  refreshToken: string,
+) {
+  const session =
+    await this.findBySessionId(sessionId);
+
+  if (!session) {
+    throw new UnauthorizedException(
+      'Session not found',
+    );
+  }
+
+  const matches =
+    await bcrypt.compare(
+      refreshToken,
+      session.refreshTokenHash,
+    );
+
+  if (!matches) {
+    throw new UnauthorizedException(
+      'Invalid refresh token',
+    );
+  }
+
+  return session;
+}
+
 
 }
