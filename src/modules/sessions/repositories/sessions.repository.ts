@@ -67,4 +67,17 @@ async update(
   });
 }
 
+async revoke(
+  id: string,
+) {
+  return this.prisma.userSession.update({
+    where: {
+      id,
+    },
+    data: {
+      isRevoked: true,
+    },
+  });
+}
+
 }

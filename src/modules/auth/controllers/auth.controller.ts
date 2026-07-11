@@ -12,6 +12,7 @@ import { AuthService } from '../services/auth.service';
 
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
+import { LogoutDto } from '../dto';
 
 @ApiTags('Authentication')
 @Controller({
@@ -42,4 +43,12 @@ login(
 ) {
   return this.authService.login(dto);
 }
+
+@Post('logout')
+logout(
+  @Body() dto: LogoutDto,
+) {
+  return this.authService.logout(dto);
+}
+
 }

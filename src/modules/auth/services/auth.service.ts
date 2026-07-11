@@ -13,6 +13,7 @@ import { SessionsService } from '../../sessions/services';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
+import { LogoutDto } from '../dto';
 
 import { TokenService } from './token.service';
 
@@ -169,6 +170,40 @@ async refresh(
   return {
     accessToken,
     refreshToken,
+  };
+}
+
+async logout(
+  dto: LogoutDto,
+) {
+  const payload =
+    await this.tokenService.verifyRefreshToken(
+      dto.refreshToken,
+    );
+
+  const session =
+    await this.sessionsService.findBySessionId(
+      payload.sid,
+    );
+
+  if (!session) {
+    throw new UnauthorizedException(
+      'Session not found',
+    );
+  }
+
+  if (session.isRevoked) {
+    return {
+      success: true,
+    };
+  }
+
+  await this.sessionsService.revoke(
+    session.id,
+  );
+
+  return {
+    success: true,
   };
 }
 }

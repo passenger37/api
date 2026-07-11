@@ -113,5 +113,11 @@ async verifyRefreshToken(
   return session;
 }
 
+async revoke(
+  id: string,
+) {
+  return this.sessionsRepository.revoke(id);
+}
+
 
 }
