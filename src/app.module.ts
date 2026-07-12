@@ -9,10 +9,12 @@ import { ResponseInterceptor } from './common/interceptors/reespomse.interceptor
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth';
 import { SessionsModule } from './modules/sessions/sessions.module';
+import { PermissionsModule }
+from './modules/permissions';
 
 
 @Module({
-  imports: [AppConfigModule, PrismaModule, TestModule, AppLoggerModule,HealthModule, UsersModule, AuthModule, SessionsModule],
+  imports: [AppConfigModule, PrismaModule, TestModule, AppLoggerModule,HealthModule, UsersModule, AuthModule, SessionsModule,PermissionsModule,],
   controllers: [],
   // providers: [AppService],
   providers: [
