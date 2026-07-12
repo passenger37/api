@@ -19,6 +19,7 @@ import { LoginDto } from '../dto/login.dto';
 import { LogoutDto } from '../dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators';
+import { Public } from '../../../common/decorators';
 
 @ApiTags('Authentication')
 @ApiBearerAuth('JWT')
@@ -41,6 +42,7 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+  @Public()
   @Post('login')
     @ApiOperation({
     summary: 'Login using email or username',
