@@ -12,6 +12,9 @@ import { TokenService } from './services/token.service';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { SessionsModule } from '../sessions/sessions.module';
+import { APP_GUARD } from '@nestjs/core';
+
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 
 @Module({
@@ -41,7 +44,10 @@ import { SessionsModule } from '../sessions/sessions.module';
 
   controllers: [AuthController],
 
-  providers: [AuthService, TokenService, JwtStrategy],
+  providers: [AuthService, TokenService, JwtStrategy,    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },],
 
   exports: [
     AuthService,

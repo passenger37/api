@@ -32,6 +32,7 @@ export class AuthController {
     private readonly authService: AuthService,
   ) {}
 
+  @Public()
   @Post('register')
     @ApiOperation({
     summary: 'Register a new user',
@@ -70,7 +71,6 @@ logout(
 
 
 @Get('profile')
-@UseGuards(JwtAuthGuard)
 @ApiOperation({
     summary: 'Profile',
   })
