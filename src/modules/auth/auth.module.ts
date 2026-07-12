@@ -15,6 +15,7 @@ import { SessionsModule } from '../sessions/sessions.module';
 import { APP_GUARD } from '@nestjs/core';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PermissionsModule } from '../permissions';
 
 
 @Module({
@@ -22,6 +23,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
     PassportModule,
     UsersModule,
     SessionsModule,
+    PermissionsModule,
 
     JwtModule.registerAsync({
      inject: [ConfigService],

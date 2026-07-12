@@ -20,6 +20,13 @@ import { LogoutDto } from '../dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators';
 import { Public } from '../../../common/decorators';
+import {
+  Permissions,
+} from '../../../common/decorators';
+
+import {
+  PermissionsGuard,
+} from '../../../common/guards';
 
 @ApiTags('Authentication')
 @ApiBearerAuth('JWT')
@@ -71,18 +78,15 @@ logout(
 
 
 @Get('profile')
-@ApiOperation({
-    summary: 'Profile',
-  })
+@UseGuards(PermissionsGuard)
+@Permissions('profile.read')
 profile(
-@CurrentUser()
-user: {
-  sub:string,
-  email: string;
-  username: string;
-}
+  @CurrentUser() user: {
+    sub: string;
+    email: string;
+    username: string;
+  },
 ) {
   return user;
-
 }
 }
