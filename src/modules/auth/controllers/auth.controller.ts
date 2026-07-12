@@ -1,21 +1,27 @@
 import {
   Body,
   Controller,
-  Post,UseGuards
+  Get,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
 
 import {
+  ApiBearerAuth,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
 import { AuthService } from '../services/auth.service';
+import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { LogoutDto } from '../dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../common/decorators';
 
 @ApiTags('Authentication')
+@ApiBearerAuth('JWT')
 @Controller({
   path: 'auth',
   version: '1',
@@ -60,4 +66,21 @@ logout(
 //   return this.authService.logoutAll(user.sub);
 // }
 
+
+@Get('profile')
+@UseGuards(JwtAuthGuard)
+@ApiOperation({
+    summary: 'Profile',
+  })
+profile(
+@CurrentUser()
+user: {
+  sub:string,
+  email: string;
+  username: string;
+}
+) {
+  return user;
+
+}
 }
