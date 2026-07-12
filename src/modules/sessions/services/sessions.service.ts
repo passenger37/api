@@ -119,5 +119,12 @@ async revoke(
   return this.sessionsRepository.revoke(id);
 }
 
+async revokeAllByUserId(
+  userId: string,
+) {
+  return this.sessionsRepository.revokeAllByUserId(
+    userId,
+  );
+}
 
 }

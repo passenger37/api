@@ -206,4 +206,18 @@ async logout(
     success: true,
   };
 }
+
+async logoutAll(
+  userId: string,
+) {
+  await this.sessionsService.revokeAllByUserId(
+    userId,
+  );
+
+  return {
+    success: true,
+    message:
+      'Logged out from all devices successfully.',
+  };
+}
 }

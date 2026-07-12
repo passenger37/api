@@ -1,6 +1,6 @@
 import { Controller, Get ,Post,Body, BadRequestException} from '@nestjs/common';
 // import { PrismaService } from '../../core/database';
-import {LoginDto} from '../../commons/dto/temp.dto';
+import {LoginDto} from '../../common/dto/temp.dto';
 import { ConfigService } from '@nestjs/config/dist/config.service';
 
 @Controller('test')

@@ -4,7 +4,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
@@ -17,7 +17,7 @@ export class UsersController {
 
   @ApiBearerAuth('JWT')
   @Get('me')
-  @UseGuards(JwtAuthGuard)
+ @UseGuards(JwtAuthGuard)
   me(
     @CurrentUser() user: any,
   ) {

@@ -1,7 +1,7 @@
 import {
   Body,
   Controller,
-  Post,
+  Post,UseGuards
 } from '@nestjs/common';
 
 import {
@@ -13,6 +13,7 @@ import { AuthService } from '../services/auth.service';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { LogoutDto } from '../dto';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 
 @ApiTags('Authentication')
 @Controller({
@@ -50,5 +51,13 @@ logout(
 ) {
   return this.authService.logout(dto);
 }
+
+// @Post('logout-all')
+// @UseGuards(JwtAuthGuard)
+// logoutAll(
+//   @CurrentUser() user: JwtPayload,
+// ) {
+//   return this.authService.logoutAll(user.sub);
+// }
 
 }

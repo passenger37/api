@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { configureValidation } from './config/validation/index';
-import { GlobalExceptionFilter } from './commons/exceptions/filters/global-exception.filter';
+import { GlobalExceptionFilter } from './common/exceptions/filters/global-exception.filter';
 import { configureSwagger } from './config/swagger';
 import { configureHelmet } from './config/helmet';
 import { configureCors } from './config/cors/index';

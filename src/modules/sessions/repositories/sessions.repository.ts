@@ -80,4 +80,18 @@ async revoke(
   });
 }
 
+async revokeAllByUserId(
+  userId: string,
+) {
+  return this.prisma.userSession.updateMany({
+    where: {
+      userId,
+      isRevoked: false,
+    },
+    data: {
+      isRevoked: true,
+    },
+  });
+}
+
 }
