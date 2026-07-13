@@ -6,8 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-import { PERMISSIONS_KEY } from '../decorators';
-import { PermissionsService } from '../../modules/permissions';
+import { AuthorizationService } from '../../modules/auth/services/authorization.service';
 
 @Injectable()
 export class PermissionsGuard
@@ -15,7 +14,7 @@ export class PermissionsGuard
 {
   constructor(
     private readonly reflector: Reflector,
-    private readonly permissionsService: PermissionsService,
+    private readonly authorizationService: AuthorizationService,
   ) {}
 
   async canActivate(
@@ -23,14 +22,13 @@ export class PermissionsGuard
   ): Promise<boolean> {
     const requiredPermissions =
       this.reflector.getAllAndOverride<string[]>(
-        PERMISSIONS_KEY,
+        'permissions',
         [
           context.getHandler(),
           context.getClass(),
         ],
       );
 
-    // No permission required
     if (
       !requiredPermissions ||
       requiredPermissions.length === 0
@@ -44,21 +42,25 @@ export class PermissionsGuard
     const user = request.user;
 
     if (!user) {
-      return false;
+      throw new ForbiddenException(
+        'User not authenticated',
+      );
     }
 
-    for (const permission of requiredPermissions) {
-      const hasPermission =
-        await this.permissionsService.hasPermission(
-          user.id,
-          permission,
-        );
+    const userPermissions =
+      await this.authorizationService.getUserPermissions(
+        user.id,
+      );
 
-      if (!hasPermission) {
-        throw new ForbiddenException(
-          `Missing permission: ${permission}`,
-        );
-      }
+    const hasPermissions =
+      requiredPermissions.every(permission =>
+        userPermissions.includes(permission),
+      );
+
+    if (!hasPermissions) {
+      throw new ForbiddenException(
+        'Insufficient permissions',
+      );
     }
 
     return true;
