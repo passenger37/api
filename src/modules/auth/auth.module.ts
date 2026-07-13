@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsModule } from '../permissions';
 import { AuthorizationService } from './services/authorization.service';
 import { RoleService } from './services/role.service';
+import { PermissionService } from './services/permission.service';
 
 @Module({
   imports: [
@@ -51,13 +52,15 @@ import { RoleService } from './services/role.service';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },AuthorizationService,
-    RoleService,],
+    RoleService,
+    PermissionService,],
 
   exports: [
     AuthService,
     JwtModule,
     AuthorizationService,
     RoleService,
+    PermissionService,
   ],
 })
 export class AuthModule {}
