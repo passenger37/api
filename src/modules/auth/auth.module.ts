@@ -16,6 +16,7 @@ import { APP_GUARD } from '@nestjs/core';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsModule } from '../permissions';
+import { AuthorizationService } from './services/authorization.service';
 
 
 @Module({
@@ -49,11 +50,12 @@ import { PermissionsModule } from '../permissions';
   providers: [AuthService, TokenService, JwtStrategy,    {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
-    },],
+    },AuthorizationService,],
 
   exports: [
     AuthService,
     JwtModule,
+    AuthorizationService,
   ],
 })
 export class AuthModule {}
