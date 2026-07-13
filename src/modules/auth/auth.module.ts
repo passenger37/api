@@ -17,7 +17,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsModule } from '../permissions';
 import { AuthorizationService } from './services/authorization.service';
-
+import { RoleService } from './services/role.service';
 
 @Module({
   imports: [
@@ -50,12 +50,14 @@ import { AuthorizationService } from './services/authorization.service';
   providers: [AuthService, TokenService, JwtStrategy,    {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
-    },AuthorizationService,],
+    },AuthorizationService,
+    RoleService,],
 
   exports: [
     AuthService,
     JwtModule,
     AuthorizationService,
+    RoleService,
   ],
 })
 export class AuthModule {}
