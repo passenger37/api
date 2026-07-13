@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,7 +6,6 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 
 enum UserStatus {
   ACTIVE
@@ -23,32 +21,31 @@ enum Gender {
   PREFER_NOT_TO_SAY
 }
 
-
 model User {
   // ===========================
   // Identity
   // ===========================
 
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // ===========================
   // Authentication
   // ===========================
 
-  email        String   @unique
-  username     String   @unique
+  email        String @unique
+  username     String @unique
   passwordHash String
 
   // ===========================
   // Profile
   // ===========================
 
-  displayName  String
+  displayName String
 
-  avatarUrl    String?
+  avatarUrl     String?
   coverPhotoUrl String?
 
-  bio          String?
+  bio String?
 
   // ===========================
   // Contact
@@ -117,46 +114,115 @@ model User {
   //=============================
 
   sessions UserSession[]
+
+  roles UserRole[]
 }
 
 model UserSession {
-  id               String   @id @default(uuid())
+  id String @id @default(uuid())
 
   /// Public session identifier stored in JWT ("sid")
-  sessionId        String   @unique @default(uuid())
+  sessionId String @unique @default(uuid())
 
   /// User who owns this session
-  userId           String
+  userId String
 
   /// Hashed refresh token (never store plaintext)
   refreshTokenHash String
 
   /// Expiration of the refresh token
-  expiresAt        DateTime
+  expiresAt DateTime
 
   /// Last time this session successfully refreshed
-  lastUsedAt       DateTime @default(now())
+  lastUsedAt DateTime @default(now())
 
   /// Device information
-  deviceName       String?
-  userAgent        String?
-  ipAddress        String?
+  deviceName String?
+  userAgent  String?
+  ipAddress  String?
 
   /// Session state
-  isRevoked        Boolean  @default(false)
+  isRevoked Boolean @default(false)
 
   /// Audit fields
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   /// Relations
-user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   /// Indexes
   @@index([userId])
   @@index([sessionId])
   @@index([expiresAt])
   @@index([isRevoked])
-
   @@map("user_sessions")
+}
+
+model Role {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+
+  isSystem Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id String @id @default(uuid())
+
+  name String @unique
+
+  description String?
+
+  resource String
+
+  action String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  roles RolePermission[]
+
+  @@index([resource])
+  @@index([action])
+}
+
+model UserRole {
+  id String @id @default(uuid())
+
+  userId String
+  roleId String
+
+  assignedBy String?
+
+  assignedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model RolePermission {
+  id String @id @default(uuid())
+
+  roleId       String
+  permissionId String
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
 }
