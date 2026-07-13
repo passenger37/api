@@ -116,10 +116,12 @@ model User {
   sessions UserSession[]
 
   roles UserRole[]
+
+  assignedRoles UserRole[] @relation("RoleAssignedBy")
 }
 
 model UserSession {
-  id String @id @default(uuid())
+  id String @id @default(cuid())
 
   /// Public session identifier stored in JWT ("sid")
   sessionId String @unique @default(uuid())
@@ -160,7 +162,7 @@ model UserSession {
 }
 
 model Role {
-  id          String  @id @default(uuid())
+  id          String  @id @default(cuid())
   name        String  @unique
   description String?
 
@@ -174,7 +176,7 @@ model Role {
 }
 
 model Permission {
-  id String @id @default(uuid())
+  id String @id @default(cuid())
 
   name String @unique
 
@@ -194,12 +196,13 @@ model Permission {
 }
 
 model UserRole {
-  id String @id @default(uuid())
+  id String @id @default(cuid())
 
-  userId String
-  roleId String
+  userId       String
+  roleId       String
+  assignedById String?
 
-  assignedBy String?
+  assignedBy User? @relation("RoleAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
 
   assignedAt DateTime @default(now())
 
@@ -213,7 +216,7 @@ model UserRole {
 }
 
 model RolePermission {
-  id String @id @default(uuid())
+  id String @id @default(cuid())
 
   roleId       String
   permissionId String
