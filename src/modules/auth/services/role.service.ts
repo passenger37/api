@@ -6,12 +6,15 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '../../../core/database';
+import { CreateRoleDto, UpdateRoleDto } from '../dto';
 import { SystemRoles } from '../../../common/constants/system-roles';
+import { PermissionService } from './permission.service';
 
 @Injectable()
 export class RoleService {
   constructor(
     private readonly prisma: PrismaService,
+     private readonly permissionService: PermissionService,
   ) {}
 
   async findAll() {
@@ -41,6 +44,75 @@ export class RoleService {
       },
     });
   }
+
+  async create(dto: CreateRoleDto) {
+  const existing = await this.findByName(dto.name);
+
+  if (existing) {
+    throw new ConflictException(
+      'Role already exists',
+    );
+  }
+
+  return this.prisma.role.create({
+    data: {
+      name: dto.name,
+      description: dto.description,
+      isSystem: dto.isSystem ?? false,
+    },
+  });
+}
+
+async update(
+  id: string,
+  dto: UpdateRoleDto,
+) {
+  const role = await this.findById(id);
+
+  if (role.isSystem) {
+    throw new ForbiddenException(
+      'System roles cannot be modified.',
+    );
+  }
+
+  if (
+    dto.name &&
+    dto.name !== role.name
+  ) {
+    const existing = await this.findByName(
+      dto.name,
+    );
+
+    if (existing) {
+      throw new ConflictException(
+        'Role name already exists.',
+      );
+    }
+  }
+
+  return this.prisma.role.update({
+    where: {
+      id,
+    },
+    data: dto,
+  });
+}
+
+async delete(id: string) {
+  const role = await this.findById(id);
+
+  if (role.isSystem) {
+    throw new ForbiddenException(
+      'System roles cannot be deleted.',
+    );
+  }
+
+  return this.prisma.role.delete({
+    where: {
+      id,
+    },
+  });
+}
 
   async assignRole(
     userId: string,
@@ -124,4 +196,95 @@ export class RoleService {
       },
     });
   }
+
+  async assignPermission(
+  roleId: string,
+  permissionId: string,
+) {
+  // Ensure role exists
+  await this.findById(roleId);
+
+  // Ensure permission exists
+  await this.permissionService.findById(permissionId);
+
+  // Prevent duplicates
+  const existing =
+    await this.prisma.rolePermission.findFirst({
+      where: {
+        roleId,
+        permissionId,
+      },
+    });
+
+  if (existing) {
+    throw new ConflictException(
+      'Permission already assigned to role.',
+    );
+  }
+
+  return this.prisma.rolePermission.create({
+    data: {
+      roleId,
+      permissionId,
+    },
+    include: {
+      permission: true,
+    },
+  });
+}
+
+async removePermission(
+  roleId: string,
+  permissionId: string,
+) {
+  const relation =
+    await this.prisma.rolePermission.findFirst({
+      where: {
+        roleId,
+        permissionId,
+      },
+    });
+
+  if (!relation) {
+    throw new NotFoundException(
+      'Permission is not assigned to this role.',
+    );
+  }
+
+  await this.prisma.rolePermission.delete({
+    where: {
+      id: relation.id,
+    },
+  });
+
+  return {
+    message:
+      'Permission removed successfully.',
+  };
+}
+
+async getPermissions(roleId: string) {
+  await this.findById(roleId);
+
+  const permissions =
+    await this.prisma.rolePermission.findMany({
+      where: {
+        roleId,
+      },
+      include: {
+        permission: true,
+      },
+      orderBy: {
+        permission: {
+          name: 'asc',
+        },
+      },
+    });
+
+  return permissions.map(
+    (item) => item.permission,
+  );
+}
+
+
 }

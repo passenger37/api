@@ -1,69 +1,96 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
-  Delete,
-  UseGuards,
 } from '@nestjs/common';
 
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../../../common/guards/permissions.guard';
-import { Permissions } from '../../../common/decorators/permissions.decorator';
+import {
+  CreateRoleDto,
+  UpdateRoleDto,
+} from '../dto';
 
 import { RoleService } from '../services/role.service';
 
-import { AssignRoleDto } from '../dto/assign-role.dto';
-import { RemoveRoleDto } from '../dto/remove-role.dto';
+import { Authorize } from '../../../common/decorators';
 
 @ApiTags('Roles')
-@ApiBearerAuth('JWT')
 @Controller({
   path: 'roles',
   version: '1',
 })
-@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class RoleController {
   constructor(
     private readonly roleService: RoleService,
   ) {}
 
   @Get()
-  @Permissions('roles.read')
+  @Authorize('roles.read')
+  @ApiOperation({
+    summary: 'Get all roles',
+  })
   findAll() {
     return this.roleService.findAll();
   }
 
   @Get(':id')
-  @Permissions('roles.read')
-  findOne(
+  @Authorize('roles.read')
+  @ApiOperation({
+    summary: 'Get role by id',
+  })
+  findById(
     @Param('id') id: string,
   ) {
     return this.roleService.findById(id);
   }
 
-  @Post('assign')
-  @Permissions('roles.assign')
-  assignRole(
-    @Body() dto: AssignRoleDto,
+  @Post()
+  @Authorize('roles.create')
+  @ApiOperation({
+    summary: 'Create role',
+  })
+  create(
+    @Body()
+    dto: CreateRoleDto,
   ) {
-    return this.roleService.assignRole(
-      dto.userId,
-      dto.roleId,
+    return this.roleService.create(dto);
+  }
+
+  @Patch(':id')
+  @Authorize('roles.update')
+  @ApiOperation({
+    summary: 'Update role',
+  })
+  update(
+    @Param('id')
+    id: string,
+
+    @Body()
+    dto: UpdateRoleDto,
+  ) {
+    return this.roleService.update(
+      id,
+      dto,
     );
   }
 
-  @Delete('remove')
-  @Permissions('roles.remove')
-  removeRole(
-    @Body() dto: RemoveRoleDto,
+  @Delete(':id')
+  @Authorize('roles.delete')
+  @ApiOperation({
+    summary: 'Delete role',
+  })
+  delete(
+    @Param('id')
+    id: string,
   ) {
-    return this.roleService.removeRole(
-      dto.userId,
-      dto.roleId,
-    );
+    return this.roleService.delete(id);
   }
 }
