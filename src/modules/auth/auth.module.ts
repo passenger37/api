@@ -24,6 +24,8 @@ import { AuthorizationAuditService } from './services/authorization-audit.servic
 import { RoleController } from './controllers/role.controller';
 import { PermissionController } from './controllers/permission.controller';
 
+import { SuperAdminGuard } from '../../common/guards/super-admin.guard'
+
 @Module({
   imports: [
     PassportModule,
@@ -58,7 +60,8 @@ import { PermissionController } from './controllers/permission.controller';
     },AuthorizationService,
     RoleService,
     PermissionService,
-  AuthorizationAuditService,],
+    AuthorizationAuditService,
+    SuperAdminGuard,],
 
   exports: [
     AuthService,
