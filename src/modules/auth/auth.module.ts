@@ -12,6 +12,7 @@ import { TokenService } from './services/token.service';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { SessionsModule } from '../sessions/sessions.module';
+import { RoleController } from './controllers/role.controller';
 import { APP_GUARD } from '@nestjs/core';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -46,7 +47,7 @@ import { PermissionService } from './services/permission.service';
 }),
   ],
 
-  controllers: [AuthController],
+  controllers: [AuthController,RoleController],
 
   providers: [AuthService, TokenService, JwtStrategy,    {
       provide: APP_GUARD,
