@@ -229,3 +229,34 @@ model RolePermission {
   @@index([roleId])
   @@index([permissionId])
 }
+
+
+model AuthorizationAuditLog {
+  id String @id @default(uuid())
+
+  actorId String?
+
+  action String
+
+  targetUserId String?
+
+  roleId String?
+
+  permissionId String?
+
+  ipAddress String?
+
+  userAgent String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+
+  @@index([targetUserId])
+
+  @@index([action])
+
+  @@index([createdAt])
+}

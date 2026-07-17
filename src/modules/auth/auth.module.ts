@@ -19,6 +19,7 @@ import { PermissionsModule } from '../permissions';
 import { AuthorizationService } from './services/authorization.service';
 import { RoleService } from './services/role.service';
 import { PermissionService } from './services/permission.service';
+import { AuthorizationAuditService } from './services/authorization-audit.service';
 
 import { RoleController } from './controllers/role.controller';
 import { PermissionController } from './controllers/permission.controller';
@@ -56,7 +57,8 @@ import { PermissionController } from './controllers/permission.controller';
       useClass: JwtAuthGuard,
     },AuthorizationService,
     RoleService,
-    PermissionService,],
+    PermissionService,
+  AuthorizationAuditService,],
 
   exports: [
     AuthService,
