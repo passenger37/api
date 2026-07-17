@@ -12,7 +12,6 @@ import { TokenService } from './services/token.service';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { SessionsModule } from '../sessions/sessions.module';
-import { RoleController } from './controllers/role.controller';
 import { APP_GUARD } from '@nestjs/core';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -20,6 +19,9 @@ import { PermissionsModule } from '../permissions';
 import { AuthorizationService } from './services/authorization.service';
 import { RoleService } from './services/role.service';
 import { PermissionService } from './services/permission.service';
+
+import { RoleController } from './controllers/role.controller';
+import { PermissionController } from './controllers/permission.controller';
 
 @Module({
   imports: [
@@ -47,7 +49,7 @@ import { PermissionService } from './services/permission.service';
 }),
   ],
 
-  controllers: [AuthController,RoleController],
+  controllers: [AuthController, RoleController, PermissionController],
 
   providers: [AuthService, TokenService, JwtStrategy,    {
       provide: APP_GUARD,
