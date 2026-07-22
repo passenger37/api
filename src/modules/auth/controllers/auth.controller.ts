@@ -18,8 +18,11 @@ import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { LogoutDto } from '../dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
 import { CurrentUser } from '../../../common/decorators';
+import { Roles } from '../../../common/decorators';
 import { Public } from '../../../common/decorators';
+import { SystemRole } from '../../../common/constants/system-role.enum';
 import {
   Permissions,
 } from '../../../common/decorators';
@@ -88,5 +91,14 @@ profile(
   },
 ) {
   return user;
+}
+@Get('users')
+@UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+)
+@Roles(SystemRole.SUPER_ADMIN)
+findAllUsers() {
+  return "hi"
 }
 }

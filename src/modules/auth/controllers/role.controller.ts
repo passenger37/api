@@ -11,6 +11,7 @@ import {
 import {
   ApiOperation,
   ApiTags,
+  ApiBearerAuth
 } from '@nestjs/swagger';
 
 import {
@@ -23,6 +24,7 @@ import { RoleService } from '../services/role.service';
 import { Authorize } from '../../../common/decorators';
 
 @ApiTags('Roles')
+@ApiBearerAuth('JWT')
 @Controller({
   path: 'roles',
   version: '1',

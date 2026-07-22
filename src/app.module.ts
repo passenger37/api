@@ -9,6 +9,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth';
 import { SessionsModule } from './modules/sessions/sessions.module';
 import { PermissionsModule } from './modules/permissions';
+import { BootstrapService } from './bootstrap/bootstrap.service';
 
 @Module({
   imports: [AppConfigModule, PrismaModule, AppLoggerModule,HealthModule, UsersModule, AuthModule, SessionsModule,PermissionsModule,],
@@ -19,6 +20,6 @@ import { PermissionsModule } from './modules/permissions';
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
     },
-  ],
+  BootstrapService,],
 })
 export class AppModule {}

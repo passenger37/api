@@ -118,6 +118,8 @@ model User {
   roles UserRole[]
 
   assignedRoles UserRole[] @relation("RoleAssignedBy")
+
+  permissionVersion Int @default(1)
 }
 
 model UserSession {

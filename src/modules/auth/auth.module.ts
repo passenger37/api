@@ -20,11 +20,21 @@ import { AuthorizationService } from './services/authorization.service';
 import { RoleService } from './services/role.service';
 import { PermissionService } from './services/permission.service';
 import { AuthorizationAuditService } from './services/authorization-audit.service';
+import { AuthorizationBootstrapService } from './services/authorization-bootstrap.service';
 
 import { RoleController } from './controllers/role.controller';
 import { PermissionController } from './controllers/permission.controller';
+import { RolePermissionController } from './controllers/role-permission.controller';
 
 import { SuperAdminGuard } from '../../common/guards/super-admin.guard'
+
+
+import { PermissionSeeder } from './seeders/permission.seeder';
+import { RoleSeeder } from './seeders/role.seeder';
+import { RolePermissionSeeder } from './seeders/role-permission.seeder';
+import { SuperAdminSeeder } from './seeders/super-admin.seeder';
+
+
 
 @Module({
   imports: [
@@ -52,7 +62,7 @@ import { SuperAdminGuard } from '../../common/guards/super-admin.guard'
 }),
   ],
 
-  controllers: [AuthController, RoleController, PermissionController],
+  controllers: [AuthController, RoleController, PermissionController, RolePermissionController],
 
   providers: [AuthService, TokenService, JwtStrategy,    {
       provide: APP_GUARD,
@@ -61,7 +71,12 @@ import { SuperAdminGuard } from '../../common/guards/super-admin.guard'
     RoleService,
     PermissionService,
     AuthorizationAuditService,
-    SuperAdminGuard,],
+    SuperAdminGuard,
+    PermissionSeeder,
+    RoleSeeder,
+    RolePermissionSeeder,
+    SuperAdminSeeder,
+    AuthorizationBootstrapService,],
 
   exports: [
     AuthService,
@@ -69,6 +84,7 @@ import { SuperAdminGuard } from '../../common/guards/super-admin.guard'
     AuthorizationService,
     RoleService,
     PermissionService,
+    AuthorizationBootstrapService,
   ],
 })
 export class AuthModule {}

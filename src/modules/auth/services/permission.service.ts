@@ -80,4 +80,26 @@ export class PermissionService {
       },
     });
   }
+
+  async hasPermission(
+  userId: string,
+  permission: string,
+): Promise<boolean> {
+  const count = await this.prisma.userRole.count({
+    where: {
+      userId,
+      role: {
+        permissions: {
+          some: {
+            permission: {
+              name: permission,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return count > 0;
+}
 }

@@ -15,13 +15,21 @@ export class UsersRepository {
     });
   }
 
-  async findById(id: string): Promise<User | null> {
-    return this.prisma.user.findUnique({
-      where: {
-        id,
+findById(id: string) {
+  return this.prisma.user.findUnique({
+    where: {
+      id,
+    },
+
+    include: {
+      roles: {
+        include: {
+          role: true,
+        },
       },
-    });
-  }
+    },
+  });
+}
 
   async findByEmail(
     email: string,
