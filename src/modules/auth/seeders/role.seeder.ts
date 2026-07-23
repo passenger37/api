@@ -8,9 +8,7 @@ import { SYSTEM_ROLES } from '../constants/roles';
 export class RoleSeeder {
   private readonly logger = new Logger(RoleSeeder.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async seed() {
     this.logger.log('Seeding system roles...');
@@ -39,8 +37,6 @@ export class RoleSeeder {
       created++;
     }
 
-    this.logger.log(
-      `Created ${created} role(s).`,
-    );
+    this.logger.log(`Created ${created} role(s).`);
   }
 }

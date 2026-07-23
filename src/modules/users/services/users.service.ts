@@ -7,31 +7,25 @@ import { CreateUserInput } from '../types/create-user.input';
 
 @Injectable()
 export class UsersService {
-constructor(
-    private readonly usersRepository: UsersRepository,
-) {}
+  constructor(private readonly usersRepository: UsersRepository) {}
 
-async create(data: Prisma.UserCreateInput) {
-  return this.usersRepository.create(data);
-}
-
-
-  async findByIdentifier(identifier: string) {
-  return this.usersRepository.findByEmailOrUsername(
-    identifier,
-  );
+  async create(data: Prisma.UserCreateInput) {
+    return this.usersRepository.create(data);
   }
 
-async findById(id: string) {
-  return this.usersRepository.findById(id);
-}
+  async findByIdentifier(identifier: string) {
+    return this.usersRepository.findByEmailOrUsername(identifier);
+  }
 
-async findByUsername(username: string) {
-  return this.usersRepository.findByUsername(username);
-}
+  async findById(id: string) {
+    return this.usersRepository.findById(id);
+  }
 
-async findByEmail(email: string) {
-  return this.usersRepository.findByEmail(email);
-}
+  async findByUsername(username: string) {
+    return this.usersRepository.findByUsername(username);
+  }
 
+  async findByEmail(email: string) {
+    return this.usersRepository.findByEmail(email);
+  }
 }

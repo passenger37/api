@@ -4,47 +4,36 @@ import { PrismaService } from '../../../core/database';
 
 @Injectable()
 export class RolePermissionSeeder {
-  private readonly logger = new Logger(
-    RolePermissionSeeder.name,
-  );
+  private readonly logger = new Logger(RolePermissionSeeder.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async seed() {
-    this.logger.log(
-      'Assigning permissions to system roles...',
-    );
+    this.logger.log('Assigning permissions to system roles...');
 
-    const superAdmin =
-      await this.prisma.role.findUnique({
-        where: {
-          name: 'SUPER_ADMIN',
-        },
-      });
+    const superAdmin = await this.prisma.role.findUnique({
+      where: {
+        name: 'SUPER_ADMIN',
+      },
+    });
 
     if (!superAdmin) {
-      throw new Error(
-        'SUPER_ADMIN role not found.',
-      );
+      throw new Error('SUPER_ADMIN role not found.');
     }
 
-    const permissions =
-      await this.prisma.permission.findMany();
+    const permissions = await this.prisma.permission.findMany();
 
     let created = 0;
 
     for (const permission of permissions) {
-      const exists =
-        await this.prisma.rolePermission.findUnique({
-          where: {
-            roleId_permissionId: {
-              roleId: superAdmin.id,
-              permissionId: permission.id,
-            },
+      const exists = await this.prisma.rolePermission.findUnique({
+        where: {
+          roleId_permissionId: {
+            roleId: superAdmin.id,
+            permissionId: permission.id,
           },
-        });
+        },
+      });
 
       if (exists) {
         continue;
@@ -60,8 +49,6 @@ export class RolePermissionSeeder {
       created++;
     }
 
-    this.logger.log(
-      `Assigned ${created} permission(s) to SUPER_ADMIN.`,
-    );
+    this.logger.log(`Assigned ${created} permission(s) to SUPER_ADMIN.`);
   }
 }

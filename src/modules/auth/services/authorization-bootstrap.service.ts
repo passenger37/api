@@ -7,9 +7,7 @@ import { SuperAdminSeeder } from '../seeders/super-admin.seeder';
 
 @Injectable()
 export class AuthorizationBootstrapService {
-  private readonly logger = new Logger(
-    AuthorizationBootstrapService.name,
-  );
+  private readonly logger = new Logger(AuthorizationBootstrapService.name);
 
   constructor(
     private readonly permissionSeeder: PermissionSeeder,
@@ -19,9 +17,7 @@ export class AuthorizationBootstrapService {
   ) {}
 
   async bootstrap() {
-    this.logger.log(
-      'Starting authorization bootstrap...',
-    );
+    this.logger.log('Starting authorization bootstrap...');
 
     await this.permissionSeeder.seed();
 
@@ -31,8 +27,6 @@ export class AuthorizationBootstrapService {
 
     await this.superAdminSeeder.seed();
 
-    this.logger.log(
-      'Authorization bootstrap completed.',
-    );
+    this.logger.log('Authorization bootstrap completed.');
   }
 }

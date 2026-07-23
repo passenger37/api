@@ -6,9 +6,7 @@ import { PrismaService } from '../../../core/database';
 
 @Injectable()
 export class SuperAdminSeeder {
-  private readonly logger = new Logger(
-    SuperAdminSeeder.name,
-  );
+  private readonly logger = new Logger(SuperAdminSeeder.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -66,8 +64,6 @@ export class SuperAdminSeeder {
       },
     });
 
-    this.logger.log(
-      `Super Admin created (${email})`,
-    );
+    this.logger.log(`Super Admin created (${email})`);
   }
 }

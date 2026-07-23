@@ -6,28 +6,21 @@ import { SYSTEM_PERMISSIONS } from '../constants/permissions';
 
 @Injectable()
 export class PermissionSeeder {
-  private readonly logger = new Logger(
-    PermissionSeeder.name,
-  );
+  private readonly logger = new Logger(PermissionSeeder.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async seed() {
-    this.logger.log(
-      'Seeding system permissions...',
-    );
+    this.logger.log('Seeding system permissions...');
 
     let created = 0;
 
     for (const permission of SYSTEM_PERMISSIONS) {
-      const exists =
-        await this.prisma.permission.findUnique({
-          where: {
-            name: permission.name,
-          },
-        });
+      const exists = await this.prisma.permission.findUnique({
+        where: {
+          name: permission.name,
+        },
+      });
 
       if (exists) {
         continue;
@@ -45,8 +38,6 @@ export class PermissionSeeder {
       created++;
     }
 
-    this.logger.log(
-      `Created ${created} permission(s).`,
-    );
+    this.logger.log(`Created ${created} permission(s).`);
   }
 }

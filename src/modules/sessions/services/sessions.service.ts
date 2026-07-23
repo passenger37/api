@@ -10,121 +10,87 @@ import { UnauthorizedException } from '@nestjs/common';
 
 @Injectable()
 export class SessionsService {
-  constructor(
-    private readonly sessionsRepository: SessionsRepository,
-  ) {}
+  constructor(private readonly sessionsRepository: SessionsRepository) {}
 
   async create(dto: CreateSessionDto) {
-    const refreshTokenHash =
-      await bcrypt.hash(dto.refreshToken, 10);
+    const refreshTokenHash = await bcrypt.hash(dto.refreshToken, 10);
 
- return this.sessionsRepository.create({
+    return this.sessionsRepository.create({
+      sessionId: dto.sessionId,
 
-    sessionId: dto.sessionId,
-
-    user: {
-      connect: {
-        id: dto.userId,
+      user: {
+        connect: {
+          id: dto.userId,
+        },
       },
-    },
 
-    refreshTokenHash,
+      refreshTokenHash,
 
-    expiresAt: dto.expiresAt,
+      expiresAt: dto.expiresAt,
 
-    deviceName: dto.deviceName,
+      deviceName: dto.deviceName,
 
-    userAgent: dto.userAgent,
+      userAgent: dto.userAgent,
 
-    ipAddress: dto.ipAddress,
-  });
+      ipAddress: dto.ipAddress,
+    });
   }
 
   async findByUserId(userId: string) {
-  return this.sessionsRepository.findByUserId(userId);
-}
+    return this.sessionsRepository.findByUserId(userId);
+  }
 
-async updateRefreshToken(
-  sessionId: string,
-  refreshToken: string,
-  expiresAt: Date,
-) {
-  const hash = await bcrypt.hash(
-    refreshToken,
-    10,
-  );
+  async updateRefreshToken(
+    sessionId: string,
+    refreshToken: string,
+    expiresAt: Date,
+  ) {
+    const hash = await bcrypt.hash(refreshToken, 10);
 
-  return this.sessionsRepository.updateRefreshToken(
-    sessionId,
-    hash,
-    expiresAt,
-  );
-}
-
-async findBySessionId(
-  sessionId: string,
-) {
-  return this.sessionsRepository.findBySessionId(
-    sessionId,
-  );
-}
-
-async rotateRefreshToken(
-  id: string,
-  refreshToken: string,
-) {
-  const refreshTokenHash =
-    await bcrypt.hash(refreshToken, 10);
-
-  return this.sessionsRepository.update(
-    id,
-    {
-      refreshTokenHash,
-      lastUsedAt: new Date(),
-    },
-  );
-}
-
-async verifyRefreshToken(
-  sessionId: string,
-  refreshToken: string,
-) {
-  const session =
-    await this.findBySessionId(sessionId);
-
-  if (!session) {
-    throw new UnauthorizedException(
-      'Session not found',
+    return this.sessionsRepository.updateRefreshToken(
+      sessionId,
+      hash,
+      expiresAt,
     );
   }
 
-  const matches =
-    await bcrypt.compare(
+  async findBySessionId(sessionId: string) {
+    return this.sessionsRepository.findBySessionId(sessionId);
+  }
+
+  async rotateRefreshToken(id: string, refreshToken: string) {
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
+    return this.sessionsRepository.update(id, {
+      refreshTokenHash,
+      lastUsedAt: new Date(),
+    });
+  }
+
+  async verifyRefreshToken(sessionId: string, refreshToken: string) {
+    const session = await this.findBySessionId(sessionId);
+
+    if (!session) {
+      throw new UnauthorizedException('Session not found');
+    }
+
+    const matches = await bcrypt.compare(
       refreshToken,
       session.refreshTokenHash,
     );
 
-  if (!matches) {
-    throw new UnauthorizedException(
-      'Invalid refresh token',
-    );
+    if (!matches) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    return session;
   }
 
-  return session;
-}
+  async revoke(id: string) {
+    return this.sessionsRepository.revoke(id);
+  }
 
-async revoke(
-  id: string,
-) {
-  return this.sessionsRepository.revoke(id);
-}
-
-async revokeAllByUserId(
-  userId: string,
-) {
-  return this.sessionsRepository.revokeAllByUserId(
-    userId,
-  );
-}
-
+  async revokeAllByUserId(userId: string) {
+    return this.sessionsRepository.revokeAllByUserId(userId);
+  }
 }

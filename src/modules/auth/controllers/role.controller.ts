@@ -8,16 +8,9 @@ import {
   Post,
 } from '@nestjs/common';
 
-import {
-  ApiOperation,
-  ApiTags,
-  ApiBearerAuth
-} from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
-import {
-  CreateRoleDto,
-  UpdateRoleDto,
-} from '../dto';
+import { CreateRoleDto, UpdateRoleDto } from '../dto';
 
 import { RoleService } from '../services/role.service';
 
@@ -30,9 +23,7 @@ import { Authorize } from '../../../common/decorators';
   version: '1',
 })
 export class RoleController {
-  constructor(
-    private readonly roleService: RoleService,
-  ) {}
+  constructor(private readonly roleService: RoleService) {}
 
   @Get()
   @Authorize('roles.read')
@@ -48,9 +39,7 @@ export class RoleController {
   @ApiOperation({
     summary: 'Get role by id',
   })
-  findById(
-    @Param('id') id: string,
-  ) {
+  findById(@Param('id') id: string) {
     return this.roleService.findById(id);
   }
 
@@ -78,10 +67,7 @@ export class RoleController {
     @Body()
     dto: UpdateRoleDto,
   ) {
-    return this.roleService.update(
-      id,
-      dto,
-    );
+    return this.roleService.update(id, dto);
   }
 
   @Delete(':id')

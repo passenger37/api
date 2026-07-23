@@ -1,8 +1,4 @@
-import {
-  Controller,
-  Get,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -14,13 +10,10 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
   version: '1',
 })
 export class UsersController {
-
   @ApiBearerAuth('JWT')
   @Get('me')
- @UseGuards(JwtAuthGuard)
-  me(
-    @CurrentUser() user: any,
-  ) {
+  @UseGuards(JwtAuthGuard)
+  me(@CurrentUser() user: any) {
     return user;
   }
 }

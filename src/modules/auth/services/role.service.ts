@@ -14,7 +14,7 @@ import { PermissionService } from './permission.service';
 export class RoleService {
   constructor(
     private readonly prisma: PrismaService,
-     private readonly permissionService: PermissionService,
+    private readonly permissionService: PermissionService,
   ) {}
 
   async findAll() {
@@ -46,91 +46,68 @@ export class RoleService {
   }
 
   async create(dto: CreateRoleDto) {
-  const existing = await this.findByName(dto.name);
-
-  if (existing) {
-    throw new ConflictException(
-      'Role already exists',
-    );
-  }
-
-  return this.prisma.role.create({
-    data: {
-      name: dto.name,
-      description: dto.description,
-      isSystem: dto.isSystem ?? false,
-    },
-  });
-}
-
-async update(
-  id: string,
-  dto: UpdateRoleDto,
-) {
-  const role = await this.findById(id);
-
-  if (role.isSystem) {
-    throw new ForbiddenException(
-      'System roles cannot be modified.',
-    );
-  }
-
-  if (
-    dto.name &&
-    dto.name !== role.name
-  ) {
-    const existing = await this.findByName(
-      dto.name,
-    );
+    const existing = await this.findByName(dto.name);
 
     if (existing) {
-      throw new ConflictException(
-        'Role name already exists.',
-      );
+      throw new ConflictException('Role already exists');
     }
+
+    return this.prisma.role.create({
+      data: {
+        name: dto.name,
+        description: dto.description,
+        isSystem: dto.isSystem ?? false,
+      },
+    });
   }
 
-  return this.prisma.role.update({
-    where: {
-      id,
-    },
-    data: dto,
-  });
-}
+  async update(id: string, dto: UpdateRoleDto) {
+    const role = await this.findById(id);
 
-async delete(id: string) {
-  const role = await this.findById(id);
+    if (role.isSystem) {
+      throw new ForbiddenException('System roles cannot be modified.');
+    }
 
-  if (role.isSystem) {
-    throw new ForbiddenException(
-      'System roles cannot be deleted.',
-    );
+    if (dto.name && dto.name !== role.name) {
+      const existing = await this.findByName(dto.name);
+
+      if (existing) {
+        throw new ConflictException('Role name already exists.');
+      }
+    }
+
+    return this.prisma.role.update({
+      where: {
+        id,
+      },
+      data: dto,
+    });
   }
 
-  return this.prisma.role.delete({
-    where: {
-      id,
-    },
-  });
-}
+  async delete(id: string) {
+    const role = await this.findById(id);
 
-  async assignRole(
-    userId: string,
-    roleId: string,
-    assignedById?: string,
-  ) {
-    const existing =
-      await this.prisma.userRole.findFirst({
-        where: {
-          userId,
-          roleId,
-        },
-      });
+    if (role.isSystem) {
+      throw new ForbiddenException('System roles cannot be deleted.');
+    }
+
+    return this.prisma.role.delete({
+      where: {
+        id,
+      },
+    });
+  }
+
+  async assignRole(userId: string, roleId: string, assignedById?: string) {
+    const existing = await this.prisma.userRole.findFirst({
+      where: {
+        userId,
+        roleId,
+      },
+    });
 
     if (existing) {
-      throw new ConflictException(
-        'Role already assigned',
-      );
+      throw new ConflictException('Role already assigned');
     }
 
     const role = await this.findById(roleId);
@@ -149,11 +126,7 @@ async delete(id: string) {
     });
   }
 
-  async removeRole(
-    userId: string,
-    roleId: string,
-    actorId?: string,
-  ) {
+  async removeRole(userId: string, roleId: string, actorId?: string) {
     const role = await this.findById(roleId);
 
     /**
@@ -173,19 +146,16 @@ async delete(id: string) {
      * Prevent deleting the last SUPER_ADMIN.
      */
     if (role.name === SystemRoles.SUPER_ADMIN) {
-      const totalSuperAdmins =
-        await this.prisma.userRole.count({
-          where: {
-            role: {
-              name: SystemRoles.SUPER_ADMIN,
-            },
+      const totalSuperAdmins = await this.prisma.userRole.count({
+        where: {
+          role: {
+            name: SystemRoles.SUPER_ADMIN,
           },
-        });
+        },
+      });
 
       if (totalSuperAdmins <= 1) {
-        throw new ForbiddenException(
-          'At least one Super Admin must remain.',
-        );
+        throw new ForbiddenException('At least one Super Admin must remain.');
       }
     }
 
@@ -197,77 +167,63 @@ async delete(id: string) {
     });
   }
 
-  async assignPermission(
-  roleId: string,
-  permissionId: string,
-) {
-  // Ensure role exists
-  await this.findById(roleId);
+  async assignPermission(roleId: string, permissionId: string) {
+    // Ensure role exists
+    await this.findById(roleId);
 
-  // Ensure permission exists
-  await this.permissionService.findById(permissionId);
+    // Ensure permission exists
+    await this.permissionService.findById(permissionId);
 
-  // Prevent duplicates
-  const existing =
-    await this.prisma.rolePermission.findFirst({
+    // Prevent duplicates
+    const existing = await this.prisma.rolePermission.findFirst({
       where: {
         roleId,
         permissionId,
       },
     });
 
-  if (existing) {
-    throw new ConflictException(
-      'Permission already assigned to role.',
-    );
+    if (existing) {
+      throw new ConflictException('Permission already assigned to role.');
+    }
+
+    return this.prisma.rolePermission.create({
+      data: {
+        roleId,
+        permissionId,
+      },
+      include: {
+        permission: true,
+      },
+    });
   }
 
-  return this.prisma.rolePermission.create({
-    data: {
-      roleId,
-      permissionId,
-    },
-    include: {
-      permission: true,
-    },
-  });
-}
-
-async removePermission(
-  roleId: string,
-  permissionId: string,
-) {
-  const relation =
-    await this.prisma.rolePermission.findFirst({
+  async removePermission(roleId: string, permissionId: string) {
+    const relation = await this.prisma.rolePermission.findFirst({
       where: {
         roleId,
         permissionId,
       },
     });
 
-  if (!relation) {
-    throw new NotFoundException(
-      'Permission is not assigned to this role.',
-    );
+    if (!relation) {
+      throw new NotFoundException('Permission is not assigned to this role.');
+    }
+
+    await this.prisma.rolePermission.delete({
+      where: {
+        id: relation.id,
+      },
+    });
+
+    return {
+      message: 'Permission removed successfully.',
+    };
   }
 
-  await this.prisma.rolePermission.delete({
-    where: {
-      id: relation.id,
-    },
-  });
+  async getPermissions(roleId: string) {
+    await this.findById(roleId);
 
-  return {
-    message:
-      'Permission removed successfully.',
-  };
-}
-
-async getPermissions(roleId: string) {
-  await this.findById(roleId);
-
-  const permissions =
-    await this.prisma.rolePermission.findMany({
+    const permissions = await this.prisma.rolePermission.findMany({
       where: {
         roleId,
       },
@@ -281,10 +237,6 @@ async getPermissions(roleId: string) {
       },
     });
 
-  return permissions.map(
-    (item) => item.permission,
-  );
-}
-
-
+    return permissions.map((item) => item.permission);
+  }
 }

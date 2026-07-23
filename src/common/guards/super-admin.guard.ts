@@ -7,11 +7,8 @@ import {
 
 @Injectable()
 export class SuperAdminGuard implements CanActivate {
-  canActivate(
-    context: ExecutionContext,
-  ): boolean {
-    const request =
-      context.switchToHttp().getRequest();
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
 
     const user = request.user;
 
@@ -19,13 +16,10 @@ export class SuperAdminGuard implements CanActivate {
       throw new ForbiddenException();
     }
 
-    const isSuperAdmin =
-      user.roles?.includes('SUPER_ADMIN');
+    const isSuperAdmin = user.roles?.includes('SUPER_ADMIN');
 
     if (!isSuperAdmin) {
-      throw new ForbiddenException(
-        'Super Admin access required',
-      );
+      throw new ForbiddenException('Super Admin access required');
     }
 
     return true;

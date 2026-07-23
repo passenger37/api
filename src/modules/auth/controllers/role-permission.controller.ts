@@ -1,16 +1,6 @@
-import {
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-} from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post } from '@nestjs/common';
 
-import {
-  ApiOperation,
-  ApiTags,
-  ApiBearerAuth
-} from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 import { Authorize } from '../../../common/decorators';
 
@@ -23,9 +13,7 @@ import { RoleService } from '../services/role.service';
   version: '1',
 })
 export class RolePermissionController {
-  constructor(
-    private readonly roleService: RoleService,
-  ) {}
+  constructor(private readonly roleService: RoleService) {}
 
   @Get(':roleId/permissions')
   @Authorize('roles.read')
@@ -36,18 +24,13 @@ export class RolePermissionController {
     @Param('roleId')
     roleId: string,
   ) {
-    return this.roleService.getPermissions(
-      roleId,
-    );
+    return this.roleService.getPermissions(roleId);
   }
 
-  @Post(
-    ':roleId/permissions/:permissionId',
-  )
+  @Post(':roleId/permissions/:permissionId')
   @Authorize('roles.update')
   @ApiOperation({
-    summary:
-      'Assign permission to role',
+    summary: 'Assign permission to role',
   })
   assignPermission(
     @Param('roleId')
@@ -56,19 +39,13 @@ export class RolePermissionController {
     @Param('permissionId')
     permissionId: string,
   ) {
-    return this.roleService.assignPermission(
-      roleId,
-      permissionId,
-    );
+    return this.roleService.assignPermission(roleId, permissionId);
   }
 
-  @Delete(
-    ':roleId/permissions/:permissionId',
-  )
+  @Delete(':roleId/permissions/:permissionId')
   @Authorize('roles.update')
   @ApiOperation({
-    summary:
-      'Remove permission from role',
+    summary: 'Remove permission from role',
   })
   removePermission(
     @Param('roleId')
@@ -77,9 +54,6 @@ export class RolePermissionController {
     @Param('permissionId')
     permissionId: string,
   ) {
-    return this.roleService.removePermission(
-      roleId,
-      permissionId,
-    );
+    return this.roleService.removePermission(roleId, permissionId);
   }
 }

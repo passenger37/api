@@ -8,10 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import {
-  ApiBearerAuth,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
@@ -28,14 +25,9 @@ import { RemovePermissionDto } from '../dto/remove-permission.dto';
   path: 'permissions',
   version: '1',
 })
-@UseGuards(
-  JwtAuthGuard,
-  PermissionsGuard,
-)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PermissionController {
-  constructor(
-    private readonly permissionService: PermissionService,
-  ) {}
+  constructor(private readonly permissionService: PermissionService) {}
 
   @Get()
   @Permissions('permissions.read')
@@ -45,17 +37,13 @@ export class PermissionController {
 
   @Get(':id')
   @Permissions('permissions.read')
-  findOne(
-    @Param('id') id: string,
-  ) {
+  findOne(@Param('id') id: string) {
     return this.permissionService.findById(id);
   }
 
   @Post('assign')
   @Permissions('permissions.assign')
-  assignPermission(
-    @Body() dto: AssignPermissionDto,
-  ) {
+  assignPermission(@Body() dto: AssignPermissionDto) {
     return this.permissionService.assignPermissionToRole(
       dto.roleId,
       dto.permissionId,
@@ -64,9 +52,7 @@ export class PermissionController {
 
   @Delete('remove')
   @Permissions('permissions.remove')
-  removePermission(
-    @Body() dto: RemovePermissionDto,
-  ) {
+  removePermission(@Body() dto: RemovePermissionDto) {
     return this.permissionService.removePermissionFromRole(
       dto.roleId,
       dto.permissionId,

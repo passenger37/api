@@ -5,10 +5,7 @@ import type { SignOptions } from 'jsonwebtoken';
 
 import { User } from '@prisma/client';
 
-import {
-  JwtPayload,
-  RefreshTokenPayload,
-} from '../interfaces';
+import { JwtPayload, RefreshTokenPayload } from '../interfaces';
 
 @Injectable()
 export class TokenService {
@@ -17,9 +14,7 @@ export class TokenService {
     private readonly configService: ConfigService,
   ) {}
 
-  async generateAccessToken(
-    user: User,
-  ): Promise<string> {
+  async generateAccessToken(user: User): Promise<string> {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -27,13 +22,10 @@ export class TokenService {
     };
 
     return this.jwtService.signAsync(payload, {
-      secret: this.configService.getOrThrow<string>(
-        'jwt.accessToken.secret',
-      ),
-      expiresIn:
-        this.configService.getOrThrow<string>(
-          'jwt.accessToken.expiresIn',
-        ) as SignOptions['expiresIn'],
+      secret: this.configService.getOrThrow<string>('jwt.accessToken.secret'),
+      expiresIn: this.configService.getOrThrow<string>(
+        'jwt.accessToken.expiresIn',
+      ) as SignOptions['expiresIn'],
     });
   }
 
@@ -47,25 +39,16 @@ export class TokenService {
     };
 
     return this.jwtService.signAsync(payload, {
-      secret: this.configService.getOrThrow<string>(
-        'jwt.refreshToken.secret',
-      ),
-      expiresIn:
-        this.configService.getOrThrow<string>(
-          'jwt.refreshToken.expiresIn',
-        ) as SignOptions['expiresIn'],
+      secret: this.configService.getOrThrow<string>('jwt.refreshToken.secret'),
+      expiresIn: this.configService.getOrThrow<string>(
+        'jwt.refreshToken.expiresIn',
+      ) as SignOptions['expiresIn'],
     });
   }
 
-  async verifyRefreshToken(
-    token: string,
-  ): Promise<RefreshTokenPayload> {
-    return this.jwtService.verifyAsync<
-      RefreshTokenPayload
-    >(token, {
-      secret: this.configService.getOrThrow<string>(
-        'jwt.refreshToken.secret',
-      ),
+  async verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {
+    return this.jwtService.verifyAsync<RefreshTokenPayload>(token, {
+      secret: this.configService.getOrThrow<string>('jwt.refreshToken.secret'),
     });
   }
 }

@@ -4,9 +4,7 @@ import { AuthorizationAudit } from '../interfaces/audit-log.interface';
 
 @Injectable()
 export class AuthorizationAuditService {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async log(data: AuthorizationAudit) {
     return this.prisma.authorizationAuditLog.create({

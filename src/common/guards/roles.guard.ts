@@ -7,63 +7,64 @@ import {
 
 import { Reflector } from '@nestjs/core';
 
+import { AuthorizationService } from '../../modules/authorization/services/authorization.service';
+
 import { ROLES_KEY } from '../decorators/roles.decorator';
+
 import { SystemRole } from '../constants/system-role.enum';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
+
+    private readonly authorizationService: AuthorizationService,
   ) {}
 
-  canActivate(
-    context: ExecutionContext,
-  ): boolean {
-    const requiredRoles =
-      this.reflector.getAllAndOverride<SystemRole[]>(
-        ROLES_KEY,
-        [
-          context.getHandler(),
-          context.getClass(),
-        ],
-      );
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const requiredRoles = this.reflector.getAllAndOverride<SystemRole[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
-    if (
-      !requiredRoles ||
-      requiredRoles.length === 0
-    ) {
+    if (!requiredRoles || requiredRoles.length === 0) {
       return true;
     }
 
-    const request =
-      context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest();
 
-    const user = request.user;
-
-    if (!user) {
-      throw new ForbiddenException(
-        'Authentication required.',
-      );
-    }
-
-    // User.roles comes from Prisma include
-    const userRoles =
-      user.roles?.map(
-        (userRole: any) =>
-          userRole.role.name,
-      ) ?? [];
-
-    const hasRole =
-      requiredRoles.some((role) =>
-        userRoles.includes(role),
+    for (const role of requiredRoles) {
+      const allowed = await this.authorizationService.hasRole(
+        request.user.id,
+        role,
       );
 
-    if (!hasRole) {
-      throw new ForbiddenException(
-        'Insufficient role.',
-      );
+      if (!allowed) {
+        throw new ForbiddenException('Insufficient role.');
+      }
     }
 
     return true;
+
+    // const authorizationContext =
+    //   await this.authorizationService.getAuthorizationContext(
+    //     request.user.id,
+    //   );
+
+    // const userRoles =
+    //   authorizationContext.roles.map(
+    //     role => role.name,
+    //   );
+
+    // const hasRole =
+    //   requiredRoles.some(role =>
+    //     userRoles.includes(role),
+    //   );
+
+    // if (!hasRole) {
+    //   throw new ForbiddenException(
+    //     'Insufficient role.',
+    //   );
+    // }
   }
 }

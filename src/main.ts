@@ -12,7 +12,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });
-  
+
   configureVersioning(app);
   configureValidation(app);
   configureHelmet(app);

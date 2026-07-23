@@ -13,6 +13,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { SessionsModule } from '../sessions/sessions.module';
 import { APP_GUARD } from '@nestjs/core';
+import { AuthorizationModule } from '../authorization/authorization.module';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsModule } from '../permissions';
@@ -26,15 +27,12 @@ import { RoleController } from './controllers/role.controller';
 import { PermissionController } from './controllers/permission.controller';
 import { RolePermissionController } from './controllers/role-permission.controller';
 
-import { SuperAdminGuard } from '../../common/guards/super-admin.guard'
-
+import { SuperAdminGuard } from '../../common/guards/super-admin.guard';
 
 import { PermissionSeeder } from './seeders/permission.seeder';
 import { RoleSeeder } from './seeders/role.seeder';
 import { RolePermissionSeeder } from './seeders/role-permission.seeder';
 import { SuperAdminSeeder } from './seeders/super-admin.seeder';
-
-
 
 @Module({
   imports: [
@@ -44,30 +42,37 @@ import { SuperAdminSeeder } from './seeders/super-admin.seeder';
     PermissionsModule,
 
     JwtModule.registerAsync({
-     inject: [ConfigService],
+      inject: [ConfigService],
 
-  useFactory: (configService: ConfigService) => (
-    
-    {
-    secret: configService.getOrThrow<string>(
-      'jwt.accessToken.secret',
-    ),
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.getOrThrow<string>('jwt.accessToken.secret'),
 
-    signOptions: {
-      expiresIn: configService.getOrThrow(
-        'jwt.accessToken.expiresIn',
-      ) as SignOptions['expiresIn'],
-    },
-  }),
-}),
+        signOptions: {
+          expiresIn: configService.getOrThrow(
+            'jwt.accessToken.expiresIn',
+          ) as SignOptions['expiresIn'],
+        },
+      }),
+    }),
+    AuthorizationModule,
   ],
 
-  controllers: [AuthController, RoleController, PermissionController, RolePermissionController],
+  controllers: [
+    AuthController,
+    RoleController,
+    PermissionController,
+    RolePermissionController,
+  ],
 
-  providers: [AuthService, TokenService, JwtStrategy,    {
+  providers: [
+    AuthService,
+    TokenService,
+    JwtStrategy,
+    {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
-    },AuthorizationService,
+    },
+    AuthorizationService,
     RoleService,
     PermissionService,
     AuthorizationAuditService,
@@ -76,7 +81,8 @@ import { SuperAdminSeeder } from './seeders/super-admin.seeder';
     RoleSeeder,
     RolePermissionSeeder,
     SuperAdminSeeder,
-    AuthorizationBootstrapService,],
+    AuthorizationBootstrapService,
+  ],
 
   exports: [
     AuthService,

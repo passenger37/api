@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class PermissionsService {
-  async hasPermission(
-    userId: string,
-    permission: string,
-  ): Promise<boolean> {
+  async hasPermission(userId: string, permission: string): Promise<boolean> {
     /**
      * Temporary implementation.
      *

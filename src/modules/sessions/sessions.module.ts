@@ -5,18 +5,10 @@ import { SessionsRepository } from './repositories';
 import { SessionsService } from './services';
 
 @Module({
-  controllers: [
-    SessionsController,
-  ],
+  controllers: [SessionsController],
 
-  providers: [
-    SessionsRepository,
-    SessionsService,
-  ],
+  providers: [SessionsRepository, SessionsService],
 
-  exports: [
-    SessionsRepository,
-    SessionsService,
-  ],
+  exports: [SessionsRepository, SessionsService],
 })
 export class SessionsModule {}

@@ -12,7 +12,16 @@ import { PermissionsModule } from './modules/permissions';
 import { BootstrapService } from './bootstrap/bootstrap.service';
 
 @Module({
-  imports: [AppConfigModule, PrismaModule, AppLoggerModule,HealthModule, UsersModule, AuthModule, SessionsModule,PermissionsModule,],
+  imports: [
+    AppConfigModule,
+    PrismaModule,
+    AppLoggerModule,
+    HealthModule,
+    UsersModule,
+    AuthModule,
+    SessionsModule,
+    PermissionsModule,
+  ],
   controllers: [],
   // providers: [AppService],
   providers: [
@@ -20,6 +29,7 @@ import { BootstrapService } from './bootstrap/bootstrap.service';
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
     },
-  BootstrapService,],
+    BootstrapService,
+  ],
 })
 export class AppModule {}

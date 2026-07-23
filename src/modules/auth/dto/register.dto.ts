@@ -9,8 +9,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
-
-    @ApiProperty({
+  @ApiProperty({
     example: 'anand',
     description: 'Username',
   })
@@ -20,7 +19,7 @@ export class RegisterDto {
   @Matches(/^[a-zA-Z0-9_.]+$/)
   username: string;
 
-    @ApiProperty({
+  @ApiProperty({
     example: 'Anand Singh',
     description: 'DisplayName',
   })
@@ -29,14 +28,14 @@ export class RegisterDto {
   @Length(3, 50)
   displayName: string;
 
-    @ApiProperty({
+  @ApiProperty({
     example: 'anand@example.com',
     description: 'Email or Username',
   })
   @IsEmail()
   email: string;
 
-      @ApiProperty({
+  @ApiProperty({
     example: 'Password@123',
     description: 'Password',
   })

@@ -32,8 +32,7 @@ export class AuthService {
       throw new ConflictException('Email already exists');
     }
 
-    const usernameExists =
-      await this.usersService.findByUsername(dto.username);
+    const usernameExists = await this.usersService.findByUsername(dto.username);
 
     if (usernameExists) {
       throw new ConflictException('Username already exists');
@@ -54,50 +53,35 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user =
-      await this.usersService.findByIdentifier(
-        dto.identifier,
-      );
+    const user = await this.usersService.findByIdentifier(dto.identifier);
 
     if (!user) {
-      throw new UnauthorizedException(
-        'Invalid credentials',
-      );
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    const passwordMatches =
-      await bcrypt.compare(
-        dto.password,
-        user.passwordHash,
-      );
+    const passwordMatches = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
 
     if (!passwordMatches) {
-      throw new UnauthorizedException(
-        'Invalid credentials',
-      );
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     const sessionId = randomUUID();
 
-    const accessToken =
-      await this.tokenService.generateAccessToken(
-        user,
-      );
+    const accessToken = await this.tokenService.generateAccessToken(user);
 
-    const refreshToken =
-      await this.tokenService.generateRefreshToken(
-        user.id,
-        sessionId,
-      );
+    const refreshToken = await this.tokenService.generateRefreshToken(
+      user.id,
+      sessionId,
+    );
 
     await this.sessionsService.create({
       userId: user.id,
       sessionId,
       refreshToken,
-      expiresAt: new Date(
-        Date.now() +
-          7 * 24 * 60 * 60 * 1000,
-      ),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       deviceName: 'Unknown',
       userAgent: 'Unknown',
       ipAddress: 'Unknown',
@@ -116,108 +100,75 @@ export class AuthService {
     };
   }
 
-async refresh(
-  dto: RefreshTokenDto,
-) {
-  const payload =
-    await this.tokenService.verifyRefreshToken(
+  async refresh(dto: RefreshTokenDto) {
+    const payload = await this.tokenService.verifyRefreshToken(
       dto.refreshToken,
     );
 
-  const session =
-    await this.sessionsService.verifyRefreshToken(
+    const session = await this.sessionsService.verifyRefreshToken(
       payload.sid,
       dto.refreshToken,
     );
 
-  if (session.isRevoked) {
-    throw new UnauthorizedException(
-      'Session revoked',
-    );
-  }
+    if (session.isRevoked) {
+      throw new UnauthorizedException('Session revoked');
+    }
 
-  if (session.expiresAt < new Date()) {
-    throw new UnauthorizedException(
-      'Session expired',
-    );
-  }
+    if (session.expiresAt < new Date()) {
+      throw new UnauthorizedException('Session expired');
+    }
 
-  const user =
-    await this.usersService.findById(
-      payload.sub,
-    );
+    const user = await this.usersService.findById(payload.sub);
 
-  if (!user) {
-    throw new UnauthorizedException();
-  }
+    if (!user) {
+      throw new UnauthorizedException();
+    }
 
-  const accessToken =
-    await this.tokenService.generateAccessToken(
-      user,
-    );
+    const accessToken = await this.tokenService.generateAccessToken(user);
 
-  const refreshToken =
-    await this.tokenService.generateRefreshToken(
+    const refreshToken = await this.tokenService.generateRefreshToken(
       user.id,
       session.sessionId,
     );
 
-  await this.sessionsService.rotateRefreshToken(
-    session.id,
-    refreshToken,
-  );
+    await this.sessionsService.rotateRefreshToken(session.id, refreshToken);
 
-  return {
-    accessToken,
-    refreshToken,
-  };
-}
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
 
-async logout(
-  dto: LogoutDto,
-) {
-  const payload =
-    await this.tokenService.verifyRefreshToken(
+  async logout(dto: LogoutDto) {
+    const payload = await this.tokenService.verifyRefreshToken(
       dto.refreshToken,
     );
 
-  const session =
-    await this.sessionsService.findBySessionId(
-      payload.sid,
-    );
+    const session = await this.sessionsService.findBySessionId(payload.sid);
 
-  if (!session) {
-    throw new UnauthorizedException(
-      'Session not found',
-    );
-  }
+    if (!session) {
+      throw new UnauthorizedException('Session not found');
+    }
 
-  if (session.isRevoked) {
+    if (session.isRevoked) {
+      return {
+        success: true,
+      };
+    }
+
+    await this.sessionsService.revoke(session.id);
+
     return {
       success: true,
     };
   }
 
-  await this.sessionsService.revoke(
-    session.id,
-  );
+  async logoutAll(userId: string) {
+    await this.sessionsService.revokeAllByUserId(userId);
 
-  return {
-    success: true,
-  };
-}
-
-async logoutAll(
-  userId: string,
-) {
-  await this.sessionsService.revokeAllByUserId(
-    userId,
-  );
-
-  return {
-    success: true,
-    message:
-      'Logged out from all devices successfully.',
-  };
-}
+    return {
+      success: true,
+      message: 'Logged out from all devices successfully.',
+    };
+  }
 }

@@ -1,14 +1,6 @@
-import {
-  ApiProperty,
-  ApiPropertyOptional,
-} from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import {
-  IsBoolean,
-  IsOptional,
-  IsString,
-  Length,
-} from 'class-validator';
+import { IsBoolean, IsOptional, IsString, Length } from 'class-validator';
 
 export class CreateRoleDto {
   @ApiProperty({
@@ -30,8 +22,7 @@ export class CreateRoleDto {
   @ApiPropertyOptional({
     example: false,
     default: false,
-    description:
-      'Whether this is a protected system role',
+    description: 'Whether this is a protected system role',
   })
   @IsOptional()
   @IsBoolean()

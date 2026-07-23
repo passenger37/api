@@ -8,9 +8,7 @@ import { PrismaService } from '../../../core/database/index';
 
 @Injectable()
 export class PermissionService {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async findAll() {
     return this.prisma.permission.findMany({
@@ -21,15 +19,12 @@ export class PermissionService {
   }
 
   async findById(id: string) {
-    const permission =
-      await this.prisma.permission.findUnique({
-        where: { id },
-      });
+    const permission = await this.prisma.permission.findUnique({
+      where: { id },
+    });
 
     if (!permission) {
-      throw new NotFoundException(
-        'Permission not found',
-      );
+      throw new NotFoundException('Permission not found');
     }
 
     return permission;
@@ -43,22 +38,16 @@ export class PermissionService {
     });
   }
 
-  async assignPermissionToRole(
-    roleId: string,
-    permissionId: string,
-  ) {
-    const existing =
-      await this.prisma.rolePermission.findFirst({
-        where: {
-          roleId,
-          permissionId,
-        },
-      });
+  async assignPermissionToRole(roleId: string, permissionId: string) {
+    const existing = await this.prisma.rolePermission.findFirst({
+      where: {
+        roleId,
+        permissionId,
+      },
+    });
 
     if (existing) {
-      throw new ConflictException(
-        'Permission already assigned to role',
-      );
+      throw new ConflictException('Permission already assigned to role');
     }
 
     return this.prisma.rolePermission.create({
@@ -69,10 +58,7 @@ export class PermissionService {
     });
   }
 
-  async removePermissionFromRole(
-    roleId: string,
-    permissionId: string,
-  ) {
+  async removePermissionFromRole(roleId: string, permissionId: string) {
     return this.prisma.rolePermission.deleteMany({
       where: {
         roleId,
@@ -81,25 +67,22 @@ export class PermissionService {
     });
   }
 
-  async hasPermission(
-  userId: string,
-  permission: string,
-): Promise<boolean> {
-  const count = await this.prisma.userRole.count({
-    where: {
-      userId,
-      role: {
-        permissions: {
-          some: {
-            permission: {
-              name: permission,
+  async hasPermission(userId: string, permission: string): Promise<boolean> {
+    const count = await this.prisma.userRole.count({
+      where: {
+        userId,
+        role: {
+          permissions: {
+            some: {
+              permission: {
+                name: permission,
+              },
             },
           },
         },
       },
-    },
-  });
+    });
 
-  return count > 0;
-}
+    return count > 0;
+  }
 }

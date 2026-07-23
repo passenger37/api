@@ -5,9 +5,7 @@ import { PrismaService } from '../../../core/database';
 
 @Injectable()
 export class UsersRepository {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(data: Prisma.UserCreateInput): Promise<User> {
     return this.prisma.user.create({
@@ -15,25 +13,23 @@ export class UsersRepository {
     });
   }
 
-findById(id: string) {
-  return this.prisma.user.findUnique({
-    where: {
-      id,
-    },
+  findById(id: string) {
+    return this.prisma.user.findUnique({
+      where: {
+        id,
+      },
 
-    include: {
-      roles: {
-        include: {
-          role: true,
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
         },
       },
-    },
-  });
-}
+    });
+  }
 
-  async findByEmail(
-    email: string,
-  ): Promise<User | null> {
+  async findByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: {
         email,
@@ -41,9 +37,7 @@ findById(id: string) {
     });
   }
 
-  async findByUsername(
-    username: string,
-  ): Promise<User | null> {
+  async findByUsername(username: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: {
         username,
@@ -51,9 +45,7 @@ findById(id: string) {
     });
   }
 
-  async findByEmailOrUsername(
-    emailOrUsername: string,
-  ): Promise<User | null> {
+  async findByEmailOrUsername(emailOrUsername: string): Promise<User | null> {
     return this.prisma.user.findFirst({
       where: {
         OR: [
@@ -68,10 +60,7 @@ findById(id: string) {
     });
   }
 
-  async update(
-    id: string,
-    data: Prisma.UserUpdateInput,
-  ): Promise<User> {
+  async update(id: string, data: Prisma.UserUpdateInput): Promise<User> {
     return this.prisma.user.update({
       where: {
         id,

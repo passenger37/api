@@ -13,13 +13,9 @@ import { validationSchema } from './validation';
 
       expandVariables: true,
 
-      envFilePath: [
-        `.env.${process.env.NODE_ENV || 'development'}`,
-        '.env',
-      ],
+      envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'],
 
-      load: 
-        configuration,
+      load: configuration,
       validationSchema,
     }),
   ],
