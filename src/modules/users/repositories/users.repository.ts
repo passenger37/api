@@ -6,6 +6,8 @@ import { PrismaService } from '../../../core/database/prisma.service';
 
 import { QueryUsersDto } from '../dto/query-users.dto';
 
+import { PaginatedResult } from '../../../common/pagination/interfaces/paginated-result.interface';
+
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -54,9 +56,51 @@ export class UsersRepository {
   // Query
   // =====================================================
 
-  async findMany(query: QueryUsersDto): Promise<User[]> {
-    throw new Error('Not implemented yet.');
-  }
+ async findMany(
+  query: QueryUsersDto,
+): Promise<PaginatedResult<User>> {
+
+  const where =
+    this.buildWhereClause(query);
+
+  const page =
+    query.page ?? 1;
+
+  const pageSize =
+    query.pageSize ?? 20;
+
+  const skip =
+    (page - 1) * pageSize;
+
+  const [items, total] =
+    await this.prisma.$transaction([
+
+      this.prisma.user.findMany({
+
+        where,
+
+        skip,
+
+        take: pageSize,
+
+        orderBy: {
+          createdAt: 'desc',
+        },
+
+      }),
+
+      this.prisma.user.count({
+        where,
+      }),
+
+    ]);
+
+  return {
+    items,
+    total,
+  };
+
+}
 
   // =====================================================
   // Exists
