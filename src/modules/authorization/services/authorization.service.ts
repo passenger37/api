@@ -37,15 +37,11 @@ export class AuthorizationService {
    * ----------------------------------------
    */
 
-  private async getUserRoleNames(userId: string): Promise<Set<string>> {
-    const context = await this.getAuthorizationContext(userId);
-
+  private getRoleNames(context: AuthorizationContext): Set<string> {
     return new Set(context.roles.map((role) => role.name));
   }
 
-  private async getUserPermissionNames(userId: string): Promise<Set<string>> {
-    const context = await this.getAuthorizationContext(userId);
-
+  private getPermissionNames(context: AuthorizationContext): Set<string> {
     return new Set(
       context.roles.flatMap((role) =>
         role.permissions.map((permission) => permission.name),
@@ -60,16 +56,18 @@ export class AuthorizationService {
    */
 
   async hasPermission(userId: string, permission: string): Promise<boolean> {
-    const permissions = await this.getUserPermissionNames(userId);
+    const context = await this.getAuthorizationContext(userId);
 
-    return permissions.has(permission);
+    return this.getPermissionNames(context).has(permission);
   }
 
   async hasPermissions(
     userId: string,
     permissions: string[],
   ): Promise<boolean> {
-    const userPermissions = await this.getUserPermissionNames(userId);
+    const context = await this.getAuthorizationContext(userId);
+
+    const userPermissions = this.getPermissionNames(context);
 
     return permissions.every((permission) => userPermissions.has(permission));
   }
@@ -81,20 +79,36 @@ export class AuthorizationService {
    */
 
   async hasRole(userId: string, role: string): Promise<boolean> {
-    const userRoles = await this.getUserRoleNames(userId);
+    const context = await this.getAuthorizationContext(userId);
 
-    return userRoles.has(role);
+    return this.getRoleNames(context).has(role);
   }
 
   async hasAnyRole(userId: string, roles: string[]): Promise<boolean> {
-    const userRoles = await this.getUserRoleNames(userId);
+    const context = await this.getAuthorizationContext(userId);
+
+    const userRoles = this.getRoleNames(context);
 
     return roles.some((role) => userRoles.has(role));
   }
 
   async hasAllRoles(userId: string, roles: string[]): Promise<boolean> {
-    const userRoles = await this.getUserRoleNames(userId);
+    const context = await this.getAuthorizationContext(userId);
+
+    const userRoles = this.getRoleNames(context);
 
     return roles.every((role) => userRoles.has(role));
+  }
+
+  /**
+   * ----------------------------------------
+   * Cache Invalidation
+   * ----------------------------------------
+   */
+
+  async invalidateAuthorization(userId: string): Promise<void> {
+    await this.authorizationRepository.incrementPermissionVersion(userId);
+
+    this.permissionCacheService.delete(userId);
   }
 }

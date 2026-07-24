@@ -19,7 +19,7 @@ export class AuthorizationRepository {
 
       select: {
         id: true,
-
+        permissionVersion: true,
         status: true,
 
         roles: {
@@ -54,6 +54,8 @@ export class AuthorizationRepository {
     }
 
     return {
+      permissionVersion: user.permissionVersion,
+
       userId: user.id,
 
       status: user.status,
@@ -71,5 +73,19 @@ export class AuthorizationRepository {
         })),
       })),
     };
+  }
+
+  async incrementPermissionVersion(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: {
+        id: userId,
+      },
+
+      data: {
+        permissionVersion: {
+          increment: 1,
+        },
+      },
+    });
   }
 }

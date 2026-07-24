@@ -5,5 +5,7 @@ export interface AuthorizationContext {
 
   status: string;
 
+  permissionVersion: number;
+
   roles: AuthorizationRole[];
 }

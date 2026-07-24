@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { UserMapper } from '../mappers/user.mapper';
 
 @Controller({
   path: 'users',
@@ -14,6 +15,6 @@ export class UsersController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: any) {
-    return user;
+    return UserMapper.toCurrentUser(user);
   }
 }

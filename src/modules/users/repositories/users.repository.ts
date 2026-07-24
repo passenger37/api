@@ -1,11 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, User } from '@prisma/client';
 
-import { PrismaService } from '../../../core/database';
+import { Prisma, PrismaClient, User, UserStatus } from '@prisma/client';
+
+import { PrismaService } from '../../../core/database/prisma.service';
+
+import { QueryUsersDto } from '../dto/query-users.dto';
 
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  // =====================================================
+  // Create
+  // =====================================================
 
   async create(data: Prisma.UserCreateInput): Promise<User> {
     return this.prisma.user.create({
@@ -13,67 +20,156 @@ export class UsersRepository {
     });
   }
 
-  findById(id: string) {
-    return this.prisma.user.findUnique({
-      where: {
-        id,
-      },
+  // =====================================================
+  // Read
+  // =====================================================
 
-      include: {
-        roles: {
-          include: {
-            role: true,
-          },
-        },
-      },
+  async findById(id: string): Promise<User | null> {
+    return this.prisma.user.findUnique({
+      where: { id },
     });
   }
 
   async findByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({
-      where: {
-        email,
-      },
+      where: { email },
     });
   }
 
   async findByUsername(username: string): Promise<User | null> {
     return this.prisma.user.findUnique({
+      where: { username },
+    });
+  }
+
+  async findByEmailOrUsername(identifier: string): Promise<User | null> {
+    return this.prisma.user.findFirst({
+      where: {
+        OR: [{ email: identifier }, { username: identifier }],
+      },
+    });
+  }
+
+  // =====================================================
+  // Query
+  // =====================================================
+
+  async findMany(query: QueryUsersDto): Promise<User[]> {
+    throw new Error('Not implemented yet.');
+  }
+
+  // =====================================================
+  // Exists
+  // =====================================================
+
+  async existsById(id: string): Promise<boolean> {
+    const count = await this.prisma.user.count({
+      where: {
+        id,
+      },
+    });
+
+    return count > 0;
+  }
+
+  async existsByEmail(email: string): Promise<boolean> {
+    const count = await this.prisma.user.count({
+      where: {
+        email,
+      },
+    });
+
+    return count > 0;
+  }
+
+  async existsByUsername(username: string): Promise<boolean> {
+    const count = await this.prisma.user.count({
       where: {
         username,
       },
     });
+
+    return count > 0;
   }
 
-  async findByEmailOrUsername(emailOrUsername: string): Promise<User | null> {
-    return this.prisma.user.findFirst({
-      where: {
+  // =====================================================
+  // Update
+  // =====================================================
+
+  async updateProfile() {
+    throw new Error('Not implemented yet.');
+  }
+
+  async updatePreferences() {
+    throw new Error('Not implemented yet.');
+  }
+
+  async updatePrivacy() {
+    throw new Error('Not implemented yet.');
+  }
+
+  async updatePassword() {
+    throw new Error('Not implemented yet.');
+  }
+
+  async updateStatus(userId: string, status: UserStatus): Promise<User> {
+    throw new Error('Not implemented yet.');
+  }
+
+  async updateLastSeen() {
+    throw new Error('Not implemented yet.');
+  }
+
+  // =====================================================
+  // Delete
+  // =====================================================
+
+  async softDelete() {
+    throw new Error('Not implemented yet.');
+  }
+
+  async restore() {
+    throw new Error('Not implemented yet.');
+  }
+
+  // =====================================================
+  // Utility
+  // =====================================================
+
+  async count(query: QueryUsersDto): Promise<number> {
+    const where = this.buildWhereClause(query);
+
+    return this.prisma.user.count({
+      where,
+    });
+  }
+
+  // =====================================================
+  // Private Helpers
+  // =====================================================
+
+  private buildWhereClause(query: QueryUsersDto): Prisma.UserWhereInput {
+    return {
+      ...(query.status && {
+        status: query.status,
+      }),
+
+      ...(query.search && {
         OR: [
           {
-            email: emailOrUsername,
+            username: {
+              contains: query.search,
+              mode: 'insensitive',
+            },
           },
           {
-            username: emailOrUsername,
+            displayName: {
+              contains: query.search,
+              mode: 'insensitive',
+            },
           },
         ],
-      },
-    });
-  }
-
-  async update(id: string, data: Prisma.UserUpdateInput): Promise<User> {
-    return this.prisma.user.update({
-      where: {
-        id,
-      },
-      data,
-    });
-  }
-
-  async delete(id: string): Promise<User> {
-    return this.prisma.user.delete({
-      where: {
-        id,
-      },
-    });
+      }),
+    };
   }
 }

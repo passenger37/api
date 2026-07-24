@@ -14,10 +14,9 @@ export class PermissionCacheService {
     this.cache.set(userId, context);
   }
 
-  remove(userId: string): void {
-    this.cache.delete(userId);
+  delete(userId: string): boolean {
+    return this.cache.delete(userId);
   }
-
   clear(): void {
     this.cache.clear();
   }
