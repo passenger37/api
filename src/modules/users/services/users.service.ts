@@ -6,6 +6,7 @@ import {
 import { Prisma } from '@prisma/client';
 
 import { UserMapper } from '../mappers/user.mapper';
+import { PaginationMapper } from '../../../common/pagination/mappers/pagination.mapper';
 import { UsersRepository } from '../repositories/users.repository';
 import { UserResponseDto, CurrentUserDto, PublicUserProfileDto } from '../responses';
 
@@ -129,12 +130,9 @@ async getUsers(
       query,
     );
 
-return {
-  items: result.items.map(user =>
-    UserMapper.toResponse(user),
-  ),
-
-  total: result.total,
-};
+  return PaginationMapper.toResponse(
+    result,
+    UserMapper.toResponse,
+  );
 }
 }
