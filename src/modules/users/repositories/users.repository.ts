@@ -56,27 +56,17 @@ export class UsersRepository {
   // Query
   // =====================================================
 
- async findMany(
-  query: QueryUsersDto,
-): Promise<PaginatedResult<User>> {
+  async findMany(query: QueryUsersDto): Promise<PaginatedResult<User>> {
+    const where = this.buildWhereClause(query);
 
-  const where =
-    this.buildWhereClause(query);
+    const page = query.page ?? 1;
 
-  const page =
-    query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
 
-  const pageSize =
-    query.pageSize ?? 20;
+    const skip = (page - 1) * pageSize;
 
-  const skip =
-    (page - 1) * pageSize;
-
-  const [items, total] =
-    await this.prisma.$transaction([
-
+    const [items, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
-
         where,
 
         skip,
@@ -86,21 +76,18 @@ export class UsersRepository {
         orderBy: {
           createdAt: 'desc',
         },
-
       }),
 
       this.prisma.user.count({
         where,
       }),
-
     ]);
 
-  return {
-    items,
-    total,
-  };
-
-}
+    return {
+      items,
+      total,
+    };
+  }
 
   // =====================================================
   // Exists
