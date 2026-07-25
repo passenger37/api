@@ -12,14 +12,21 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiParam
 } from '@nestjs/swagger';
+
+import {
+  PublicUserProfileDto,
+  UserResponseDto,
+} from '../responses';
 
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 import { UsersService } from '../services/users.service';
-import { UserResponseDto } from '../responses';
 
+
+import  { Public } from '../../../common/decorators/public.decorator';
 @ApiTags('Users')
 @Controller({
   path: 'users',
@@ -34,6 +41,32 @@ export class UsersController {
   async getCurrentUser(@CurrentUser() user: { id: string }) {
     return this.usersService.getCurrentUser(user.id);
   }
+
+@Get('profile/:username')
+@ApiOperation({
+  summary: 'Get public user profile',
+})
+@ApiParam({
+  name: 'username',
+  description: 'User username',
+  example: 'anandsingh',
+})
+@ApiOkResponse({
+  type: PublicUserProfileDto,
+})
+@ApiNotFoundResponse({
+  description: 'User not found.',
+})
+@Public()
+async getPublicProfile(
+  @Param('username')
+  username: string,
+) {
+  console.log('PROFILE:', username);
+  return this.usersService.getPublicProfile(
+    username,
+  );
+}
 
   @Get(':id')
   @ApiOperation({
