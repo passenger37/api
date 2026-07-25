@@ -4,6 +4,7 @@ import {
   Param,
   ParseUUIDPipe,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 
 import {
@@ -12,21 +13,21 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiParam
+  ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 
-import {
-  PublicUserProfileDto,
-  UserResponseDto,
-} from '../responses';
+import { PublicUserProfileDto, UserResponseDto } from '../responses';
+
+import { QueryUsersDto } from '../dto/query-users.dto';
+import { PaginatedResponseDto } from '../../../common/pagination/dto/paginated-response.dto';
 
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 import { UsersService } from '../services/users.service';
 
-
-import  { Public } from '../../../common/decorators/public.decorator';
+import { Public } from '../../../common/decorators/public.decorator';
 @ApiTags('Users')
 @Controller({
   path: 'users',
@@ -42,31 +43,61 @@ export class UsersController {
     return this.usersService.getCurrentUser(user.id);
   }
 
-@Get('profile/:username')
-@ApiOperation({
-  summary: 'Get public user profile',
-})
-@ApiParam({
-  name: 'username',
-  description: 'User username',
-  example: 'anandsingh',
-})
-@ApiOkResponse({
-  type: PublicUserProfileDto,
-})
-@ApiNotFoundResponse({
-  description: 'User not found.',
-})
-@Public()
-async getPublicProfile(
-  @Param('username')
-  username: string,
-) {
-  console.log('PROFILE:', username);
-  return this.usersService.getPublicProfile(
-    username,
-  );
-}
+  @Get()
+  @ApiOperation({
+    summary: 'Get users',
+  })
+  @ApiOkResponse({
+    description: 'Paginated users list.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    example: 20,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+  })
+  async getUsers(
+    @Query()
+    query: QueryUsersDto,
+  ): Promise<PaginatedResponseDto<UserResponseDto>> {
+    return this.usersService.getUsers(query);
+  }
+
+  @Get('profile/:username')
+  @ApiOperation({
+    summary: 'Get public user profile',
+  })
+  @ApiParam({
+    name: 'username',
+    description: 'User username',
+    example: 'anandsingh',
+  })
+  @ApiOkResponse({
+    type: PublicUserProfileDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'User not found.',
+  })
+  @Public()
+  async getPublicProfile(
+    @Param('username')
+    username: string,
+  ) {
+    console.log('PROFILE:', username);
+    return this.usersService.getPublicProfile(username);
+  }
 
   @Get(':id')
   @ApiOperation({
