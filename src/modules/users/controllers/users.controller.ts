@@ -19,7 +19,7 @@ import {
 
 import { PublicUserProfileDto, UserResponseDto } from '../responses';
 
-import { QueryUsersDto } from '../dto/query-users.dto';
+import { QueryUsersDto, SortOrder, UserSortBy } from '../dto/query-users.dto';
 import { PaginatedResponseDto } from '../../../common/pagination/dto/paginated-response.dto';
 
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -68,6 +68,17 @@ export class UsersController {
     name: 'status',
     required: false,
   })
+  @ApiQuery({
+  name: 'sortBy',
+  required: false,
+  enum: UserSortBy,
+})
+
+@ApiQuery({
+  name: 'sortOrder',
+  required: false,
+  enum: SortOrder,
+})
   async getUsers(
     @Query()
     query: QueryUsersDto,

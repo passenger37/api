@@ -73,9 +73,7 @@ export class UsersRepository {
 
         take: pageSize,
 
-        orderBy: {
-          createdAt: 'desc',
-        },
+orderBy: this.buildOrderBy(query),
       }),
 
       this.prisma.user.count({
@@ -203,4 +201,13 @@ export class UsersRepository {
       }),
     };
   }
+
+  private buildOrderBy(
+  query: QueryUsersDto,
+): Prisma.UserOrderByWithRelationInput {
+  return {
+    [query.sortBy ?? 'createdAt']:
+      query.sortOrder ?? 'desc',
+  };
+}
 }
