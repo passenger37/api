@@ -8,6 +8,8 @@ import { QueryUsersDto } from '../dto/query-users.dto';
 
 import { PaginatedResult } from '../../../common/pagination/interfaces/paginated-result.interface';
 
+import { UsersFilterBuilder } from '../builders/users-filter.builder';
+
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -66,7 +68,7 @@ export class UsersRepository {
   // =====================================================
 
   async findMany(query: QueryUsersDto): Promise<PaginatedResult<User>> {
-    const where = this.buildWhereClause(query);
+    const where = UsersFilterBuilder.build(query);
 
     const page = query.page ?? 1;
 
@@ -95,7 +97,7 @@ export class UsersRepository {
   }
 
   async findManyByCursor(query: QueryUsersDto): Promise<PaginatedResult<User>> {
-    const where = this.buildWhereClause(query);
+    const where = UsersFilterBuilder.build(query);
 
     const limit = query.limit ?? 20;
 
@@ -201,7 +203,7 @@ export class UsersRepository {
   // =====================================================
 
   async count(query: QueryUsersDto): Promise<number> {
-    const where = this.buildWhereClause(query);
+    const where = UsersFilterBuilder.build(query);
 
     return this.prisma.user.count({
       where,
@@ -211,31 +213,6 @@ export class UsersRepository {
   // =====================================================
   // Private Helpers
   // =====================================================
-
-  private buildWhereClause(query: QueryUsersDto): Prisma.UserWhereInput {
-    return {
-      ...(query.status && {
-        status: query.status,
-      }),
-
-      ...(query.search && {
-        OR: [
-          {
-            username: {
-              contains: query.search,
-              mode: 'insensitive',
-            },
-          },
-          {
-            displayName: {
-              contains: query.search,
-              mode: 'insensitive',
-            },
-          },
-        ],
-      }),
-    };
-  }
 
   private buildOrderBy(
     query: QueryUsersDto,
