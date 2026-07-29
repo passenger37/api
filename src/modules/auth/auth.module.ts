@@ -33,6 +33,7 @@ import { PermissionSeeder } from './seeders/permission.seeder';
 import { RoleSeeder } from './seeders/role.seeder';
 import { RolePermissionSeeder } from './seeders/role-permission.seeder';
 import { SuperAdminSeeder } from './seeders/super-admin.seeder';
+import { SecurityModule } from '../security/security.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { SuperAdminSeeder } from './seeders/super-admin.seeder';
       }),
     }),
     AuthorizationModule,
+    SecurityModule,
   ],
 
   controllers: [

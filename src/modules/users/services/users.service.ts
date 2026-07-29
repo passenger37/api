@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { Prisma } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
 
 import { UsersRepository } from '../repositories/users.repository';
 
@@ -22,11 +21,14 @@ import { PaginatedResponseDto } from '../../../common/pagination';
 
 import { UserValidationService } from './user-validation.service';
 
+import { PasswordService } from '../../security/services/password.service';
+
 @Injectable()
 export class UsersService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly userValidationService: UserValidationService,
+    private readonly passwordService: PasswordService,
   ) {}
 
   // =====================================================
@@ -52,7 +54,7 @@ export class UsersService {
       dto.username,
     );
 
-    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const passwordHash = await this.passwordService.hash(dto.password);
 
     const input = CreateUserMapper.toPrismaCreate(dto, passwordHash);
 

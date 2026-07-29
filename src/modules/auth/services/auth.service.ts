@@ -1,9 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 
-import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
-
-import { Prisma } from '@prisma/client';
 
 import { UsersService } from '../../users/services/users.service';
 import { SessionsService } from '../../sessions/services';
@@ -12,14 +9,18 @@ import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { LogoutDto } from '../dto';
+
 import { RegisterUserMapper } from '../mappers/register-user.mapper';
 
 import { TokenService } from './token.service';
+
+import { PasswordService } from '../../security/services/password.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
+    private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly sessionsService: SessionsService,
   ) {}
@@ -29,7 +30,7 @@ export class AuthService {
   // =====================================================
 
   async register(dto: RegisterDto) {
-    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const passwordHash = await this.passwordService.hash(dto.password);
 
     const input = RegisterUserMapper.toPrismaCreate(dto, passwordHash);
 
@@ -55,7 +56,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const passwordMatches = await bcrypt.compare(
+    const passwordMatches = await this.passwordService.verify(
       dto.password,
       user.passwordHash,
     );
