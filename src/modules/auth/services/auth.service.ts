@@ -12,6 +12,7 @@ import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { LogoutDto } from '../dto';
+import { RegisterUserMapper } from '../mappers/register-user.mapper';
 
 import { TokenService } from './token.service';
 
@@ -27,26 +28,32 @@ export class AuthService {
   // Registration
   // =====================================================
 
-  async register(dto: RegisterDto) {
-    const passwordHash = await bcrypt.hash(dto.password, 12);
+async register(dto: RegisterDto) {
+  const passwordHash =
+    await bcrypt.hash(
+      dto.password,
+      12,
+    );
 
-    const input: Prisma.UserCreateInput = {
-      email: dto.email,
-      username: dto.username,
-      displayName: dto.displayName,
+  const input =
+    RegisterUserMapper.toPrismaCreate(
+      dto,
       passwordHash,
-    };
+    );
 
-    const user = await this.usersService.createForRegistration(input);
+  const user =
+    await this.usersService.createForRegistration(
+      input,
+    );
 
-    return {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
-    };
-  }
+  return {
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+  };
+}
 
   // =====================================================
   // Login
