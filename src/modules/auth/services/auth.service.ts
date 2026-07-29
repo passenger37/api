@@ -28,32 +28,21 @@ export class AuthService {
   // Registration
   // =====================================================
 
-async register(dto: RegisterDto) {
-  const passwordHash =
-    await bcrypt.hash(
-      dto.password,
-      12,
-    );
+  async register(dto: RegisterDto) {
+    const passwordHash = await bcrypt.hash(dto.password, 12);
 
-  const input =
-    RegisterUserMapper.toPrismaCreate(
-      dto,
-      passwordHash,
-    );
+    const input = RegisterUserMapper.toPrismaCreate(dto, passwordHash);
 
-  const user =
-    await this.usersService.createForRegistration(
-      input,
-    );
+    const user = await this.usersService.createForRegistration(input);
 
-  return {
-    id: user.id,
-    email: user.email,
-    username: user.username,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-  };
-}
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+    };
+  }
 
   // =====================================================
   // Login

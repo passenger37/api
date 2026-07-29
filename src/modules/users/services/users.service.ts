@@ -1,17 +1,9 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 import { UsersRepository } from '../repositories/users.repository';
-
-import { UserMapper } from '../mappers/user.mapper';
-import { CreateUserMapper } from '../mappers/create-user.mapper';
-import { PaginationMapper } from '../../../common/pagination/mappers/pagination.mapper';
 
 import {
   UserResponseDto,
@@ -19,59 +11,55 @@ import {
   PublicUserProfileDto,
 } from '../responses';
 
+import { UserMapper, CreateUserMapper } from '../mappers';
+
+import { PaginationMapper } from '../../../common/pagination/mappers/pagination.mapper';
+
 import { QueryUsersDto } from '../dto/query-users.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 
 import { PaginatedResponseDto } from '../../../common/pagination';
 
+import { UserValidationService } from './user-validation.service';
+
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly userValidationService: UserValidationService,
+  ) {}
 
   // =====================================================
   // Registration (Auth Module)
   // =====================================================
 
   async createForRegistration(input: Prisma.UserCreateInput) {
-    await this.validateUniqueUser(input.email, input.username);
+    await this.userValidationService.validateUniqueUser(
+      input.email,
+      input.username,
+    );
 
     return this.usersRepository.create(input);
   }
 
   // =====================================================
-  // Admin User Creation
+  // Admin Create User
   // =====================================================
 
-async createByAdmin(
-  dto: CreateUserDto,
-): Promise<UserResponseDto> {
-
-  await this.validateUniqueUser(
-    dto.email,
-    dto.username,
-  );
-
-  const passwordHash =
-    await bcrypt.hash(
-      dto.password,
-      12,
+  async createByAdmin(dto: CreateUserDto): Promise<UserResponseDto> {
+    await this.userValidationService.validateUniqueUser(
+      dto.email,
+      dto.username,
     );
 
-  const input =
-    CreateUserMapper.toPrismaCreate(
-      dto,
-      passwordHash,
-    );
+    const passwordHash = await bcrypt.hash(dto.password, 12);
 
-  const user =
-    await this.usersRepository.create(
-      input,
-    );
+    const input = CreateUserMapper.toPrismaCreate(dto, passwordHash);
 
-  return UserMapper.toResponse(
-    user,
-  );
-}
+    const user = await this.usersRepository.create(input);
+
+    return UserMapper.toResponse(user);
+  }
 
   // =====================================================
   // Read
@@ -133,27 +121,5 @@ async createByAdmin(
     const result = await this.usersRepository.findMany(query);
 
     return PaginationMapper.toResponse(result, UserMapper.toResponse);
-  }
-
-  // =====================================================
-  // Private Helpers
-  // =====================================================
-
-  private async validateUniqueUser(
-    email: string,
-    username: string,
-  ): Promise<void> {
-    const emailExists = await this.usersRepository.existsByEmail(email);
-
-    if (emailExists) {
-      throw new ConflictException('Email already exists.');
-    }
-
-    const usernameExists =
-      await this.usersRepository.existsByUsername(username);
-
-    if (usernameExists) {
-      throw new ConflictException('Username already exists.');
-    }
   }
 }
