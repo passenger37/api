@@ -4,7 +4,10 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsInt,
+  Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
@@ -40,4 +43,18 @@ export class QueryUsersDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(SortOrder)
   sortOrder: SortOrder = SortOrder.DESC;
+
+  @IsOptional()
+  @IsString()
+  fields?: string;
+
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number = 20;
 }

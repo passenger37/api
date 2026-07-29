@@ -69,16 +69,20 @@ export class UsersController {
     required: false,
   })
   @ApiQuery({
-  name: 'sortBy',
-  required: false,
-  enum: UserSortBy,
-})
-
-@ApiQuery({
-  name: 'sortOrder',
-  required: false,
-  enum: SortOrder,
-})
+    name: 'sortBy',
+    required: false,
+    enum: UserSortBy,
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: SortOrder,
+  })
+  @ApiQuery({
+    name: 'fields',
+    required: false,
+    example: 'id,username,displayName',
+  })
   async getUsers(
     @Query()
     query: QueryUsersDto,

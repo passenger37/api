@@ -11,7 +11,16 @@ import { PaginatedResult } from '../../../common/pagination/interfaces/paginated
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
-
+  private readonly allowedFields: readonly (keyof Prisma.UserSelect)[] = [
+    'id',
+    'username',
+    'displayName',
+    'avatarUrl',
+    'bio',
+    'status',
+    'createdAt',
+    'updatedAt',
+  ];
   // =====================================================
   // Create
   // =====================================================
@@ -68,12 +77,10 @@ export class UsersRepository {
     const [items, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         where,
-
         skip,
-
         take: pageSize,
-
-orderBy: this.buildOrderBy(query),
+        orderBy: this.buildOrderBy(query),
+        select: this.buildSelect(query),
       }),
 
       this.prisma.user.count({
@@ -87,6 +94,34 @@ orderBy: this.buildOrderBy(query),
     };
   }
 
+  async findManyByCursor(query: QueryUsersDto): Promise<PaginatedResult<User>> {
+    const where = this.buildWhereClause(query);
+
+    const limit = query.limit ?? 20;
+
+    const items = await this.prisma.user.findMany({
+      where,
+
+      take: limit,
+
+      cursor: query.cursor
+        ? {
+            id: query.cursor,
+          }
+        : undefined,
+
+      skip: query.cursor ? 1 : 0,
+
+      orderBy: {
+        id: 'asc',
+      },
+    });
+
+    return {
+      items,
+      total: items.length,
+    };
+  }
   // =====================================================
   // Exists
   // =====================================================
@@ -203,11 +238,30 @@ orderBy: this.buildOrderBy(query),
   }
 
   private buildOrderBy(
-  query: QueryUsersDto,
-): Prisma.UserOrderByWithRelationInput {
-  return {
-    [query.sortBy ?? 'createdAt']:
-      query.sortOrder ?? 'desc',
-  };
-}
+    query: QueryUsersDto,
+  ): Prisma.UserOrderByWithRelationInput {
+    return {
+      [query.sortBy ?? 'createdAt']: query.sortOrder ?? 'desc',
+    };
+  }
+
+  private buildSelect(query: QueryUsersDto): Prisma.UserSelect | undefined {
+    if (!query.fields) {
+      return undefined;
+    }
+
+    const select: Prisma.UserSelect = {};
+
+    const requestedFields = query.fields
+      .split(',')
+      .map((field) => field.trim());
+
+    for (const field of requestedFields) {
+      if (this.allowedFields.includes(field as keyof Prisma.UserSelect)) {
+        select[field as keyof Prisma.UserSelect] = true;
+      }
+    }
+
+    return Object.keys(select).length ? select : undefined;
+  }
 }
