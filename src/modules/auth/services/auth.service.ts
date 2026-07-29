@@ -1,11 +1,9 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
+
+import { Prisma } from '@prisma/client';
 
 import { UsersService } from '../../users/services/users.service';
 import { SessionsService } from '../../sessions/services';
@@ -25,32 +23,34 @@ export class AuthService {
     private readonly sessionsService: SessionsService,
   ) {}
 
+  // =====================================================
+  // Registration
+  // =====================================================
+
   async register(dto: RegisterDto) {
-    const emailExists = await this.usersService.findByEmail(dto.email);
-
-    if (emailExists) {
-      throw new ConflictException('Email already exists');
-    }
-
-    const usernameExists = await this.usersService.findByUsername(dto.username);
-
-    if (usernameExists) {
-      throw new ConflictException('Username already exists');
-    }
-
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    const user = await this.usersService.create({
+    const input: Prisma.UserCreateInput = {
       email: dto.email,
       username: dto.username,
       displayName: dto.displayName,
       passwordHash,
-    });
+    };
 
-    const { passwordHash: _, ...safeUser } = user;
+    const user = await this.usersService.createForRegistration(input);
 
-    return safeUser;
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+    };
   }
+
+  // =====================================================
+  // Login
+  // =====================================================
 
   async login(dto: LoginDto) {
     const user = await this.usersService.findByIdentifier(dto.identifier);
@@ -100,6 +100,10 @@ export class AuthService {
     };
   }
 
+  // =====================================================
+  // Refresh Token
+  // =====================================================
+
   async refresh(dto: RefreshTokenDto) {
     const payload = await this.tokenService.verifyRefreshToken(
       dto.refreshToken,
@@ -139,6 +143,10 @@ export class AuthService {
     };
   }
 
+  // =====================================================
+  // Logout
+  // =====================================================
+
   async logout(dto: LogoutDto) {
     const payload = await this.tokenService.verifyRefreshToken(
       dto.refreshToken,
@@ -162,6 +170,10 @@ export class AuthService {
       success: true,
     };
   }
+
+  // =====================================================
+  // Logout All
+  // =====================================================
 
   async logoutAll(userId: string) {
     await this.sessionsService.revokeAllByUserId(userId);

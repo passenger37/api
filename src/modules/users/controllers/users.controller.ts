@@ -1,15 +1,18 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
   ParseUUIDPipe,
-  UseGuards,
+  Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 
 import {
   ApiBearerAuth,
   ApiNotFoundResponse,
+  ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -17,6 +20,8 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 
+import { Permissions } from '../../../common/decorators/permissions.decorator';
+import { CreateUserDto } from '../dto/create-user.dto';
 import { PublicUserProfileDto, UserResponseDto } from '../responses';
 
 import { QueryUsersDto, SortOrder, UserSortBy } from '../dto/query-users.dto';
@@ -134,5 +139,20 @@ export class UsersController {
     id: string,
   ) {
     return this.usersService.getUserById(id);
+  }
+
+  @Permissions('users:create')
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'Create a new user',
+  })
+  @ApiCreatedResponse({
+    type: UserResponseDto,
+  })
+  @Post()
+  async createUser(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
+    return this.usersService.createByAdmin(dto);
   }
 }

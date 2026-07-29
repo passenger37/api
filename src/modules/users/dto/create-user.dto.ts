@@ -2,9 +2,10 @@ import {
   IsEmail,
   IsEnum,
   IsOptional,
-  IsString,
   Length,
   Matches,
+  IsString,
+  MinLength,
 } from 'class-validator';
 
 import { UserStatus } from '@prisma/client';
@@ -37,4 +38,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsEnum(UserStatus)
   status?: UserStatus = UserStatus.ACTIVE;
+
+  @IsString()
+  @MinLength(8)
+  password: string;
 }

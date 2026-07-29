@@ -5,10 +5,13 @@ import {
 } from '@nestjs/common';
 
 import { Prisma } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
+
+import { UsersRepository } from '../repositories/users.repository';
 
 import { UserMapper } from '../mappers/user.mapper';
 import { PaginationMapper } from '../../../common/pagination/mappers/pagination.mapper';
-import { UsersRepository } from '../repositories/users.repository';
+
 import {
   UserResponseDto,
   CurrentUserDto,
@@ -16,41 +19,46 @@ import {
 } from '../responses';
 
 import { QueryUsersDto } from '../dto/query-users.dto';
-import {
-  PaginatedResult,
-  PaginatedResponseDto,
-} from '../../../common/pagination';
+import { CreateUserDto } from '../dto/create-user.dto';
+
+import { PaginatedResponseDto } from '../../../common/pagination';
+
 @Injectable()
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
   // =====================================================
-  // Create
+  // Registration (Auth Module)
   // =====================================================
 
-  async create(data: Prisma.UserCreateInput) {
-    return this.usersRepository.create(data);
+  async createForRegistration(input: Prisma.UserCreateInput) {
+    await this.validateUniqueUser(input.email, input.username);
+
+    return this.usersRepository.create(input);
   }
 
-  async createUser(data: Prisma.UserCreateInput): Promise<UserResponseDto> {
-    const emailExists = await this.usersRepository.existsByEmail(data.email);
+  // =====================================================
+  // Admin User Creation
+  // =====================================================
 
-    if (emailExists) {
-      throw new ConflictException('Email already exists.');
-    }
+  async createByAdmin(dto: CreateUserDto): Promise<UserResponseDto> {
+    await this.validateUniqueUser(dto.email, dto.username);
 
-    const usernameExists = await this.usersRepository.existsByUsername(
-      data.username,
-    );
+    const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    if (usernameExists) {
-      throw new ConflictException('Username already exists.');
-    }
-
-    const user = await this.usersRepository.create(data);
+    const user = await this.usersRepository.create({
+      email: dto.email,
+      username: dto.username,
+      displayName: dto.displayName,
+      passwordHash,
+      bio: dto.bio,
+      avatarUrl: dto.avatarUrl,
+      status: dto.status,
+    });
 
     return UserMapper.toResponse(user);
   }
+
   // =====================================================
   // Read
   // =====================================================
@@ -111,5 +119,27 @@ export class UsersService {
     const result = await this.usersRepository.findMany(query);
 
     return PaginationMapper.toResponse(result, UserMapper.toResponse);
+  }
+
+  // =====================================================
+  // Private Helpers
+  // =====================================================
+
+  private async validateUniqueUser(
+    email: string,
+    username: string,
+  ): Promise<void> {
+    const emailExists = await this.usersRepository.existsByEmail(email);
+
+    if (emailExists) {
+      throw new ConflictException('Email already exists.');
+    }
+
+    const usernameExists =
+      await this.usersRepository.existsByUsername(username);
+
+    if (usernameExists) {
+      throw new ConflictException('Username already exists.');
+    }
   }
 }
