@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersRepository } from '../repositories/users.repository';
 
 import { UserMapper } from '../mappers/user.mapper';
+import { CreateUserMapper } from '../mappers/create-user.mapper';
 import { PaginationMapper } from '../../../common/pagination/mappers/pagination.mapper';
 
 import {
@@ -41,23 +42,36 @@ export class UsersService {
   // Admin User Creation
   // =====================================================
 
-  async createByAdmin(dto: CreateUserDto): Promise<UserResponseDto> {
-    await this.validateUniqueUser(dto.email, dto.username);
+async createByAdmin(
+  dto: CreateUserDto,
+): Promise<UserResponseDto> {
 
-    const passwordHash = await bcrypt.hash(dto.password, 12);
+  await this.validateUniqueUser(
+    dto.email,
+    dto.username,
+  );
 
-    const user = await this.usersRepository.create({
-      email: dto.email,
-      username: dto.username,
-      displayName: dto.displayName,
+  const passwordHash =
+    await bcrypt.hash(
+      dto.password,
+      12,
+    );
+
+  const input =
+    CreateUserMapper.toPrismaCreate(
+      dto,
       passwordHash,
-      bio: dto.bio,
-      avatarUrl: dto.avatarUrl,
-      status: dto.status,
-    });
+    );
 
-    return UserMapper.toResponse(user);
-  }
+  const user =
+    await this.usersRepository.create(
+      input,
+    );
+
+  return UserMapper.toResponse(
+    user,
+  );
+}
 
   // =====================================================
   // Read
