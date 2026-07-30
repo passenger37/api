@@ -6,6 +6,7 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Patch,
   UseGuards,
 } from '@nestjs/common';
 
@@ -22,6 +23,7 @@ import {
 
 import { Permissions } from '../../../common/decorators/permissions.decorator';
 import { CreateUserDto } from '../dto/create-user.dto';
+import { UpdateUserProfileDto } from '../dto/update-user-profile.dto';
 import { PublicUserProfileDto, UserResponseDto } from '../responses';
 
 import { QueryUsersDto, SortOrder, UserSortBy } from '../dto/query-users.dto';
@@ -33,6 +35,7 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { UsersService } from '../services/users.service';
 
 import { Public } from '../../../common/decorators/public.decorator';
+import type { JwtUser } from '../../auth/interfaces/jwt-user.interface';
 @ApiTags('Users')
 @Controller({
   path: 'users',
@@ -154,5 +157,16 @@ export class UsersController {
   @Post()
   async createUser(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
     return this.usersService.createByAdmin(dto);
+  }
+
+  @Patch('me/profile')
+  @ApiBearerAuth('JWT')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(
+    @CurrentUser() user: JwtUser,
+    @Body() dto: UpdateUserProfileDto,
+  ) {
+    console.log('   -----------------', user);
+    return this.usersService.updateProfile(user.id, dto);
   }
 }

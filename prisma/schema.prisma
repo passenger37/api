@@ -43,10 +43,10 @@ model User {
   displayName String
 
   avatarUrl     String?
-  coverPhotoUrl String?
+  coverImageUrl    String?
 
   bio String?
-
+  website       String?
   // ===========================
   // Contact
   // ===========================
@@ -72,7 +72,7 @@ model User {
   // ===========================
   // Preferences
   // ===========================
-
+location      String?
   language String @default("en")
   timezone String @default("UTC")
 

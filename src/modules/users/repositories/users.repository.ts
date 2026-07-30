@@ -162,8 +162,13 @@ export class UsersRepository {
   // Update
   // =====================================================
 
-  async updateProfile() {
-    throw new Error('Not implemented yet.');
+  async updateProfile(userId: string, data: Prisma.UserUpdateInput) {
+    return this.prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data,
+    });
   }
 
   async updatePreferences() {

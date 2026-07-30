@@ -18,7 +18,7 @@ export class UserResponseDto {
   @ApiProperty({
     nullable: true,
   })
-  coverPhotoUrl: string | null;
+  coverImageUrl: string | null;
 
   @ApiProperty({
     nullable: true,

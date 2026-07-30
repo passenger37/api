@@ -17,7 +17,7 @@ export class UserMapper {
 
       avatarUrl: user.avatarUrl,
 
-      coverPhotoUrl: user.coverPhotoUrl,
+      coverImageUrl: user.coverImageUrl,
 
       bio: user.bio,
 

@@ -10,11 +10,11 @@ import { RegisterDto } from '../dto/register.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { LogoutDto } from '../dto';
 
-import { RegisterUserMapper } from '../mappers/register-user.mapper';
-
 import { TokenService } from './token.service';
 
 import { PasswordService } from '../../security/services/password.service';
+
+import { UserFactory } from '../../users/factories/user.factory';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +23,7 @@ export class AuthService {
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly sessionsService: SessionsService,
+    private readonly userFactory: UserFactory,
   ) {}
 
   // =====================================================
@@ -32,7 +33,7 @@ export class AuthService {
   async register(dto: RegisterDto) {
     const passwordHash = await this.passwordService.hash(dto.password);
 
-    const input = RegisterUserMapper.toPrismaCreate(dto, passwordHash);
+    const input = this.userFactory.createForRegistration(dto, passwordHash);
 
     const user = await this.usersService.createForRegistration(input);
 

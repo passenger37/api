@@ -10,7 +10,7 @@ import {
   PublicUserProfileDto,
 } from '../responses';
 
-import { UserMapper, CreateUserMapper } from '../mappers';
+import { UserMapper } from '../mappers';
 
 import { PaginationMapper } from '../../../common/pagination/mappers/pagination.mapper';
 
@@ -20,8 +20,12 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { PaginatedResponseDto } from '../../../common/pagination';
 
 import { UserValidationService } from './user-validation.service';
+import { UserProfileService } from './user-profile.service';
 
 import { PasswordService } from '../../security/services/password.service';
+import { UpdateUserProfileDto } from '../dto/update-user-profile.dto';
+
+import { UserFactory } from '../factories/user.factory';
 
 @Injectable()
 export class UsersService {
@@ -29,11 +33,9 @@ export class UsersService {
     private readonly usersRepository: UsersRepository,
     private readonly userValidationService: UserValidationService,
     private readonly passwordService: PasswordService,
+    private readonly userFactory: UserFactory,
+    private readonly userProfileService: UserProfileService,
   ) {}
-
-  // =====================================================
-  // Registration (Auth Module)
-  // =====================================================
 
   async createForRegistration(input: Prisma.UserCreateInput) {
     await this.userValidationService.validateUniqueUser(
@@ -44,10 +46,6 @@ export class UsersService {
     return this.usersRepository.create(input);
   }
 
-  // =====================================================
-  // Admin Create User
-  // =====================================================
-
   async createByAdmin(dto: CreateUserDto): Promise<UserResponseDto> {
     await this.userValidationService.validateUniqueUser(
       dto.email,
@@ -56,16 +54,12 @@ export class UsersService {
 
     const passwordHash = await this.passwordService.hash(dto.password);
 
-    const input = CreateUserMapper.toPrismaCreate(dto, passwordHash);
+    const input = this.userFactory.createByAdmin(dto, passwordHash);
 
     const user = await this.usersRepository.create(input);
 
     return UserMapper.toResponse(user);
   }
-
-  // =====================================================
-  // Read
-  // =====================================================
 
   async findByIdentifier(identifier: string) {
     return this.usersRepository.findByEmailOrUsername(identifier);
@@ -83,39 +77,21 @@ export class UsersService {
     return this.usersRepository.findByEmail(email);
   }
 
-  async getUserById(userId: string): Promise<UserResponseDto> {
-    const user = await this.usersRepository.findById(userId);
-
-    if (!user) {
-      throw new NotFoundException('User not found.');
-    }
-
-    return UserMapper.toResponse(user);
+  async getUserById(userId: string) {
+    return this.userProfileService.getUserById(userId);
   }
 
-  async getCurrentUser(userId: string): Promise<CurrentUserDto> {
-    const user = await this.usersRepository.findById(userId);
-
-    if (!user) {
-      throw new NotFoundException('User not found.');
-    }
-
-    return UserMapper.toCurrentUser(user);
+  async getCurrentUser(userId: string) {
+    return this.userProfileService.getCurrentProfile(userId);
   }
 
-  async getPublicProfile(username: string): Promise<PublicUserProfileDto> {
-    const user = await this.usersRepository.findByUsername(username);
-
-    if (!user) {
-      throw new NotFoundException('User not found.');
-    }
-
-    return UserMapper.toPublicProfile(user);
+  async getPublicProfile(username: string) {
+    return this.userProfileService.getPublicProfile(username);
   }
 
-  // =====================================================
-  // Query
-  // =====================================================
+  async updateProfile(userId: string, dto: UpdateUserProfileDto) {
+    return this.userProfileService.updateProfile(userId, dto);
+  }
 
   async getUsers(
     query: QueryUsersDto,
