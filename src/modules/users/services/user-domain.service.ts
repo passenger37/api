@@ -1,30 +1,33 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 import { Prisma } from '@prisma/client';
 
 import { UsersRepository } from '../repositories/users.repository';
 
-import { UserResponseDto } from '../responses';
-
-import { UserMapper } from '../mappers';
 import { CreateUserDto } from '../dto/create-user.dto';
 
-import { UserValidationService } from './user-validation.service';
-import { UserProfileService } from './user-profile.service';
+import { UserResponseDto } from '../responses';
 
-import { PasswordService } from '../../security/services/password.service';
+import { CreateUserMapper, UserMapper } from '../mappers';
 
 import { UserFactory } from '../factories/user.factory';
 
+import { UserValidationService } from './user-validation.service';
+
+import { PasswordService } from '../../security/services/password.service';
+
 @Injectable()
-export class UsersService {
+export class UserDomainService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly userValidationService: UserValidationService,
     private readonly passwordService: PasswordService,
     private readonly userFactory: UserFactory,
-    private readonly userProfileService: UserProfileService,
   ) {}
+
+  // =====================================================
+  // Registration
+  // =====================================================
 
   async createForRegistration(input: Prisma.UserCreateInput) {
     await this.userValidationService.validateUniqueUser(
@@ -35,6 +38,10 @@ export class UsersService {
     return this.usersRepository.create(input);
   }
 
+  // =====================================================
+  // Admin Create User
+  // =====================================================
+
   async createByAdmin(dto: CreateUserDto): Promise<UserResponseDto> {
     await this.userValidationService.validateUniqueUser(
       dto.email,
@@ -43,7 +50,7 @@ export class UsersService {
 
     const passwordHash = await this.passwordService.hash(dto.password);
 
-    const input = this.userFactory.createByAdmin(dto, passwordHash);
+    const input = this.userFactory.createForRegistration(dto, passwordHash);
 
     const user = await this.usersRepository.create(input);
 

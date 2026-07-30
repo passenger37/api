@@ -2,7 +2,9 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 import { randomUUID } from 'crypto';
 
+import { UserQueryService } from '../../users/services/user-query.service';
 import { UsersService } from '../../users/services/users.service';
+import { UserCommandService } from '../../users/services/user-command.service';
 import { SessionsService } from '../../sessions/services';
 
 import { LoginDto } from '../dto/login.dto';
@@ -20,10 +22,12 @@ import { UserFactory } from '../../users/factories/user.factory';
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
+    private readonly userQueryService: UserQueryService,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly sessionsService: SessionsService,
     private readonly userFactory: UserFactory,
+    private readonly userCommandService: UserCommandService,
   ) {}
 
   // =====================================================
@@ -35,7 +39,7 @@ export class AuthService {
 
     const input = this.userFactory.createForRegistration(dto, passwordHash);
 
-    const user = await this.usersService.createForRegistration(input);
+    const user = await this.userCommandService.createForRegistration(input);
 
     return {
       id: user.id,
@@ -51,7 +55,7 @@ export class AuthService {
   // =====================================================
 
   async login(dto: LoginDto) {
-    const user = await this.usersService.findByIdentifier(dto.identifier);
+    const user = await this.userQueryService.findByIdentifier(dto.identifier);
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -120,7 +124,7 @@ export class AuthService {
       throw new UnauthorizedException('Session expired');
     }
 
-    const user = await this.usersService.findById(payload.sub);
+    const user = await this.userQueryService.findById(payload.sub);
 
     if (!user) {
       throw new UnauthorizedException();

@@ -3,20 +3,26 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { UsersRepository } from '../repositories/users.repository';
 
 import {
+  UserResponseDto,
   CurrentUserDto,
   PublicUserProfileDto,
-  UserResponseDto,
 } from '../responses';
 
-import { Prisma } from '@prisma/client';
-
-import { UserMapper, UpdateUserProfileMapper } from '../mappers';
+import { UserMapper } from '../mappers';
+import { UserProfileFactory } from '../factories';
 
 import { UpdateUserProfileDto } from '../dto/update-user-profile.dto';
 
 @Injectable()
-export class UserProfileService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+export class UserProfileDomainService {
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly userProfileFactory: UserProfileFactory,
+  ) {}
+
+  // =====================================================
+  // User
+  // =====================================================
 
   async getUserById(userId: string): Promise<UserResponseDto> {
     const user = await this.usersRepository.findById(userId);
@@ -28,6 +34,10 @@ export class UserProfileService {
     return UserMapper.toResponse(user);
   }
 
+  // =====================================================
+  // Current User
+  // =====================================================
+
   async getCurrentProfile(userId: string): Promise<CurrentUserDto> {
     const user = await this.usersRepository.findById(userId);
 
@@ -37,6 +47,10 @@ export class UserProfileService {
 
     return UserMapper.toCurrentUser(user);
   }
+
+  // =====================================================
+  // Public Profile
+  // =====================================================
 
   async getPublicProfile(username: string): Promise<PublicUserProfileDto> {
     const user = await this.usersRepository.findByUsername(username);
@@ -48,6 +62,10 @@ export class UserProfileService {
     return UserMapper.toPublicProfile(user);
   }
 
+  // =====================================================
+  // Update Profile
+  // =====================================================
+
   async updateProfile(
     userId: string,
     dto: UpdateUserProfileDto,
@@ -58,9 +76,12 @@ export class UserProfileService {
       throw new NotFoundException('User not found.');
     }
 
-    const updateData = UpdateUserProfileMapper.toPrismaUpdate(dto);
+    const updateData = this.userProfileFactory.createUpdateInput(dto);
 
-    const updatedUser = await this.usersRepository.update(userId, updateData);
+    const updatedUser = await this.usersRepository.updateProfile(
+      userId,
+      updateData,
+    );
 
     return UserMapper.toResponse(updatedUser);
   }

@@ -8,15 +8,33 @@ import {
   UserResponseDto,
 } from '../responses';
 
-import { Prisma } from '@prisma/client';
+import { UserMapper } from '../mappers';
 
-import { UserMapper, UpdateUserProfileMapper } from '../mappers';
+import { PaginationMapper } from '../../../common/pagination/mappers/pagination.mapper';
 
-import { UpdateUserProfileDto } from '../dto/update-user-profile.dto';
+import { QueryUsersDto } from '../dto/query-users.dto';
+
+import { PaginatedResponseDto } from '../../../common/pagination';
 
 @Injectable()
-export class UserProfileService {
+export class UserQueryService {
   constructor(private readonly usersRepository: UsersRepository) {}
+
+  async findByIdentifier(identifier: string) {
+    return this.usersRepository.findByEmailOrUsername(identifier);
+  }
+
+  async findById(id: string) {
+    return this.usersRepository.findById(id);
+  }
+
+  async findByEmail(email: string) {
+    return this.usersRepository.findByEmail(email);
+  }
+
+  async findByUsername(username: string) {
+    return this.usersRepository.findByUsername(username);
+  }
 
   async getUserById(userId: string): Promise<UserResponseDto> {
     const user = await this.usersRepository.findById(userId);
@@ -48,20 +66,11 @@ export class UserProfileService {
     return UserMapper.toPublicProfile(user);
   }
 
-  async updateProfile(
-    userId: string,
-    dto: UpdateUserProfileDto,
-  ): Promise<UserResponseDto> {
-    const existingUser = await this.usersRepository.findById(userId);
+  async getUsers(
+    query: QueryUsersDto,
+  ): Promise<PaginatedResponseDto<UserResponseDto>> {
+    const result = await this.usersRepository.findMany(query);
 
-    if (!existingUser) {
-      throw new NotFoundException('User not found.');
-    }
-
-    const updateData = UpdateUserProfileMapper.toPrismaUpdate(dto);
-
-    const updatedUser = await this.usersRepository.update(userId, updateData);
-
-    return UserMapper.toResponse(updatedUser);
+    return PaginationMapper.toResponse(result, UserMapper.toResponse);
   }
 }

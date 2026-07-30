@@ -33,6 +33,8 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 import { UsersService } from '../services/users.service';
+import { UserQueryService } from '../services/user-query.service';
+import { UserProfileDomainService } from '../services/user-profile-domain.service';
 
 import { Public } from '../../../common/decorators/public.decorator';
 import type { JwtUser } from '../../auth/interfaces/jwt-user.interface';
@@ -42,13 +44,17 @@ import type { JwtUser } from '../../auth/interfaces/jwt-user.interface';
   version: '1',
 })
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly userQueryService: UserQueryService,
+    private readonly userProfileDomainService: UserProfileDomainService,
+  ) {}
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT')
   async getCurrentUser(@CurrentUser() user: { id: string }) {
-    return this.usersService.getCurrentUser(user.id);
+    return this.userQueryService.getCurrentProfile(user.id);
   }
 
   @Get()
@@ -95,7 +101,7 @@ export class UsersController {
     @Query()
     query: QueryUsersDto,
   ): Promise<PaginatedResponseDto<UserResponseDto>> {
-    return this.usersService.getUsers(query);
+    return this.userQueryService.getUsers(query);
   }
 
   @Get('profile/:username')
@@ -119,7 +125,7 @@ export class UsersController {
     username: string,
   ) {
     console.log('PROFILE:', username);
-    return this.usersService.getPublicProfile(username);
+    return this.userQueryService.getPublicProfile(username);
   }
 
   @Get(':id')
@@ -141,7 +147,7 @@ export class UsersController {
     )
     id: string,
   ) {
-    return this.usersService.getUserById(id);
+    return this.userQueryService.getUserById(id);
   }
 
   @Permissions('users:create')
@@ -167,6 +173,6 @@ export class UsersController {
     @Body() dto: UpdateUserProfileDto,
   ) {
     console.log('   -----------------', user);
-    return this.usersService.updateProfile(user.id, dto);
+    return this.userProfileDomainService.updateProfile(user.id, dto);
   }
 }
