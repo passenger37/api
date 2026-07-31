@@ -12,8 +12,8 @@ import { PermissionQueryService } from './services';
 import { PermissionCommandService } from './services/permission-command.service';
 
 import { PermissionsController } from './controllers';
-
 @Module({
+  imports: [],
   controllers: [PermissionsController],
   providers: [
     PermissionsService,
@@ -23,7 +23,6 @@ import { PermissionsController } from './controllers';
     PermissionDomainService,
     PermissionQueryService,
     PermissionCommandService,
-    PermissionsService,
   ],
 
   exports: [
@@ -34,7 +33,7 @@ import { PermissionsController } from './controllers';
     PermissionDomainService,
     PermissionQueryService,
     PermissionCommandService,
-    PermissionsService,
+    PermissionsRepository,
   ],
 })
 export class PermissionsModule {}

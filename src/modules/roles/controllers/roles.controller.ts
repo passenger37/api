@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Put,
 } from '@nestjs/common';
 
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';

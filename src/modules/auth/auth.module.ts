@@ -16,7 +16,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthorizationModule } from '../authorization/authorization.module';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { PermissionsModule } from '../permissions';
+import { PermissionsModule } from '../permissions/permissions.module';
 import { AuthorizationService } from './services/authorization.service';
 import { RoleService } from './services/role.service';
 import { PermissionService } from './services/permission.service';

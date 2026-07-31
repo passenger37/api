@@ -1,22 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  Body,
+  Delete,
+  Param,
+  Post,
+  Put,
+  Get,
+} from '@nestjs/common';
 
 import { CreateRoleDto, QueryRolesDto, UpdateRoleDto } from '../dto';
 
-import { RoleResponseDto } from '../responses';
+import { RoleResponseDto } from '../dto/response/role-response.dto';
 
 import { RoleQueryService } from './role-query.service';
 import { RoleCommandService } from './role-command.service';
-
 @Injectable()
 export class RolesService {
   constructor(
     private readonly roleQueryService: RoleQueryService,
     private readonly roleCommandService: RoleCommandService,
   ) {}
-
-  // =====================================================
-  // Query
-  // =====================================================
 
   getRoleById(id: string): Promise<RoleResponseDto> {
     return this.roleQueryService.getRoleById(id);
@@ -29,10 +32,6 @@ export class RolesService {
   getRoles(query: QueryRolesDto): Promise<RoleResponseDto[]> {
     return this.roleQueryService.getRoles(query);
   }
-
-  // =====================================================
-  // Command
-  // =====================================================
 
   create(dto: CreateRoleDto): Promise<RoleResponseDto> {
     return this.roleCommandService.create(dto);

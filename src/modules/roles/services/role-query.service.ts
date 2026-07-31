@@ -6,7 +6,7 @@ import { RolesRepository } from '../repositories/roles.repository';
 
 import { QueryRolesDto } from '../dto';
 
-import { RoleResponseDto } from '../responses';
+import { RoleResponseDto } from '../dto/response/role-response.dto';
 
 @Injectable()
 export class RoleQueryService {

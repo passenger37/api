@@ -6,6 +6,8 @@ import {
   UserResponseDto,
 } from '../responses';
 
+import { UserSummaryResponseDto } from '../dto/response/user-summary-response.dto';
+
 export class UserMapper {
   static toResponse(user: User): UserResponseDto {
     return {
@@ -69,5 +71,18 @@ export class UserMapper {
 
       postsCount: 0,
     };
+  }
+
+  toSummary(entity: User): UserSummaryResponseDto {
+    return {
+      id: entity.id,
+      fullName: entity.displayName, // or entity.fullName if that's your field
+      email: entity.email,
+      avatarUrl: entity.avatarUrl,
+    };
+  }
+
+  toSummaryList(entities: User[]): UserSummaryResponseDto[] {
+    return entities.map((entity) => this.toSummary(entity));
   }
 }

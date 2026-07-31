@@ -7,7 +7,11 @@ import { RolePermissionQueryService } from './services/role-permission-query.ser
 import { RolePermissionCommandService } from './services/role-permission-command.service';
 import { RolePermissionsService } from './services/role-permissions.service';
 
+import { RolesModule } from '../roles/roles.module';
+import { PermissionsModule } from '../permissions';
+
 @Module({
+  imports: [RolesModule, PermissionsModule],
   providers: [
     RolePermissionsRepository,
     RolePermissionValidationService,

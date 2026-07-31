@@ -1,6 +1,5 @@
 import { Role } from '@prisma/client';
-
-import { RoleResponseDto } from '../responses';
+import { RoleResponseDto, RoleSummaryResponseDto } from '../dto/response';
 
 export class RoleMapper {
   static toResponse(role: Role): RoleResponseDto {
@@ -16,5 +15,16 @@ export class RoleMapper {
 
   static toResponseList(roles: Role[]): RoleResponseDto[] {
     return roles.map(this.toResponse);
+  }
+
+  toSummary(entity: Role): RoleSummaryResponseDto {
+    return {
+      id: entity.id,
+      name: entity.name,
+    };
+  }
+
+  toSummaryList(entities: Role[]): RoleSummaryResponseDto[] {
+    return entities.map((entity) => this.toSummary(entity));
   }
 }

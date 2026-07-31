@@ -43,10 +43,10 @@ model User {
   displayName String
 
   avatarUrl     String?
-  coverImageUrl    String?
+  coverImageUrl String?
 
-  bio String?
-  website       String?
+  bio     String?
+  website String?
   // ===========================
   // Contact
   // ===========================
@@ -72,9 +72,9 @@ model User {
   // ===========================
   // Preferences
   // ===========================
-location      String?
-  language String @default("en")
-  timezone String @default("UTC")
+  location String?
+  language String  @default("en")
+  timezone String  @default("UTC")
 
   // ===========================
   // Privacy
@@ -192,8 +192,9 @@ model Permission {
   updatedAt DateTime @updatedAt
 
   roles RolePermission[]
-  
-  isSystem    Boolean  @default(false)
+
+  isSystem Boolean @default(false)
+
   @@index([resource])
   @@index([action])
 }
@@ -211,11 +212,13 @@ model UserRole {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
   @@unique([userId, roleId])
   @@index([userId])
   @@index([roleId])
+  @@map("user_roles")
 }
 
 model RolePermission {
@@ -224,7 +227,7 @@ model RolePermission {
   roleId       String
   permissionId String
   createdAt    DateTime @default(now())
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role         Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
@@ -232,7 +235,6 @@ model RolePermission {
   @@index([roleId])
   @@index([permissionId])
 }
-
 
 model AuthorizationAuditLog {
   id String @id @default(uuid())
@@ -256,10 +258,7 @@ model AuthorizationAuditLog {
   createdAt DateTime @default(now())
 
   @@index([actorId])
-
   @@index([targetUserId])
-
   @@index([action])
-
   @@index([createdAt])
 }

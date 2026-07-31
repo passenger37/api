@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { CreateRoleDto, UpdateRoleDto } from '../dto';
 
-import { RoleResponseDto } from '../responses';
+import { RoleResponseDto } from '../dto/response/role-response.dto';
 
 import { RoleMapper } from '../mappers';
 
