@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { Permission, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
+import { QueryPermissionsDto } from '../dto';
 
 @Injectable()
 export class PermissionsRepository {
@@ -46,10 +47,45 @@ export class PermissionsRepository {
   // Find Many
   // =====================================================
 
-  findMany(): Promise<Permission[]> {
+  async findMany(query: QueryPermissionsDto) {
     return this.prisma.permission.findMany({
+      where: {
+        ...(query.search && {
+          OR: [
+            {
+              name: {
+                contains: query.search,
+                mode: 'insensitive',
+              },
+            },
+            {
+              resource: {
+                contains: query.search,
+                mode: 'insensitive',
+              },
+            },
+          ],
+        }),
+
+        ...(query.resource && {
+          resource: query.resource,
+        }),
+
+        ...(query.action && {
+          action: query.action,
+        }),
+
+        ...(query.isSystem !== undefined && {
+          isSystem: query.isSystem,
+        }),
+      },
+
+      skip: (query.page - 1) * query.limit,
+
+      take: query.limit,
+
       orderBy: {
-        createdAt: 'desc',
+        name: 'asc',
       },
     });
   }

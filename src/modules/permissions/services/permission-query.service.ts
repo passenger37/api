@@ -1,39 +1,25 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { PermissionsRepository } from '../repositories';
 
 import { QueryPermissionsDto } from '../dto';
 
-import {
-  PermissionResponseDto,
-} from '../responses';
+import { PermissionResponseDto } from '../dto';
 
-import {
-  PermissionMapper,
-} from '../mappers';
+import { PermissionMapper } from '../mappers';
 
 @Injectable()
 export class PermissionQueryService {
-  constructor(
-    private readonly permissionsRepository: PermissionsRepository,
-  ) {}
+  constructor(private readonly permissionsRepository: PermissionsRepository) {}
 
   /**
    * Get permission by id
    */
-  async getPermissionById(
-    id: string,
-  ): Promise<PermissionResponseDto> {
-    const permission =
-      await this.permissionsRepository.findById(id);
+  async getPermissionById(id: string): Promise<PermissionResponseDto> {
+    const permission = await this.permissionsRepository.findById(id);
 
     if (!permission) {
-      throw new NotFoundException(
-        'Permission not found.',
-      );
+      throw new NotFoundException('Permission not found.');
     }
 
     return PermissionMapper.toResponse(permission);
@@ -42,16 +28,11 @@ export class PermissionQueryService {
   /**
    * Get permission by name
    */
-  async getPermissionByName(
-    name: string,
-  ): Promise<PermissionResponseDto> {
-    const permission =
-      await this.permissionsRepository.findByName(name);
+  async getPermissionByName(name: string): Promise<PermissionResponseDto> {
+    const permission = await this.permissionsRepository.findByName(name);
 
     if (!permission) {
-      throw new NotFoundException(
-        'Permission not found.',
-      );
+      throw new NotFoundException('Permission not found.');
     }
 
     return PermissionMapper.toResponse(permission);
@@ -63,11 +44,8 @@ export class PermissionQueryService {
   async getPermissions(
     query: QueryPermissionsDto,
   ): Promise<PermissionResponseDto[]> {
-    const permissions =
-      await this.permissionsRepository.findMany(query);
+    const permissions = await this.permissionsRepository.findMany(query);
 
-    return PermissionMapper.toResponseList(
-      permissions,
-    );
+    return PermissionMapper.toResponseList(permissions);
   }
 }
