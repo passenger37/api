@@ -11,123 +11,144 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import {
-  AssignPermissionToRoleDto,
   AssignPermissionsToRoleDto,
-  RemovePermissionFromRoleDto,
+  AssignPermissionToRoleDto,
   ReplaceRolePermissionsDto,
 } from '../dto';
 
 import { RolePermissionsService } from '../services/role-permissions.service';
 
 @ApiTags('Role Permissions')
-@Controller('role-permissions')
+@Controller()
 export class RolePermissionsController {
   constructor(
     private readonly rolePermissionsService: RolePermissionsService,
   ) {}
 
   // =====================================================
-  // Assign one permission
+  // Assign One Permission
   // =====================================================
 
-  @Post()
+  @Post('roles/:roleId/permissions')
   @ApiOperation({
     summary: 'Assign a permission to a role',
   })
   assign(
+    @Param('roleId') roleId: string,
+
     @Body()
-    dto: AssignPermissionToRoleDto,
+    body: {
+      permissionId: string;
+    },
   ) {
+    const dto: AssignPermissionToRoleDto = {
+      roleId,
+      permissionId: body.permissionId,
+    };
+
     return this.rolePermissionsService.assign(dto);
   }
 
   // =====================================================
-  // Assign multiple permissions
+  // Assign Multiple Permissions
   // =====================================================
 
-  @Post('bulk')
+  @Post('roles/:roleId/permissions/bulk')
   @ApiOperation({
     summary: 'Assign multiple permissions to a role',
   })
   assignMany(
+    @Param('roleId') roleId: string,
+
     @Body()
-    dto: AssignPermissionsToRoleDto,
+    body: {
+      permissionIds: string[];
+    },
   ) {
+    const dto: AssignPermissionsToRoleDto = {
+      roleId,
+      permissionIds: body.permissionIds,
+    };
+
     return this.rolePermissionsService.assignMany(dto);
   }
 
   // =====================================================
-  // Replace permissions
+  // Replace Permissions
   // =====================================================
 
-  @Put('replace')
+  @Put('roles/:roleId/permissions')
   @ApiOperation({
-    summary: 'Replace role permissions',
+    summary: 'Replace all permissions of a role',
   })
   replace(
+    @Param('roleId') roleId: string,
+
     @Body()
-    dto: ReplaceRolePermissionsDto,
+    body: {
+      permissionIds: string[];
+    },
   ) {
+    const dto: ReplaceRolePermissionsDto = {
+      roleId,
+      permissionIds: body.permissionIds,
+    };
+
     return this.rolePermissionsService.replace(dto);
   }
 
   // =====================================================
-  // Remove permission
+  // Remove Permission
   // =====================================================
 
-  @Delete()
+  @Delete('roles/:roleId/permissions/:permissionId')
   @ApiOperation({
-    summary: 'Remove permission from role',
+    summary: 'Remove permission from a role',
   })
   remove(
-    @Body()
-    dto: RemovePermissionFromRoleDto,
+    @Param('roleId') roleId: string,
+
+    @Param('permissionId') permissionId: string,
   ) {
-    return this.rolePermissionsService.remove(dto);
+    return this.rolePermissionsService.remove({
+      roleId,
+      permissionId,
+    });
   }
 
   // =====================================================
-  // Find assignment
+  // Find Assignment
   // =====================================================
 
-  @Get(':id')
+  @Get('role-permissions/:id')
   @ApiOperation({
-    summary: 'Get role permission assignment',
+    summary: 'Get role-permission assignment',
   })
-  findById(
-    @Param('id')
-    id: string,
-  ) {
+  findById(@Param('id') id: string) {
     return this.rolePermissionsService.findById(id);
   }
 
   // =====================================================
-  // Permissions of role
+  // Get Permissions of Role
   // =====================================================
 
-  @Get('role/:roleId')
+  @Get('roles/:roleId/permissions')
   @ApiOperation({
-    summary: 'Get permissions of a role',
+    summary: 'Get all permissions of a role',
   })
-  getPermissionsByRole(
-    @Param('roleId')
-    roleId: string,
-  ) {
+  getPermissions(@Param('roleId') roleId: string) {
     return this.rolePermissionsService.getPermissionsByRole(roleId);
   }
 
   // =====================================================
-  // Roles of permission
+  // Get Roles of Permission
   // =====================================================
 
-  @Get('permission/:permissionId')
+  @Get('permissions/:permissionId/roles')
   @ApiOperation({
-    summary: 'Get roles assigned to a permission',
+    summary: 'Get all roles assigned to a permission',
   })
-  getRolesByPermission(
-    @Param('permissionId')
-    permissionId: string,
-  ) {
+  getRoles(@Param('permissionId') permissionId: string) {
     return this.rolePermissionsService.getRolesByPermission(permissionId);
   }
 }
