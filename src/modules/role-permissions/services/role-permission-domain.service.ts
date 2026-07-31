@@ -50,15 +50,50 @@ export class RolePermissionDomainService {
     }
   }
 
-  /**
-   * Replace permissions
-   *
-   * (Temporary implementation)
-   */
   async replace(dto: ReplaceRolePermissionsDto): Promise<void> {
-    /**
-     * We will implement synchronization
-     * in a later lecture.
-     */
+    // Current assignments
+    const current = await this.repository.findByRoleId(dto.roleId);
+
+    // Existing permission ids
+    const currentPermissionIds = new Set(
+      current.map((item) => item.permissionId),
+    );
+
+    // Incoming permission ids
+    const incomingPermissionIds = new Set(dto.permissionIds);
+
+    // ----------------------------------------
+    // Calculate permissions to remove
+    // ----------------------------------------
+
+    const assignmentsToRemove = current.filter(
+      (assignment) => !incomingPermissionIds.has(assignment.permissionId),
+    );
+
+    // ----------------------------------------
+    // Calculate permissions to add
+    // ----------------------------------------
+
+    const permissionsToAdd = dto.permissionIds.filter(
+      (permissionId) => !currentPermissionIds.has(permissionId),
+    );
+
+    // ----------------------------------------
+    // Delete
+    // ----------------------------------------
+
+    if (assignmentsToRemove.length > 0) {
+      await this.repository.deleteMany(
+        assignmentsToRemove.map((item) => item.id),
+      );
+    }
+
+    // ----------------------------------------
+    // Create
+    // ----------------------------------------
+
+    if (permissionsToAdd.length > 0) {
+      await this.repository.createMany(dto.roleId, permissionsToAdd);
+    }
   }
 }

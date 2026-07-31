@@ -89,4 +89,45 @@ export class RolePermissionsRepository {
       },
     });
   }
+
+  // =====================================================
+  // Find By Role
+  // =====================================================
+
+  findByRoleId(roleId: string) {
+    return this.prisma.rolePermission.findMany({
+      where: {
+        roleId,
+      },
+    });
+  }
+
+  // =====================================================
+  // Delete Many
+  // =====================================================
+
+  deleteMany(ids: string[]) {
+    return this.prisma.rolePermission.deleteMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+  }
+
+  // =====================================================
+  // Create Many
+  // =====================================================
+
+  createMany(roleId: string, permissionIds: string[]) {
+    return this.prisma.rolePermission.createMany({
+      data: permissionIds.map((permissionId) => ({
+        roleId,
+        permissionId,
+      })),
+
+      skipDuplicates: true,
+    });
+  }
 }
