@@ -10,10 +10,13 @@ import { RoleCommandService } from './services/role-command.service';
 import { RoleDomainService } from './services/role-domain.service';
 import { RoleValidationService } from './services/validation.service';
 
+import { RoleFactory } from './factories';
+
 @Module({
   controllers: [RolesController],
 
   providers: [
+    RoleFactory,
     RolesRepository,
 
     RolesService,
