@@ -192,7 +192,8 @@ model Permission {
   updatedAt DateTime @updatedAt
 
   roles RolePermission[]
-isSystem    Boolean  @default(false)
+  
+  isSystem    Boolean  @default(false)
   @@index([resource])
   @@index([action])
 }
