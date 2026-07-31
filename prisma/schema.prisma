@@ -223,7 +223,7 @@ model RolePermission {
 
   roleId       String
   permissionId String
-
+  createdAt    DateTime @default(now())
   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
