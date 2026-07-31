@@ -8,7 +8,7 @@ import { RolesService } from './services/roles.service';
 import { RoleQueryService } from './services/role-query.service';
 import { RoleCommandService } from './services/role-command.service';
 import { RoleDomainService } from './services/role-domain.service';
-import { RoleValidationService } from './services/validation.service';
+import { RoleValidationService } from './services/role-validation.service';
 
 import { RoleFactory } from './factories';
 
