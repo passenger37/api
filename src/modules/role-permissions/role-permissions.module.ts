@@ -4,6 +4,7 @@ import { RolePermissionsRepository } from './repositories/role-permissions.repos
 import { RolePermissionValidationService } from './services/role-permission-validation.service';
 import { RolePermissionDomainService } from './services/role-permission-domain.service';
 import { RolePermissionQueryService } from './services/role-permission-query.service';
+import { RolePermissionCommandService } from './services/role-permission-command.service';
 
 @Module({
   providers: [
@@ -11,6 +12,7 @@ import { RolePermissionQueryService } from './services/role-permission-query.ser
     RolePermissionValidationService,
     RolePermissionDomainService,
     RolePermissionQueryService,
+    RolePermissionCommandService,
   ],
 
   exports: [
@@ -18,6 +20,7 @@ import { RolePermissionQueryService } from './services/role-permission-query.ser
     RolePermissionValidationService,
     RolePermissionDomainService,
     RolePermissionQueryService,
+    RolePermissionCommandService,
   ],
 })
 export class RolePermissionsModule {}
