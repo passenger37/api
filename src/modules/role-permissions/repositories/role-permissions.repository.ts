@@ -56,8 +56,16 @@ export class RolePermissionsRepository {
         roleId,
       },
 
-      include: {
-        permission: true,
+      select: {
+        permission: {
+          select: {
+            id: true,
+            name: true,
+            resource: true,
+            action: true,
+            isSystem: true,
+          },
+        },
       },
     });
   }
@@ -72,8 +80,15 @@ export class RolePermissionsRepository {
         permissionId,
       },
 
-      include: {
-        role: true,
+      select: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isSystem: true,
+          },
+        },
       },
     });
   }

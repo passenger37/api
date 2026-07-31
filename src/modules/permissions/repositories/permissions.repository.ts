@@ -114,4 +114,18 @@ export class PermissionsRepository {
       },
     });
   }
+
+  // =====================================================
+  // Find Many By Ids
+  // =====================================================
+
+  findManyByIds(ids: string[]) {
+    return this.prisma.permission.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+  }
 }
