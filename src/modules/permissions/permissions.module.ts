@@ -6,9 +6,21 @@ import { PermissionsRepository } from './repositories';
 
 import { PermissionFactory } from './factories';
 
-@Module({
-  providers: [PermissionsService, PermissionsRepository, PermissionFactory],
+import { PermissionValidationService } from './services';
 
-  exports: [PermissionsService, PermissionsRepository, PermissionFactory],
+@Module({
+  providers: [
+    PermissionsService,
+    PermissionValidationService,
+    PermissionsRepository,
+    PermissionFactory,
+  ],
+
+  exports: [
+    PermissionsService,
+    PermissionValidationService,
+    PermissionsRepository,
+    PermissionFactory,
+  ],
 })
 export class PermissionsModule {}
