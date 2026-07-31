@@ -8,6 +8,9 @@ import { PermissionFactory } from './factories';
 
 import { PermissionValidationService } from './services';
 import { PermissionDomainService } from './services';
+import {
+  PermissionQueryService,
+} from './services';
 
 @Module({
   providers: [
@@ -16,6 +19,7 @@ import { PermissionDomainService } from './services';
     PermissionsRepository,
     PermissionFactory,
     PermissionDomainService,
+    PermissionQueryService,
   ],
 
   exports: [
@@ -24,6 +28,7 @@ import { PermissionDomainService } from './services';
     PermissionsRepository,
     PermissionFactory,
     PermissionDomainService,
+    PermissionQueryService,
   ],
 })
 export class PermissionsModule {}
