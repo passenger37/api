@@ -2,15 +2,39 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 
 import {
   IsIn,
+  IsInt,
   IsOptional,
+  IsPositive,
   IsString,
+  Max,
+  Min,
 } from 'class-validator';
 
-import { BasePaginationQueryDto } from '../../../common/pagination';
+import { Type } from 'class-transformer';
 
-export class QueryRolesDto extends BasePaginationQueryDto {
+export class QueryRolesDto {
   @ApiPropertyOptional({
-    description: 'Search by role name',
+    example: 1,
+    default: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiPropertyOptional({
+    example: 20,
+    default: 20,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
+  @Max(100)
+  limit?: number = 20;
+
+  @ApiPropertyOptional({
     example: 'admin',
   })
   @IsOptional()
@@ -22,20 +46,14 @@ export class QueryRolesDto extends BasePaginationQueryDto {
     default: 'createdAt',
   })
   @IsOptional()
-  @IsIn([
-    'name',
-    'createdAt',
-  ])
-  sortBy?: 'name' | 'createdAt';
+  @IsIn(['name', 'createdAt'])
+  sortBy?: 'name' | 'createdAt' = 'createdAt';
 
   @ApiPropertyOptional({
     enum: ['asc', 'desc'],
     default: 'asc',
   })
   @IsOptional()
-  @IsIn([
-    'asc',
-    'desc',
-  ])
-  sortOrder?: 'asc' | 'desc';
+  @IsIn(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc' = 'asc';
 }
