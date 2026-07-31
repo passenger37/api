@@ -130,4 +130,37 @@ export class RolePermissionsRepository {
       skipDuplicates: true,
     });
   }
+
+  // =====================================================
+  // Sync Permissions
+  // =====================================================
+
+  async syncPermissions(
+    roleId: string,
+    assignmentIdsToRemove: string[],
+    permissionIdsToAdd: string[],
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      if (assignmentIdsToRemove.length > 0) {
+        await tx.rolePermission.deleteMany({
+          where: {
+            id: {
+              in: assignmentIdsToRemove,
+            },
+          },
+        });
+      }
+
+      if (permissionIdsToAdd.length > 0) {
+        await tx.rolePermission.createMany({
+          data: permissionIdsToAdd.map((permissionId) => ({
+            roleId,
+            permissionId,
+          })),
+
+          skipDuplicates: true,
+        });
+      }
+    });
+  }
 }
