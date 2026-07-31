@@ -14,9 +14,7 @@ export class RoleMapper {
     };
   }
 
-  static toResponseList(
-    roles: Role[],
-  ): RoleResponseDto[] {
+  static toResponseList(roles: Role[]): RoleResponseDto[] {
     return roles.map(this.toResponse);
   }
 }
