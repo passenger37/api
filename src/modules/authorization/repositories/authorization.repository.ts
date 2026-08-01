@@ -88,4 +88,65 @@ export class AuthorizationRepository {
       },
     });
   }
+
+  async findUserWithRoles(userId: string) {
+    return this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+  }
+
+  async findRolePermissions(roleId: string) {
+    return this.prisma.role.findUnique({
+      where: {
+        id: roleId,
+      },
+      include: {
+        permissions: {
+          include: {
+            permission: true,
+          },
+        },
+      },
+    });
+  }
+
+  async findUserPermissions(userId: string) {
+    return this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        roles: {
+          include: {
+            role: {
+              include: {
+                permissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async findPermissionByName(name: string) {
+    return this.prisma.permission.findUnique({
+      where: {
+        name,
+      },
+    });
+  }
 }
