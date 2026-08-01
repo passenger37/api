@@ -12,6 +12,8 @@ import { RoleValidationService } from './services/role-validation.service';
 
 import { RoleFactory } from './factories';
 
+import { RoleMapper } from './mappers/role.mapper';
+
 @Module({
   imports: [],
   controllers: [RolesController],
@@ -28,6 +30,7 @@ import { RoleFactory } from './factories';
     RoleDomainService,
 
     RoleValidationService,
+    RoleMapper,
   ],
 
   exports: [
@@ -35,6 +38,7 @@ import { RoleFactory } from './factories';
     RoleQueryService,
     RoleCommandService,
     RolesRepository,
+    RoleMapper,
   ],
 })
 export class RolesModule {}

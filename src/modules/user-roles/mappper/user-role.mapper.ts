@@ -47,7 +47,10 @@ export class UserRoleMapper {
 
       createdAt: entity.createdAt,
 
-      role: this.roleMapper.toSummary(entity.role),
+      role: {
+        id: entity.role.id,
+        name: entity.role.name,
+      },
     };
   }
 
@@ -65,7 +68,11 @@ export class UserRoleMapper {
 
       createdAt: entity.createdAt,
 
-      user: this.userMapper.toSummary(entity.user),
+      user: {
+        id: entity.user.id,
+        displayName: entity.user.displayName,
+        email: entity.user.email,
+      },
     };
   }
 

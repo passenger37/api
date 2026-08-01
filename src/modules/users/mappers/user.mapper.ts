@@ -6,8 +6,7 @@ import {
   UserResponseDto,
 } from '../responses';
 
-import { UserSummaryResponseDto } from '../dto/response/user-summary-response.dto';
-
+import { UserSummaryResponseDto } from '../../users/dto/response/user-summary-response.dto';
 export class UserMapper {
   static toResponse(user: User): UserResponseDto {
     return {
@@ -76,8 +75,8 @@ export class UserMapper {
   toSummary(entity: User): UserSummaryResponseDto {
     return {
       id: entity.id,
-      fullName: entity.displayName, // or entity.fullName if that's your field
-      email: entity.email,
+      username: entity.username,
+      displayName: entity.displayName,
       avatarUrl: entity.avatarUrl,
     };
   }

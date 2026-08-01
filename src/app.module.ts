@@ -9,6 +9,8 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth';
 import { SessionsModule } from './modules/sessions/sessions.module';
 import { PermissionsModule } from './modules/permissions';
+import { RolesModule } from './modules/roles/roles.module';
+import { UserRolesModule } from './modules/user-roles/user-roles.module';
 import { BootstrapService } from './bootstrap/bootstrap.service';
 
 @Module({
@@ -21,6 +23,8 @@ import { BootstrapService } from './bootstrap/bootstrap.service';
     AuthModule,
     SessionsModule,
     PermissionsModule,
+    RolesModule,
+    UserRolesModule,
   ],
   controllers: [],
   // providers: [AppService],

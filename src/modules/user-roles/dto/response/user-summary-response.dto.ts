@@ -5,7 +5,7 @@ export class UserSummaryResponseDto {
   id: string;
 
   @ApiProperty()
-  fullName: string;
+  displayName: string;
 
   @ApiProperty()
   email: string;

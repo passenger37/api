@@ -1,6 +1,8 @@
 import { Role } from '@prisma/client';
 import { RoleResponseDto, RoleSummaryResponseDto } from '../dto/response';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class RoleMapper {
   static toResponse(role: Role): RoleResponseDto {
     return {

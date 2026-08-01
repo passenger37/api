@@ -8,6 +8,8 @@ import {
   Query,
   Patch,
   UseGuards,
+  Put,
+  Delete,
 } from '@nestjs/common';
 
 import {

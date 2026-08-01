@@ -5,10 +5,10 @@ export class UserSummaryResponseDto {
   id: string;
 
   @ApiProperty()
-  fullName: string;
+  username: string;
 
   @ApiProperty()
-  email: string;
+  displayName: string;
 
   @ApiProperty({
     required: false,
