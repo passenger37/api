@@ -1,114 +1,76 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-import { AuthorizationContext } from '../domain';
-
-import { AuthorizationRepository } from '../repositories/authorization.repository';
-import { PermissionCacheService } from './permission-cache.service';
+import { AuthorizationQueryService } from './authorization-query.service';
+import { AuthorizationCommandService } from './authorization-command.service';
 
 @Injectable()
 export class AuthorizationService {
   constructor(
-    private readonly authorizationRepository: AuthorizationRepository,
-    private readonly permissionCacheService: PermissionCacheService,
+    private readonly queryService: AuthorizationQueryService,
+    private readonly commandService: AuthorizationCommandService,
   ) {}
 
-  async getAuthorizationContext(userId: string): Promise<AuthorizationContext> {
-    const cached = this.permissionCacheService.get(userId);
+  // =====================================================
+  // Authorization Context
+  // =====================================================
 
-    if (cached) {
-      return cached;
-    }
-
-    const context =
-      await this.authorizationRepository.findAuthorizationContext(userId);
-
-    if (!context) {
-      throw new NotFoundException('Authorization context not found.');
-    }
-
-    this.permissionCacheService.set(userId, context);
-
-    return context;
+  getAuthorizationContext(userId: string) {
+    return this.queryService.getAuthorizationContext(userId);
   }
 
-  /**
-   * ----------------------------------------
-   * Private Helpers
-   * ----------------------------------------
-   */
+  // =====================================================
+  // Permission Queries
+  // =====================================================
 
-  private getRoleNames(context: AuthorizationContext): Set<string> {
-    return new Set(context.roles.map((role) => role.name));
+  hasPermission(userId: string, permission: string) {
+    return this.queryService.hasPermission(userId, permission);
   }
 
-  private getPermissionNames(context: AuthorizationContext): Set<string> {
-    return new Set(
-      context.roles.flatMap((role) =>
-        role.permissions.map((permission) => permission.name),
-      ),
-    );
+  hasPermissions(userId: string, permissions: string[]) {
+    return this.queryService.hasPermissions(userId, permissions);
   }
 
-  /**
-   * ----------------------------------------
-   * Permission Methods
-   * ----------------------------------------
-   */
+  // =====================================================
+  // Role Queries
+  // =====================================================
 
-  async hasPermission(userId: string, permission: string): Promise<boolean> {
-    const context = await this.getAuthorizationContext(userId);
-
-    return this.getPermissionNames(context).has(permission);
+  hasRole(userId: string, role: string) {
+    return this.queryService.hasRole(userId, role);
   }
 
-  async hasPermissions(
-    userId: string,
-    permissions: string[],
-  ): Promise<boolean> {
-    const context = await this.getAuthorizationContext(userId);
-
-    const userPermissions = this.getPermissionNames(context);
-
-    return permissions.every((permission) => userPermissions.has(permission));
+  hasAnyRole(userId: string, roles: string[]) {
+    return this.queryService.hasAnyRole(userId, roles);
   }
 
-  /**
-   * ----------------------------------------
-   * Role Methods
-   * ----------------------------------------
-   */
-
-  async hasRole(userId: string, role: string): Promise<boolean> {
-    const context = await this.getAuthorizationContext(userId);
-
-    return this.getRoleNames(context).has(role);
+  hasAllRoles(userId: string, roles: string[]) {
+    return this.queryService.hasAllRoles(userId, roles);
   }
 
-  async hasAnyRole(userId: string, roles: string[]): Promise<boolean> {
-    const context = await this.getAuthorizationContext(userId);
+  // =====================================================
+  // Commands
+  // =====================================================
 
-    const userRoles = this.getRoleNames(context);
-
-    return roles.some((role) => userRoles.has(role));
+  assignPermission(roleId: string, permissionId: string) {
+    return this.commandService.assignPermission(roleId, permissionId);
   }
 
-  async hasAllRoles(userId: string, roles: string[]): Promise<boolean> {
-    const context = await this.getAuthorizationContext(userId);
-
-    const userRoles = this.getRoleNames(context);
-
-    return roles.every((role) => userRoles.has(role));
+  assignPermissions(roleId: string, permissionIds: string[]) {
+    return this.commandService.assignPermissions(roleId, permissionIds);
   }
 
-  /**
-   * ----------------------------------------
-   * Cache Invalidation
-   * ----------------------------------------
-   */
+  removePermission(roleId: string, permissionId: string) {
+    return this.commandService.removePermission(roleId, permissionId);
+  }
 
-  async invalidateAuthorization(userId: string): Promise<void> {
-    await this.authorizationRepository.incrementPermissionVersion(userId);
+  replacePermissions(roleId: string, permissionIds: string[]) {
+    return this.commandService.replacePermissions(roleId, permissionIds);
+  }
 
-    this.permissionCacheService.delete(userId);
+  // =====================================================
+  // Cache
+  // =====================================================
+
+  invalidateAuthorization(userId: string) {
+    return this.queryService.invalidateAuthorization(userId);
   }
 }

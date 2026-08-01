@@ -33,7 +33,6 @@ import { PermissionsController } from './controllers';
     PermissionDomainService,
     PermissionQueryService,
     PermissionCommandService,
-    PermissionsRepository,
   ],
 })
 export class PermissionsModule {}

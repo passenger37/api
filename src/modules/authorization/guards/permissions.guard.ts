@@ -7,8 +7,8 @@ import {
 
 import { Reflector } from '@nestjs/core';
 
-import { AuthorizationService } from '../../modules/authorization/services/authorization.service';
-import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
+import { AuthorizationService } from '../services/authorization.service';
+import { PERMISSIONS_KEY } from '../../../common/decorators/permissions.decorator';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -18,13 +18,12 @@ export class PermissionsGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
+    const permissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
     );
 
-    // No permissions required
-    if (!requiredPermissions || requiredPermissions.length === 0) {
+    if (!permissions?.length) {
       return true;
     }
 
@@ -38,7 +37,7 @@ export class PermissionsGuard implements CanActivate {
 
     const allowed = await this.authorizationService.hasPermissions(
       user.id,
-      requiredPermissions,
+      permissions,
     );
 
     if (!allowed) {

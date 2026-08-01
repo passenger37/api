@@ -7,9 +7,8 @@ import {
 
 import { Reflector } from '@nestjs/core';
 
-import { AuthorizationService } from '../../modules/authorization/services/authorization.service';
-
-import { ROLES_KEY } from '../decorators/roles.decorator';
+import { AuthorizationService } from '../services/authorization.service';
+import { ROLES_KEY } from '../../../common/decorators/roles.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -19,13 +18,12 @@ export class RolesGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const roles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
-    // No roles required
-    if (!requiredRoles || requiredRoles.length === 0) {
+    if (!roles?.length) {
       return true;
     }
 
@@ -37,12 +35,9 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated.');
     }
 
-    const hasRole = await this.authorizationService.hasAnyRole(
-      user.id,
-      requiredRoles,
-    );
+    const allowed = await this.authorizationService.hasAnyRole(user.id, roles);
 
-    if (!hasRole) {
+    if (!allowed) {
       throw new ForbiddenException('Insufficient role.');
     }
 

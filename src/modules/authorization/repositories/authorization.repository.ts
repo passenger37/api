@@ -4,6 +4,8 @@ import { PrismaService } from '../../../core/database/prisma.service';
 
 import { AuthorizationContext } from '../domain';
 
+import { Prisma } from '@prisma/client';
+
 @Injectable()
 export class AuthorizationRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -147,6 +149,88 @@ export class AuthorizationRepository {
       where: {
         name,
       },
+    });
+  }
+
+  async findUsersByRole(roleId: string) {
+    return this.prisma.role.findUnique({
+      where: {
+        id: roleId,
+      },
+
+      select: {
+        users: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+  }
+
+  // =====================================================
+  // Create Role Permission
+  // =====================================================
+
+  createRolePermission(data: Prisma.RolePermissionCreateInput) {
+    return this.prisma.rolePermission.create({
+      data,
+    });
+  }
+
+  // =====================================================
+  // Create Multiple Role Permissions
+  // =====================================================
+
+  createManyRolePermissions(data: Prisma.RolePermissionCreateManyInput[]) {
+    return this.prisma.rolePermission.createMany({
+      data,
+      skipDuplicates: true,
+    });
+  }
+
+  // =====================================================
+  // Delete Role Permission
+  // =====================================================
+
+  deleteRolePermission(roleId: string, permissionId: string) {
+    return this.prisma.rolePermission.delete({
+      where: {
+        roleId_permissionId: {
+          roleId,
+          permissionId,
+        },
+      },
+    });
+  }
+
+  // =====================================================
+  // Delete All Permissions Of Role
+  // =====================================================
+
+  deleteRolePermissionsByRole(roleId: string) {
+    return this.prisma.rolePermission.deleteMany({
+      where: {
+        roleId,
+      },
+    });
+  }
+
+  async createAuditLog(data: {
+    actorId?: string;
+
+    action: string;
+
+    targetUserId?: string;
+
+    roleId?: string;
+
+    permissionId?: string;
+
+    metadata?: object;
+  }) {
+    return this.prisma.authorizationAuditLog.create({
+      data,
     });
   }
 }
