@@ -110,4 +110,26 @@ export class UserQueryService {
       total,
     );
   }
+
+  // =====================================================
+  // Suggested Users
+  // =====================================================
+
+  async getSuggestedUsers(
+    currentUserId: string,
+    pagination: PaginationQueryDto,
+  ) {
+    const { users, total } = await this.usersRepository.findSuggestedUsers(
+      currentUserId,
+      pagination.skip,
+      pagination.take,
+    );
+
+    return UserMapper.toSearchUsersResponse(
+      users,
+      pagination.page,
+      pagination.pageSize,
+      total,
+    );
+  }
 }

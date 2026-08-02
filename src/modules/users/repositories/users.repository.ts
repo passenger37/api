@@ -13,6 +13,7 @@ import { UsersFilterBuilder } from '../builders/users-filter.builder';
 import { UpdateMyProfileData } from '../domain/update-my-profile.interface';
 
 import { SearchUsersRequest } from '../dto/request/search-users.request';
+import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
 
 import {
   MY_PROFILE_SELECT,
@@ -336,6 +337,48 @@ export class UsersRepository {
 
         orderBy: {
           username: 'asc',
+        },
+
+        select: SEARCH_USER_SELECT,
+      }),
+
+      this.prisma.user.count({
+        where,
+      }),
+    ]);
+
+    return {
+      users,
+      total,
+    };
+  }
+
+  // =====================================================
+  // Suggested Users
+  // =====================================================
+
+  async findSuggestedUsers(
+    currentUserId: string,
+    pagination: PaginationQueryDto,
+  ) {
+    const where: Prisma.UserWhereInput = {
+      id: {
+        not: currentUserId,
+      },
+
+      status: 'ACTIVE',
+    };
+
+    const [users, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where,
+
+        skip: pagination.skip,
+
+        take: pagination.take,
+
+        orderBy: {
+          createdAt: 'desc',
         },
 
         select: SEARCH_USER_SELECT,
