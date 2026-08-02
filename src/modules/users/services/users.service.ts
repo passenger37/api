@@ -95,4 +95,8 @@ export class UsersService {
   ) {
     return this.queryService.getSuggestedUsers(currentUserId, pagination);
   }
+
+  async followUser(followerId: string, followingId: string): Promise<void> {
+    await this.commandService.followUser(followerId, followingId);
+  }
 }

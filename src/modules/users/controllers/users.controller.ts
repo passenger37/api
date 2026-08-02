@@ -8,9 +8,8 @@ import {
   Query,
   Patch,
   UseGuards,
-  Put,
-  Delete,
-  Req,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 
 import {
@@ -45,12 +44,8 @@ import { UserProfileDomainService } from '../services/user-profile-domain.servic
 import { Public } from '../../../common/decorators/public.decorator';
 import type { JwtUser } from '../../auth/interfaces/jwt-user.interface';
 
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
-
-import { SearchUserResponse } from '../dto/response/search-user.response';
-
 import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
-
+import type { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 @ApiTags('Users')
 @Controller({
   path: 'users',
@@ -237,5 +232,17 @@ export class UsersController {
     request: UpdateMyProfileRequest,
   ) {
     return this.usersService.updateMyProfile(userId, request);
+  }
+
+  @Post(':userId/follow')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  async followUser(
+    @CurrentUser() user: JwtPayload,
+
+    @Param('userId')
+    followingId: string,
+  ): Promise<void> {
+    await this.usersService.followUser(user.sub, followingId);
   }
 }
