@@ -26,6 +26,8 @@ import { FollowerResponse } from '../dto/response/follower.response';
 
 import { UserSocialRepository } from '../repositories/user-social.repository';
 
+import { UserRelationshipStatsResponse } from '../dto/response/user-relationship-stats.response';
+
 @Injectable()
 export class UserQueryService {
   constructor(
@@ -213,5 +215,27 @@ export class UserQueryService {
       pagination.pageSize,
       total,
     );
+  }
+
+  // =====================================================
+  // Relationship Statistics
+  // =====================================================
+
+  async getRelationshipStats(
+    currentUserId: string,
+    targetUserId: string,
+  ): Promise<UserRelationshipStatsResponse> {
+    const exists = await this.usersRepository.existsById(targetUserId);
+
+    if (!exists) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const row = await this.socialRepository.getRelationshipStats(
+      currentUserId,
+      targetUserId,
+    );
+
+    return UserMapper.toRelationshipStatsResponse(row);
   }
 }

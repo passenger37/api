@@ -315,4 +315,17 @@ export class UsersController {
   ) {
     return this.usersService.getMutualConnections(user.sub, userId, pagination);
   }
+
+  // =====================================================
+  // Relationship Statistics
+  // =====================================================
+
+  @Get(':userId/stats')
+  getRelationshipStats(
+    @CurrentUser() user: JwtPayload,
+
+    @Param('userId') userId: string,
+  ) {
+    return this.usersService.getRelationshipStats(user.sub, userId);
+  }
 }

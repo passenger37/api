@@ -125,4 +125,12 @@ export class UsersService {
       pagination,
     );
   }
+
+  // =====================================================
+  // Relationship Statistics
+  // =====================================================
+
+  async getRelationshipStats(currentUserId: string, targetUserId: string) {
+    return this.queryService.getRelationshipStats(currentUserId, targetUserId);
+  }
 }

@@ -15,6 +15,9 @@ import { SearchUserResponse } from '../dto/response/search-user.response';
 import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
 import { MutualConnectionRow } from '../database/rows/mutual-connection.row';
 import { MutualConnectionResponse } from '../dto/response/mutual-connection.response';
+import { UserRelationshipStatsRow } from '../database/rows/user-relationship-stats.row';
+
+import { UserRelationshipStatsResponse } from '../dto/response/user-relationship-stats.response';
 
 export class UserMapper {
   static toResponse(user: User): UserResponseDto {
@@ -388,6 +391,22 @@ export class UserMapper {
       totalPages: Math.ceil(total / pageSize),
       hasNext: page * pageSize < total,
       hasPrevious: page > 1,
+    };
+  }
+
+  // =====================================================
+  // Relationship Statistics
+  // =====================================================
+
+  static toRelationshipStatsResponse(
+    row: UserRelationshipStatsRow,
+  ): UserRelationshipStatsResponse {
+    return {
+      followersCount: Number(row.followersCount),
+
+      followingCount: Number(row.followingCount),
+
+      mutualConnectionsCount: Number(row.mutualConnectionsCount),
     };
   }
 }
