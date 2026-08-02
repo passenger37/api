@@ -304,4 +304,15 @@ export class UsersController {
   ): Promise<PaginationResponseDto<FollowerResponse>> {
     return this.usersService.getFollowing(userId, pagination);
   }
+
+  @Get(':userId/mutual-connections')
+  getMutualConnections(
+    @CurrentUser() user: JwtPayload,
+
+    @Param('userId') userId: string,
+
+    @Query() pagination: PaginationQueryDto,
+  ) {
+    return this.usersService.getMutualConnections(user.sub, userId, pagination);
+  }
 }

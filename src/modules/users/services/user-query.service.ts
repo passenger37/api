@@ -189,4 +189,29 @@ export class UserQueryService {
       total,
     );
   }
+
+  async getMutualConnections(
+    currentUserId: string,
+    targetUserId: string,
+    pagination: PaginationQueryDto,
+  ) {
+    const exists = await this.usersRepository.existsById(targetUserId);
+
+    if (!exists) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const { users, total } = await this.socialRepository.findMutualConnections(
+      currentUserId,
+      targetUserId,
+      pagination,
+    );
+
+    return UserMapper.toMutualConnectionsResponse(
+      users,
+      pagination.page,
+      pagination.pageSize,
+      total,
+    );
+  }
 }

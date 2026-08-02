@@ -113,4 +113,16 @@ export class UsersService {
   async getFollowing(userId: string, pagination: PaginationQueryDto) {
     return this.queryService.getFollowing(userId, pagination);
   }
+
+  async getMutualConnections(
+    currentUserId: string,
+    targetUserId: string,
+    pagination: PaginationQueryDto,
+  ) {
+    return this.queryService.getMutualConnections(
+      currentUserId,
+      targetUserId,
+      pagination,
+    );
+  }
 }

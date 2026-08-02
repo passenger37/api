@@ -6,6 +6,12 @@ import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
 
 import { SEARCH_USER_SELECT } from './user.select';
 
+import { Prisma } from '@prisma/client';
+
+import { MutualConnectionsQuery } from '../queries/mutual-connections.query';
+
+import { MutualConnectionRow } from '../database/rows/mutual-connection.row';
+
 @Injectable()
 export class UserSocialRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -202,9 +208,45 @@ export class UserSocialRepository {
   // =====================================================
   // Mutual Connections
   // =====================================================
-  // TODO:
-  // Will be implemented using
-  // raw SQL + Query Objects
-  // in Lecture 20.11
-  // =====================================================
+
+  async findMutualConnections(
+    currentUserId: string,
+    targetUserId: string,
+    pagination: PaginationQueryDto,
+  ) {
+    const query = MutualConnectionsQuery.build(
+      currentUserId,
+      targetUserId,
+      pagination.skip,
+      pagination.take,
+    );
+
+    const users = await this.prisma.$queryRaw<MutualConnectionRow[]>(query);
+
+    const totalResult = await this.prisma.$queryRaw<
+      { count: bigint }[]
+    >(Prisma.sql`
+
+      SELECT COUNT(*) AS count
+
+      FROM "Follow" f1
+
+      INNER JOIN "Follow" f2
+      ON f1."followingId" = f2."followingId"
+
+      WHERE
+
+          f1."followerId" = ${currentUserId}
+
+      AND
+
+          f2."followerId" = ${targetUserId}
+
+  `);
+
+    return {
+      users,
+      total: Number(totalResult[0]?.count ?? 0),
+    };
+  }
 }

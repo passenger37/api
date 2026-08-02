@@ -13,6 +13,8 @@ import { PublicProfileResponse } from '../dto/response/public-profile.response';
 import { SearchUserResponse } from '../dto/response/search-user.response';
 
 import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
+import { MutualConnectionRow } from '../database/rows/mutual-connection.row';
+import { MutualConnectionResponse } from '../dto/response/mutual-connection.response';
 
 export class UserMapper {
   static toResponse(user: User): UserResponseDto {
@@ -356,6 +358,35 @@ export class UserMapper {
 
       hasNext: page * pageSize < total,
 
+      hasPrevious: page > 1,
+    };
+  }
+
+  static toMutualConnectionResponse(
+    row: MutualConnectionRow,
+  ): MutualConnectionResponse {
+    return {
+      id: row.id,
+      username: row.username,
+      displayName: row.displayName,
+      avatarUrl: row.avatarUrl,
+      isVerified: row.isVerified,
+    };
+  }
+
+  static toMutualConnectionsResponse(
+    users: MutualConnectionRow[],
+    page: number,
+    pageSize: number,
+    total: number,
+  ): PaginationResponseDto<MutualConnectionResponse> {
+    return {
+      items: users.map(this.toMutualConnectionResponse),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+      hasNext: page * pageSize < total,
       hasPrevious: page > 1,
     };
   }
