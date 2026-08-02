@@ -395,4 +395,60 @@ export class UsersRepository {
       total,
     };
   }
+
+  // =====================================================
+  // Follow
+  // =====================================================
+
+  async followUser(followerId: string, followingId: string) {
+    return this.prisma.follow.create({
+      data: {
+        followerId,
+        followingId,
+      },
+    });
+  }
+
+  async unfollowUser(followerId: string, followingId: string) {
+    return this.prisma.follow.delete({
+      where: {
+        followerId_followingId: {
+          followerId,
+          followingId,
+        },
+      },
+    });
+  }
+
+  async existsFollow(
+    followerId: string,
+    followingId: string,
+  ): Promise<boolean> {
+    const follow = await this.prisma.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId,
+          followingId,
+        },
+      },
+    });
+
+    return !!follow;
+  }
+
+  async countFollowers(userId: string): Promise<number> {
+    return this.prisma.follow.count({
+      where: {
+        followingId: userId,
+      },
+    });
+  }
+
+  async countFollowing(userId: string): Promise<number> {
+    return this.prisma.follow.count({
+      where: {
+        followerId: userId,
+      },
+    });
+  }
 }
