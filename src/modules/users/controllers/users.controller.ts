@@ -46,6 +46,9 @@ import type { JwtUser } from '../../auth/interfaces/jwt-user.interface';
 
 import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
 import type { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
+import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
+import { FollowerResponse } from '../dto/response/follower.response';
+
 @ApiTags('Users')
 @Controller({
   path: 'users',
@@ -254,5 +257,28 @@ export class UsersController {
     @Param('userId') followingId: string,
   ): Promise<void> {
     await this.usersService.unfollowUser(user.sub, followingId);
+  }
+
+  @Get(':userId/followers')
+  @ApiOperation({
+    summary: 'Get followers of a user',
+  })
+  @ApiParam({
+    name: 'userId',
+    description: 'User ID',
+  })
+  @ApiOkResponse({
+    description: 'Followers retrieved successfully.',
+    type: PaginationResponseDto,
+  })
+  @Public()
+  async getFollowers(
+    @Param('userId')
+    userId: string,
+
+    @Query()
+    pagination: PaginationQueryDto,
+  ): Promise<PaginationResponseDto<FollowerResponse>> {
+    return this.usersService.getFollowers(userId, pagination);
   }
 }

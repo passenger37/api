@@ -20,6 +20,8 @@ import { PasswordService } from '../../security/services/password.service';
 
 import { UserFactory } from '../factories/user.factory';
 import { UpdateMyProfileRequest } from '../dto/request/update-my-profile.request';
+import { PaginationResponseDto } from '../../../common/dto/pagination-response.dto';
+import { FollowerResponse } from '../dto/response/follower.response';
 
 @Injectable()
 export class UsersService {
@@ -102,5 +104,9 @@ export class UsersService {
 
   async unfollowUser(followerId: string, followingId: string): Promise<void> {
     await this.commandService.unfollowUser(followerId, followingId);
+  }
+
+  async getFollowers(userId: string, pagination: PaginationQueryDto) {
+    return this.queryService.getFollowers(userId, pagination);
   }
 }
