@@ -22,7 +22,6 @@ import {
   ApiTags,
   ApiParam,
   ApiQuery,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
 import { SearchUsersRequest } from '../dto/request/search-users.request';
