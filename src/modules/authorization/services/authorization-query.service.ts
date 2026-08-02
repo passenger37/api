@@ -9,7 +9,7 @@ import { AuthorizationContext } from '../domain';
 export class AuthorizationQueryService {
   constructor(
     private readonly repository: AuthorizationRepository,
-    private readonly cache: PermissionCacheService,
+    private readonly permissionCacheService: PermissionCacheService,
   ) {}
 
   // =====================================================
@@ -17,9 +17,9 @@ export class AuthorizationQueryService {
   // =====================================================
 
   async getAuthorizationContext(userId: string): Promise<AuthorizationContext> {
-    const cached = this.cache.get(userId);
+    const cached = await this.permissionCacheService.get(userId);
 
-    if (cached) {
+    if (cached !== null) {
       return cached;
     }
 
@@ -29,11 +29,10 @@ export class AuthorizationQueryService {
       throw new NotFoundException('Authorization context not found.');
     }
 
-    this.cache.set(userId, context);
+    await this.permissionCacheService.set(userId, context);
 
     return context;
   }
-
   // =====================================================
   // User Roles
   // =====================================================
@@ -153,6 +152,6 @@ export class AuthorizationQueryService {
   async invalidateAuthorization(userId: string): Promise<void> {
     await this.repository.incrementPermissionVersion(userId);
 
-    this.cache.delete(userId);
+    await this.permissionCacheService.delete(userId);
   }
 }

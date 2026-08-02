@@ -14,7 +14,6 @@ import { AuthorizationQueryService } from './services/authorization-query.servic
 import { AuthorizationCommandService } from './services/authorization-command.service';
 import { RolesGuard } from './guards/roles.guard';
 import { AuthorizationAuditService } from './services/authorization-audit.service';
-
 @Module({
   imports: [RolesModule, PermissionsModule],
 

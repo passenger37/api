@@ -7,17 +7,15 @@ import {
 
 import { Reflector } from '@nestjs/core';
 
-import { AuthorizationService } from '../../modules/authorization/services/authorization.service';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
+
+import { AuthorizedRequest } from '../interfaces/authorized-request.interface';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(
-    private readonly reflector: Reflector,
-    private readonly authorizationService: AuthorizationService,
-  ) {}
+  constructor(private readonly reflector: Reflector) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
@@ -28,17 +26,24 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<AuthorizedRequest>();
 
-    const user = request.user;
-
-    if (!user) {
+    if (!request.user) {
       throw new ForbiddenException('User not authenticated.');
     }
 
-    const allowed = await this.authorizationService.hasPermissions(
-      user.id,
-      requiredPermissions,
+    if (!request.authorization) {
+      throw new ForbiddenException('Authorization context not found.');
+    }
+
+    const permissions = new Set(
+      request.authorization.roles.flatMap((role) =>
+        role.permissions.map((permission) => permission.name),
+      ),
+    );
+
+    const allowed = requiredPermissions.every((permission) =>
+      permissions.has(permission),
     );
 
     if (!allowed) {

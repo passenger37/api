@@ -4,7 +4,8 @@ import { PrismaModule } from './core/database';
 import { AppLoggerModule } from './core/logger/logger.module';
 import { HealthModule } from './modules/health/heath.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { ResponseInterceptor } from './common/interceptors/reespomse.interceptor';
+import { ResponseInterceptor } from './common/interceptors/reesponse.interceptor';
+import { AuthorizationInterceptor } from './common/interceptors/authorization.interceptor';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth';
 import { SessionsModule } from './modules/sessions/sessions.module';
@@ -13,7 +14,7 @@ import { RolesModule } from './modules/roles/roles.module';
 import { UserRolesModule } from './modules/user-roles/user-roles.module';
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { BootstrapService } from './bootstrap/bootstrap.service';
-
+import { RedisModule } from './core/redis/redis.module';
 @Module({
   imports: [
     AppConfigModule,
@@ -27,6 +28,7 @@ import { BootstrapService } from './bootstrap/bootstrap.service';
     RolesModule,
     UserRolesModule,
     AuthorizationModule,
+    RedisModule,
   ],
   controllers: [],
   // providers: [AppService],
@@ -34,6 +36,10 @@ import { BootstrapService } from './bootstrap/bootstrap.service';
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuthorizationInterceptor,
     },
     BootstrapService,
   ],
