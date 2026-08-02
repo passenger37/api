@@ -128,6 +128,10 @@ model User {
   following Follow[] @relation("UserFollowing")
 
   followers Follow[] @relation("UserFollowers")
+
+  blockedUsers Block[] @relation("UserBlocks")
+
+  blockedByUsers Block[] @relation("UserBlockedBy")
 }
 
 model Follow {
@@ -286,4 +290,21 @@ model AuthorizationAuditLog {
   @@index([targetUserId])
   @@index([action])
   @@index([createdAt])
+}
+
+model Block {
+  id String @id @default(cuid())
+
+  blockerId String
+  blockedId String
+
+  blocker User @relation("UserBlocks", fields: [blockerId], references: [id], onDelete: Cascade)
+
+  blocked User @relation("UserBlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
 }

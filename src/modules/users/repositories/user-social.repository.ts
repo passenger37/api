@@ -269,4 +269,41 @@ export class UserSocialRepository {
 
     return result;
   }
+
+  // =====================================================
+  // Block
+  // =====================================================
+
+  async blockUser(blockerId: string, blockedId: string) {
+    return this.prisma.block.create({
+      data: {
+        blockerId,
+        blockedId,
+      },
+    });
+  }
+
+  async unblockUser(blockerId: string, blockedId: string) {
+    return this.prisma.block.delete({
+      where: {
+        blockerId_blockedId: {
+          blockerId,
+          blockedId,
+        },
+      },
+    });
+  }
+
+  async existsBlock(blockerId: string, blockedId: string): Promise<boolean> {
+    const block = await this.prisma.block.findUnique({
+      where: {
+        blockerId_blockedId: {
+          blockerId,
+          blockedId,
+        },
+      },
+    });
+
+    return !!block;
+  }
 }
