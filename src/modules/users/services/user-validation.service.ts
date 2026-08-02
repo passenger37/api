@@ -104,4 +104,42 @@ export class UserValidationService {
       throw new NotFoundException('Follow relationship not found.');
     }
   }
+
+  // =====================================================
+  // Block Validation
+  // =====================================================
+
+  validateCannotBlockSelf(blockerId: string, blockedId: string): void {
+    if (blockerId === blockedId) {
+      throw new BadRequestException('You cannot block yourself.');
+    }
+  }
+
+  async validateNotAlreadyBlocked(
+    blockerId: string,
+    blockedId: string,
+  ): Promise<void> {
+    const exists = await this.socialRepository.existsBlock(
+      blockerId,
+      blockedId,
+    );
+
+    if (exists) {
+      throw new ConflictException('User is already blocked.');
+    }
+  }
+
+  async validateBlockExists(
+    blockerId: string,
+    blockedId: string,
+  ): Promise<void> {
+    const exists = await this.socialRepository.existsBlock(
+      blockerId,
+      blockedId,
+    );
+
+    if (!exists) {
+      throw new NotFoundException('Block relationship not found.');
+    }
+  }
 }
