@@ -12,6 +12,10 @@ import { MutualConnectionsQuery } from '../queries/mutual-connections.query';
 
 import { MutualConnectionRow } from '../database/rows/mutual-connection.row';
 
+import { RelationshipStatsQuery } from '../queries/relationship-stats.query';
+
+import { UserRelationshipStatsRow } from '../database/rows/user-relationship-stats.row';
+
 @Injectable()
 export class UserSocialRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -248,5 +252,21 @@ export class UserSocialRepository {
       users,
       total: Number(totalResult[0]?.count ?? 0),
     };
+  }
+
+  // =====================================================
+  // Relationship Statistics
+  // =====================================================
+
+  async getRelationshipStats(
+    currentUserId: string,
+    targetUserId: string,
+  ): Promise<UserRelationshipStatsRow> {
+    const query = RelationshipStatsQuery.build(currentUserId, targetUserId);
+
+    const [result] =
+      await this.prisma.$queryRaw<UserRelationshipStatsRow[]>(query);
+
+    return result;
   }
 }
