@@ -86,4 +86,18 @@ export class UserValidationService {
       throw new ConflictException('You are already following this user.');
     }
   }
+
+  async validateAlreadyFollowing(
+    followerId: string,
+    followingId: string,
+  ): Promise<void> {
+    const exists = await this.usersRepository.existsFollow(
+      followerId,
+      followingId,
+    );
+
+    if (!exists) {
+      throw new NotFoundException('Follow relationship not found.');
+    }
+  }
 }

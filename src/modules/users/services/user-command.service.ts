@@ -70,4 +70,14 @@ export class UserCommandService {
     // Step 4 — Create follow relationship
     await this.repository.followUser(followerId, followingId);
   }
+
+  async unfollowUser(followerId: string, followingId: string): Promise<void> {
+    await this.validation.validateUserExists(followingId);
+
+    this.validation.validateNotSelfFollow(followerId, followingId);
+
+    await this.validation.validateAlreadyFollowing(followerId, followingId);
+
+    await this.repository.unfollowUser(followerId, followingId);
+  }
 }

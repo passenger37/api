@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Delete,
 } from '@nestjs/common';
 
 import {
@@ -244,5 +245,15 @@ export class UsersController {
     followingId: string,
   ): Promise<void> {
     await this.usersService.followUser(user.sub, followingId);
+  }
+
+  @Delete(':userId/follow')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  async unfollowUser(
+    @CurrentUser() user: JwtPayload,
+    @Param('userId') followingId: string,
+  ): Promise<void> {
+    await this.usersService.unfollowUser(user.sub, followingId);
   }
 }

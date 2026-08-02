@@ -99,4 +99,8 @@ export class UsersService {
   async followUser(followerId: string, followingId: string): Promise<void> {
     await this.commandService.followUser(followerId, followingId);
   }
+
+  async unfollowUser(followerId: string, followingId: string): Promise<void> {
+    await this.commandService.unfollowUser(followerId, followingId);
+  }
 }
