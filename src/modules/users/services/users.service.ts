@@ -14,6 +14,7 @@ import { UserValidationService } from './user-validation.service';
 import { UserProfileService } from './user-profile.service';
 import { UserQueryService } from './user-query.service';
 import { UserCommandService } from './user-command.service';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 import { PasswordService } from '../../security/services/password.service';
 
@@ -82,5 +83,16 @@ export class UsersService {
 
   async searchUsers(request: SearchUsersRequest) {
     return this.queryService.searchUsers(request);
+  }
+
+  // =====================================================
+  // Suggested Users
+  // =====================================================
+
+  async getSuggestedUsers(
+    currentUserId: string,
+    pagination: PaginationQueryDto,
+  ) {
+    return this.queryService.getSuggestedUsers(currentUserId, pagination);
   }
 }

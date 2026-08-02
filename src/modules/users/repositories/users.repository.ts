@@ -357,25 +357,26 @@ export class UsersRepository {
   // Suggested Users
   // =====================================================
 
-  async findSuggestedUsers(
-    currentUserId: string,
-    pagination: PaginationQueryDto,
-  ) {
+  // =====================================================
+  // Suggested Users
+  // =====================================================
+
+  async findSuggestedUsers(currentUserId: string, skip: number, take: number) {
     const where: Prisma.UserWhereInput = {
       id: {
         not: currentUserId,
       },
 
-      status: 'ACTIVE',
+      status: UserStatus.ACTIVE,
     };
 
     const [users, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         where,
 
-        skip: pagination.skip,
+        skip,
 
-        take: pagination.take,
+        take,
 
         orderBy: {
           createdAt: 'desc',

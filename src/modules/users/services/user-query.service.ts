@@ -21,6 +21,7 @@ import { SearchUsersRequest } from '../dto/request/search-users.request';
 import { SearchUserResponse } from '../dto/response/search-user.response';
 
 import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
 export class UserQueryService {
