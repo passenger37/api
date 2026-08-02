@@ -56,4 +56,18 @@ export class UserCommandService {
 
     return UserMapper.toMyProfileResponse(user);
   }
+
+  async followUser(followerId: string, followingId: string): Promise<void> {
+    // Step 1 — Verify target user exists
+    await this.validation.validateUserExists(followingId);
+
+    // Step 2 — Prevent following yourself
+    this.validation.validateNotSelfFollow(followerId, followingId);
+
+    // Step 3 — Prevent duplicate follow relationships
+    await this.validation.validateNotAlreadyFollowing(followerId, followingId);
+
+    // Step 4 — Create follow relationship
+    await this.repository.followUser(followerId, followingId);
+  }
 }
