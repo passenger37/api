@@ -451,4 +451,39 @@ export class UsersRepository {
       },
     });
   }
+
+  async findFollowers(userId: string, skip: number, take: number) {
+    const where = {
+      followingId: userId,
+    };
+
+    const [followers, total] = await this.prisma.$transaction([
+      this.prisma.follow.findMany({
+        where,
+
+        skip,
+
+        take,
+
+        orderBy: {
+          createdAt: 'desc',
+        },
+
+        include: {
+          follower: {
+            select: SEARCH_USER_SELECT,
+          },
+        },
+      }),
+
+      this.prisma.follow.count({
+        where,
+      }),
+    ]);
+
+    return {
+      followers,
+      total,
+    };
+  }
 }
