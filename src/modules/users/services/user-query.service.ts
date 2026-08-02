@@ -24,9 +24,14 @@ import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 import { FollowerResponse } from '../dto/response/follower.response';
 
+import { UserSocialRepository } from '../repositories/user-social.repository';
+
 @Injectable()
 export class UserQueryService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly socialRepository: UserSocialRepository,
+  ) {}
 
   async findByIdentifier(identifier: string) {
     return this.usersRepository.findByEmailOrUsername(identifier);
@@ -125,11 +130,10 @@ export class UserQueryService {
   async getSuggestedUsers(
     currentUserId: string,
     pagination: PaginationQueryDto,
-  ) {
-    const { users, total } = await this.usersRepository.findSuggestedUsers(
+  ): Promise<PaginationResponseDto<SearchUserResponse>> {
+    const { users, total } = await this.socialRepository.findSuggestedUsers(
       currentUserId,
-      pagination.skip,
-      pagination.take,
+      pagination,
     );
 
     return UserMapper.toSearchUsersResponse(
@@ -144,16 +148,42 @@ export class UserQueryService {
     userId: string,
     pagination: PaginationQueryDto,
   ): Promise<PaginationResponseDto<FollowerResponse>> {
-    await this.usersRepository.existsById(userId);
+    const exists = await this.usersRepository.existsById(userId);
 
-    const { followers, total } = await this.usersRepository.findFollowers(
+    if (!exists) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const { users, total } = await this.socialRepository.findFollowers(
       userId,
-      pagination.skip,
-      pagination.take,
+      pagination,
     );
 
     return UserMapper.toFollowersResponse(
-      followers,
+      users,
+      pagination.page,
+      pagination.pageSize,
+      total,
+    );
+  }
+
+  async getFollowing(
+    userId: string,
+    pagination: PaginationQueryDto,
+  ): Promise<PaginationResponseDto<FollowerResponse>> {
+    const exists = await this.usersRepository.existsById(userId);
+
+    if (!exists) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const { users, total } = await this.socialRepository.findFollowing(
+      userId,
+      pagination,
+    );
+
+    return UserMapper.toFollowingListResponse(
+      users,
       pagination.page,
       pagination.pageSize,
       total,

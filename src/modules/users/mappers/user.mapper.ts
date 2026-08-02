@@ -322,4 +322,41 @@ export class UserMapper {
       hasPrevious: page > 1,
     };
   }
+
+  static toFollowingResponse(follow: any): FollowerResponse {
+    return {
+      id: follow.following.id,
+
+      username: follow.following.username,
+
+      displayName: follow.following.displayName,
+
+      avatarUrl: follow.following.avatarUrl,
+
+      isVerified: follow.following.isVerified,
+    };
+  }
+
+  static toFollowingListResponse(
+    following: any[],
+    page: number,
+    pageSize: number,
+    total: number,
+  ) {
+    return {
+      items: following.map(UserMapper.toFollowingResponse),
+
+      page,
+
+      pageSize,
+
+      total,
+
+      totalPages: Math.ceil(total / pageSize),
+
+      hasNext: page * pageSize < total,
+
+      hasPrevious: page > 1,
+    };
+  }
 }

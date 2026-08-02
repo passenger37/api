@@ -109,4 +109,8 @@ export class UsersService {
   async getFollowers(userId: string, pagination: PaginationQueryDto) {
     return this.queryService.getFollowers(userId, pagination);
   }
+
+  async getFollowing(userId: string, pagination: PaginationQueryDto) {
+    return this.queryService.getFollowing(userId, pagination);
+  }
 }

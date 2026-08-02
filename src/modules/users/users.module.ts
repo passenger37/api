@@ -19,6 +19,8 @@ import { UserProfileFactory } from './factories';
 
 import { UserMapper } from './mappers';
 
+import { UserSocialRepository } from './repositories/user-social.repository';
+
 @Module({
   imports: [SecurityModule],
 
@@ -36,6 +38,7 @@ import { UserMapper } from './mappers';
     UserDomainService,
     UserProfileDomainService,
     UserMapper,
+    UserSocialRepository,
   ],
 
   exports: [
@@ -49,6 +52,7 @@ import { UserMapper } from './mappers';
     UserDomainService,
     UserProfileDomainService,
     UserMapper,
+    UserSocialRepository,
   ],
 })
 export class UsersModule {}

@@ -17,6 +17,7 @@ import { UpdateMyProfileData } from '../domain/update-my-profile.interface';
 import { UserMapper } from '../mappers/user.mapper';
 import { UserValidationService } from './user-validation.service';
 import { Gender } from '@prisma/client';
+import { UserSocialRepository } from '../repositories/user-social.repository';
 
 @Injectable()
 export class UserCommandService {
@@ -25,6 +26,7 @@ export class UserCommandService {
     private readonly userProfileDomainService: UserProfileDomainService,
     private readonly repository: UsersRepository,
     private readonly validation: UserValidationService,
+    private readonly socialRepository: UserSocialRepository,
   ) {}
 
   async createForRegistration(input: Prisma.UserCreateInput) {
@@ -68,7 +70,7 @@ export class UserCommandService {
     await this.validation.validateNotAlreadyFollowing(followerId, followingId);
 
     // Step 4 — Create follow relationship
-    await this.repository.followUser(followerId, followingId);
+    await this.socialRepository.followUser(followerId, followingId);
   }
 
   async unfollowUser(followerId: string, followingId: string): Promise<void> {
@@ -78,6 +80,6 @@ export class UserCommandService {
 
     await this.validation.validateAlreadyFollowing(followerId, followingId);
 
-    await this.repository.unfollowUser(followerId, followingId);
+    await this.socialRepository.followUser(followerId, followingId);
   }
 }

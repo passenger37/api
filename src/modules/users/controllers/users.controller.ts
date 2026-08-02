@@ -281,4 +281,27 @@ export class UsersController {
   ): Promise<PaginationResponseDto<FollowerResponse>> {
     return this.usersService.getFollowers(userId, pagination);
   }
+
+  @Get(':userId/following')
+  @ApiOperation({
+    summary: 'Get users followed by a user',
+  })
+  @ApiParam({
+    name: 'userId',
+    description: 'User ID',
+  })
+  @ApiOkResponse({
+    description: 'Following list retrieved successfully.',
+    type: PaginationResponseDto,
+  })
+  @Public()
+  async getFollowing(
+    @Param('userId')
+    userId: string,
+
+    @Query()
+    pagination: PaginationQueryDto,
+  ): Promise<PaginationResponseDto<FollowerResponse>> {
+    return this.usersService.getFollowing(userId, pagination);
+  }
 }

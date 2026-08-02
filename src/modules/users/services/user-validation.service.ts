@@ -7,10 +7,14 @@ import {
 
 import { UsersRepository } from '../repositories/users.repository';
 import { UpdateMyProfileData } from '../domain/update-my-profile.interface';
+import { UserSocialRepository } from '../repositories/user-social.repository';
 
 @Injectable()
 export class UserValidationService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly socialRepository: UserSocialRepository,
+  ) {}
 
   // =====================================================
   // Create User Validation
@@ -77,7 +81,7 @@ export class UserValidationService {
     followerId: string,
     followingId: string,
   ): Promise<void> {
-    const exists = await this.usersRepository.existsFollow(
+    const exists = await this.socialRepository.existsFollow(
       followerId,
       followingId,
     );
@@ -91,7 +95,7 @@ export class UserValidationService {
     followerId: string,
     followingId: string,
   ): Promise<void> {
-    const exists = await this.usersRepository.existsFollow(
+    const exists = await this.socialRepository.existsFollow(
       followerId,
       followingId,
     );
