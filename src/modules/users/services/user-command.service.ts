@@ -18,10 +18,12 @@ import { UserMapper } from '../mappers/user.mapper';
 import { UserValidationService } from './user-validation.service';
 import { Gender } from '@prisma/client';
 import { UserSocialRepository } from '../repositories/user-social.repository';
+import { PrismaService } from '../../../core/database/prisma.service';
 
 @Injectable()
 export class UserCommandService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly userDomainService: UserDomainService,
     private readonly userProfileDomainService: UserProfileDomainService,
     private readonly repository: UsersRepository,
@@ -81,5 +83,41 @@ export class UserCommandService {
     await this.validation.validateAlreadyFollowing(followerId, followingId);
 
     await this.socialRepository.followUser(followerId, followingId);
+  }
+
+  // =====================================================
+  // Block User
+  // =====================================================
+
+  async blockUser(blockerId: string, blockedId: string): Promise<void> {
+    await this.validation.validateUserExists(blockedId);
+
+    this.validation.validateCannotBlockSelf(blockerId, blockedId);
+
+    await this.validation.validateNotAlreadyBlocked(blockerId, blockedId);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.block.create({
+        data: {
+          blockerId,
+          blockedId,
+        },
+      });
+
+      await tx.follow.deleteMany({
+        where: {
+          OR: [
+            {
+              followerId: blockerId,
+              followingId: blockedId,
+            },
+            {
+              followerId: blockedId,
+              followingId: blockerId,
+            },
+          ],
+        },
+      });
+    });
   }
 }

@@ -328,4 +328,17 @@ export class UsersController {
   ) {
     return this.usersService.getRelationshipStats(user.sub, userId);
   }
+
+  // =====================================================
+  // Block User
+  // =====================================================
+
+  @Post(':userId/block')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async blockUser(
+    @CurrentUser() user: JwtPayload,
+    @Param('userId') userId: string,
+  ): Promise<void> {
+    await this.usersService.blockUser(user.sub, userId);
+  }
 }

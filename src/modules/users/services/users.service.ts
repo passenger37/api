@@ -22,7 +22,6 @@ import { UserFactory } from '../factories/user.factory';
 import { UpdateMyProfileRequest } from '../dto/request/update-my-profile.request';
 import { PaginationResponseDto } from '../../../common/dto/pagination-response.dto';
 import { FollowerResponse } from '../dto/response/follower.response';
-
 @Injectable()
 export class UsersService {
   constructor(
@@ -132,5 +131,13 @@ export class UsersService {
 
   async getRelationshipStats(currentUserId: string, targetUserId: string) {
     return this.queryService.getRelationshipStats(currentUserId, targetUserId);
+  }
+
+  // =====================================================
+  // Block User
+  // =====================================================
+
+  async blockUser(blockerId: string, blockedId: string): Promise<void> {
+    await this.commandService.blockUser(blockerId, blockedId);
   }
 }
