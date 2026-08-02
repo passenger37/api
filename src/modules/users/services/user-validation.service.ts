@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 
 import { UsersRepository } from '../repositories/users.repository';
@@ -56,5 +57,33 @@ export class UserValidationService {
     // validateTimezone()
     // validateCountry()
     // -----------------------------------------------------
+  }
+
+  async validateUserExists(userId: string): Promise<void> {
+    const exists = await this.usersRepository.existsById(userId);
+
+    if (!exists) {
+      throw new NotFoundException('User not found.');
+    }
+  }
+
+  validateNotSelfFollow(followerId: string, followingId: string): void {
+    if (followerId === followingId) {
+      throw new BadRequestException('You cannot follow yourself.');
+    }
+  }
+
+  async validateNotAlreadyFollowing(
+    followerId: string,
+    followingId: string,
+  ): Promise<void> {
+    const exists = await this.usersRepository.existsFollow(
+      followerId,
+      followingId,
+    );
+
+    if (exists) {
+      throw new ConflictException('You are already following this user.');
+    }
   }
 }
