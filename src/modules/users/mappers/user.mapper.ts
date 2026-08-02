@@ -5,7 +5,7 @@ import {
   PublicUserProfileDto,
   UserResponseDto,
 } from '../responses';
-
+import { FollowerResponse } from '../dto/response/follower.response';
 import { UserSummaryResponseDto } from '../../users/dto/response/user-summary-response.dto';
 
 import { MyProfileResponse } from '../dto/response/my-profile.response';
@@ -271,6 +271,43 @@ export class UserMapper {
 
     return {
       items,
+
+      page,
+
+      pageSize,
+
+      total,
+
+      totalPages: Math.ceil(total / pageSize),
+
+      hasNext: page * pageSize < total,
+
+      hasPrevious: page > 1,
+    };
+  }
+
+  static toFollowerResponse(follow: any): FollowerResponse {
+    return {
+      id: follow.follower.id,
+
+      username: follow.follower.username,
+
+      displayName: follow.follower.displayName,
+
+      avatarUrl: follow.follower.avatarUrl,
+
+      isVerified: follow.follower.isVerified,
+    };
+  }
+
+  static toFollowersResponse(
+    followers: any[],
+    page: number,
+    pageSize: number,
+    total: number,
+  ) {
+    return {
+      items: followers.map(UserMapper.toFollowerResponse),
 
       page,
 
