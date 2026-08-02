@@ -16,10 +16,6 @@ import { QueryUsersDto } from '../dto/query-users.dto';
 
 import { PaginatedResponseDto } from '../../../common/pagination';
 
-import { NotFoundException } from '@nestjs/common';
-
-import { UserMapper } from '../mappers/user.mapper';
-
 @Injectable()
 export class UserQueryService {
   constructor(private readonly usersRepository: UsersRepository) {}
@@ -60,16 +56,6 @@ export class UserQueryService {
     return UserMapper.toCurrentUser(user);
   }
 
-  async getPublicProfile(username: string): Promise<PublicUserProfileDto> {
-    const user = await this.usersRepository.findByUsername(username);
-
-    if (!user) {
-      throw new NotFoundException('User not found.');
-    }
-
-    return UserMapper.toPublicProfile(user);
-  }
-
   async getUsers(
     query: QueryUsersDto,
   ): Promise<PaginatedResponseDto<UserResponseDto>> {
@@ -79,12 +65,26 @@ export class UserQueryService {
   }
 
   async getMyProfile(userId: string) {
-    const user = await this.repository.findMyProfile(userId);
+    const user = await this.usersRepository.findMyProfile(userId);
 
     if (!user) {
       throw new NotFoundException('User not found.');
     }
 
     return UserMapper.toMyProfileResponse(user);
+  }
+
+  // =====================================================
+  // Get Public Profile
+  // =====================================================
+
+  async getPublicProfile(username: string) {
+    const user = await this.usersRepository.findPublicProfile(username);
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    return UserMapper.toPublicProfileResponse(user);
   }
 }

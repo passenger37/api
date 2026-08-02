@@ -24,6 +24,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 
+import { UpdateMyProfileRequest } from '../dto/request/update-my-profile.request';
 import { Permissions } from '../../../common/decorators/permissions.decorator';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserProfileDto } from '../dto/update-user-profile.dto';
@@ -128,7 +129,7 @@ export class UsersController {
     username: string,
   ) {
     console.log('PROFILE:', username);
-    return this.userQueryService.getPublicProfile(username);
+    return this.usersService.getPublicProfile(username);
   }
 
   @Get(':id')
@@ -183,5 +184,15 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async getMyProfile(@CurrentUser() user: { id: string }) {
     return this.usersService.getMyProfile(user.id);
+  }
+
+  @Patch('me')
+  updateMyProfile(
+    @CurrentUser('id') userId: string,
+
+    @Body()
+    request: UpdateMyProfileRequest,
+  ) {
+    return this.usersService.updateMyProfile(userId, request);
   }
 }

@@ -9,6 +9,7 @@ import {
 import { UserSummaryResponseDto } from '../../users/dto/response/user-summary-response.dto';
 
 import { MyProfileResponse } from '../dto/response/my-profile.response';
+import { PublicProfileResponse } from '../dto/response/public-profile.response';
 
 export class UserMapper {
   static toResponse(user: User): UserResponseDto {
@@ -156,6 +157,62 @@ export class UserMapper {
       createdAt: user.createdAt,
 
       updatedAt: user.updatedAt,
+    };
+  }
+
+  // =====================================================
+  // Public Profile
+  // =====================================================
+
+  static toPublicProfileResponse(user: {
+    id: string;
+
+    username: string;
+
+    displayName: string;
+
+    avatarUrl: string | null;
+
+    coverImageUrl: string | null;
+
+    bio: string | null;
+
+    website: string | null;
+
+    country: string | null;
+
+    state: string | null;
+
+    city: string | null;
+
+    isVerified: boolean;
+
+    createdAt: Date;
+  }): PublicProfileResponse {
+    return {
+      id: user.id,
+
+      username: user.username,
+
+      displayName: user.displayName,
+
+      avatarUrl: user.avatarUrl,
+
+      coverImageUrl: user.coverImageUrl,
+
+      bio: user.bio,
+
+      website: user.website,
+
+      country: user.country,
+
+      state: user.state,
+
+      city: user.city,
+
+      isVerified: user.isVerified,
+
+      createdAt: user.createdAt,
     };
   }
 }

@@ -10,6 +10,8 @@ import { PaginatedResult } from '../../../common/pagination/interfaces/paginated
 
 import { UsersFilterBuilder } from '../builders/users-filter.builder';
 
+import { UpdateMyProfileData } from '../domain/update-my-profile.interface';
+
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -306,6 +308,100 @@ export class UsersRepository {
         createdAt: true,
 
         updatedAt: true,
+      },
+    });
+  }
+
+  async updateMyProfile(userId: string, data: UpdateMyProfileData) {
+    return this.prisma.user.update({
+      where: {
+        id: userId,
+      },
+
+      data,
+
+      select: {
+        id: true,
+
+        email: true,
+
+        username: true,
+
+        displayName: true,
+
+        avatarUrl: true,
+
+        coverImageUrl: true,
+
+        bio: true,
+
+        website: true,
+
+        phoneNumber: true,
+
+        dateOfBirth: true,
+
+        gender: true,
+
+        language: true,
+
+        timezone: true,
+
+        country: true,
+
+        state: true,
+
+        city: true,
+
+        location: true,
+
+        isPrivate: true,
+
+        isVerified: true,
+
+        status: true,
+
+        createdAt: true,
+
+        updatedAt: true,
+      },
+    });
+  }
+
+  // =====================================================
+  // Find Public Profile
+  // =====================================================
+
+  async findPublicProfile(username: string) {
+    return this.prisma.user.findUnique({
+      where: {
+        username,
+      },
+
+      select: {
+        id: true,
+
+        username: true,
+
+        displayName: true,
+
+        avatarUrl: true,
+
+        coverImageUrl: true,
+
+        bio: true,
+
+        website: true,
+
+        country: true,
+
+        state: true,
+
+        city: true,
+
+        isVerified: true,
+
+        createdAt: true,
       },
     });
   }

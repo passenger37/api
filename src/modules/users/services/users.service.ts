@@ -11,10 +11,13 @@ import { CreateUserDto } from '../dto/create-user.dto';
 
 import { UserValidationService } from './user-validation.service';
 import { UserProfileService } from './user-profile.service';
+import { UserQueryService } from './user-query.service';
+import { UserCommandService } from './user-command.service';
 
 import { PasswordService } from '../../security/services/password.service';
 
 import { UserFactory } from '../factories/user.factory';
+import { UpdateMyProfileRequest } from '../dto/request/update-my-profile.request';
 
 @Injectable()
 export class UsersService {
@@ -24,6 +27,8 @@ export class UsersService {
     private readonly passwordService: PasswordService,
     private readonly userFactory: UserFactory,
     private readonly userProfileService: UserProfileService,
+    private readonly queryService: UserQueryService,
+    private readonly commandService: UserCommandService,
   ) {}
 
   async createForRegistration(input: Prisma.UserCreateInput) {
@@ -52,5 +57,21 @@ export class UsersService {
 
   async getMyProfile(userId: string) {
     return this.queryService.getMyProfile(userId);
+  }
+
+  // =====================================================
+  // Update My Profile
+  // =====================================================
+
+  async updateMyProfile(userId: string, request: UpdateMyProfileRequest) {
+    return this.commandService.updateMyProfile(userId, request);
+  }
+
+  // =====================================================
+  // Get Public Profile
+  // =====================================================
+
+  async getPublicProfile(username: string) {
+    return this.queryService.getPublicProfile(username);
   }
 }
