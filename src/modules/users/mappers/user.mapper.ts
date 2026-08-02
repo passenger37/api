@@ -10,6 +10,9 @@ import { UserSummaryResponseDto } from '../../users/dto/response/user-summary-re
 
 import { MyProfileResponse } from '../dto/response/my-profile.response';
 import { PublicProfileResponse } from '../dto/response/public-profile.response';
+import { SearchUserResponse } from '../dto/response/search-user.response';
+
+import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
 
 export class UserMapper {
   static toResponse(user: User): UserResponseDto {
@@ -213,6 +216,73 @@ export class UserMapper {
       isVerified: user.isVerified,
 
       createdAt: user.createdAt,
+    };
+  }
+
+  // =====================================================
+  // Search User
+  // =====================================================
+
+  static toSearchUserResponse(user: {
+    id: string;
+
+    username: string;
+
+    displayName: string;
+
+    avatarUrl: string | null;
+
+    isVerified: boolean;
+  }): SearchUserResponse {
+    return {
+      id: user.id,
+
+      username: user.username,
+
+      displayName: user.displayName,
+
+      avatarUrl: user.avatarUrl,
+
+      isVerified: user.isVerified,
+    };
+  }
+
+  // =====================================================
+  // Search Users
+  // =====================================================
+
+  static toSearchUsersResponse(
+    users: Array<{
+      id: string;
+
+      username: string;
+
+      displayName: string;
+
+      avatarUrl: string | null;
+
+      isVerified: boolean;
+    }>,
+    page: number,
+    pageSize: number,
+    total: number,
+  ): PaginationResponseDto<SearchUserResponse> {
+    const items = users.map((user) => this.toSearchUserResponse(user));
+
+    return {
+      items,
+
+      page,
+
+      pageSize,
+
+      total,
+
+      totalPages: Math.ceil(total / pageSize),
+
+      hasNext: page * pageSize < total,
+
+      hasPrevious: page > 1,
     };
   }
 }

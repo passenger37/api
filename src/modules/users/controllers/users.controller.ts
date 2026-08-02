@@ -24,6 +24,8 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 
+import { SearchUsersRequest } from '../dto/request/search-users.request';
+
 import { UpdateMyProfileRequest } from '../dto/request/update-my-profile.request';
 import { Permissions } from '../../../common/decorators/permissions.decorator';
 import { CreateUserDto } from '../dto/create-user.dto';
@@ -106,6 +108,40 @@ export class UsersController {
     query: QueryUsersDto,
   ): Promise<PaginatedResponseDto<UserResponseDto>> {
     return this.userQueryService.getUsers(query);
+  }
+
+  // =====================================================
+  // Search Users
+  // =====================================================
+
+  @Get('search')
+  @ApiOperation({
+    summary: 'Search users',
+  })
+  @ApiQuery({
+    name: 'q',
+    required: false,
+    example: 'anand',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    example: 20,
+  })
+  @ApiOkResponse({
+    description: 'Users retrieved successfully.',
+  })
+  @Public()
+  async searchUsers(
+    @Query()
+    request: SearchUsersRequest,
+  ) {
+    return this.usersService.searchUsers(request);
   }
 
   @Get('profile/:username')

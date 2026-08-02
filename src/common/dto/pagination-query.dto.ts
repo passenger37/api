@@ -14,4 +14,18 @@ export class PaginationQueryDto {
   @Min(1)
   @Max(100)
   pageSize = 20;
+
+  /**
+   * Prisma skip value.
+   */
+  get skip(): number {
+    return (this.page - 1) * this.pageSize;
+  }
+
+  /**
+   * Prisma take value.
+   */
+  get take(): number {
+    return this.pageSize;
+  }
 }

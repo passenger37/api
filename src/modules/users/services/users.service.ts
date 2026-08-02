@@ -8,6 +8,7 @@ import { UserResponseDto } from '../responses';
 
 import { UserMapper } from '../mappers';
 import { CreateUserDto } from '../dto/create-user.dto';
+import { SearchUsersRequest } from '../dto/request/search-users.request';
 
 import { UserValidationService } from './user-validation.service';
 import { UserProfileService } from './user-profile.service';
@@ -73,5 +74,13 @@ export class UsersService {
 
   async getPublicProfile(username: string) {
     return this.queryService.getPublicProfile(username);
+  }
+
+  // =====================================================
+  // Search Users
+  // =====================================================
+
+  async searchUsers(request: SearchUsersRequest) {
+    return this.queryService.searchUsers(request);
   }
 }

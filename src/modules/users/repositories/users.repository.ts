@@ -12,6 +12,8 @@ import { UsersFilterBuilder } from '../builders/users-filter.builder';
 
 import { UpdateMyProfileData } from '../domain/update-my-profile.interface';
 
+import { SearchUsersRequest } from '../dto/request/search-users.request';
+
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -404,5 +406,65 @@ export class UsersRepository {
         createdAt: true,
       },
     });
+  }
+
+  // =====================================================
+  // Search Users
+  // =====================================================
+
+  async searchUsers(request: SearchUsersRequest) {
+    const where = request.q
+      ? {
+          OR: [
+            {
+              username: {
+                contains: request.q,
+                mode: 'insensitive' as const,
+              },
+            },
+            {
+              displayName: {
+                contains: request.q,
+                mode: 'insensitive' as const,
+              },
+            },
+          ],
+        }
+      : {};
+
+    const [users, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where,
+
+        skip: request.skip,
+
+        take: request.take,
+
+        orderBy: {
+          username: 'asc',
+        },
+
+        select: {
+          id: true,
+
+          username: true,
+
+          displayName: true,
+
+          avatarUrl: true,
+
+          isVerified: true,
+        },
+      }),
+
+      this.prisma.user.count({
+        where,
+      }),
+    ]);
+
+    return {
+      users,
+      total,
+    };
   }
 }

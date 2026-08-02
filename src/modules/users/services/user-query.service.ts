@@ -16,6 +16,12 @@ import { QueryUsersDto } from '../dto/query-users.dto';
 
 import { PaginatedResponseDto } from '../../../common/pagination';
 
+import { SearchUsersRequest } from '../dto/request/search-users.request';
+
+import { SearchUserResponse } from '../dto/response/search-user.response';
+
+import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
+
 @Injectable()
 export class UserQueryService {
   constructor(private readonly usersRepository: UsersRepository) {}
@@ -86,5 +92,22 @@ export class UserQueryService {
     }
 
     return UserMapper.toPublicProfileResponse(user);
+  }
+
+  // =====================================================
+  // Search Users
+  // =====================================================
+
+  async searchUsers(
+    request: SearchUsersRequest,
+  ): Promise<PaginationResponseDto<SearchUserResponse>> {
+    const { users, total } = await this.usersRepository.searchUsers(request);
+
+    return UserMapper.toSearchUsersResponse(
+      users,
+      request.page,
+      request.pageSize,
+      total,
+    );
   }
 }
