@@ -22,6 +22,7 @@ import {
   ApiTags,
   ApiParam,
   ApiQuery,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
 import { SearchUsersRequest } from '../dto/request/search-users.request';
@@ -33,7 +34,6 @@ import { UpdateUserProfileDto } from '../dto/update-user-profile.dto';
 import { PublicUserProfileDto, UserResponseDto } from '../responses';
 
 import { QueryUsersDto, SortOrder, UserSortBy } from '../dto/query-users.dto';
-import { PaginatedResponseDto } from '../../../common/pagination/dto/paginated-response.dto';
 
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
@@ -44,6 +44,13 @@ import { UserProfileDomainService } from '../services/user-profile-domain.servic
 
 import { Public } from '../../../common/decorators/public.decorator';
 import type { JwtUser } from '../../auth/interfaces/jwt-user.interface';
+
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+
+import { SearchUserResponse } from '../dto/response/search-user.response';
+
+import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
+
 @ApiTags('Users')
 @Controller({
   path: 'users',
@@ -106,7 +113,7 @@ export class UsersController {
   async getUsers(
     @Query()
     query: QueryUsersDto,
-  ): Promise<PaginatedResponseDto<UserResponseDto>> {
+  ): Promise<PaginationResponseDto<UserResponseDto>> {
     return this.userQueryService.getUsers(query);
   }
 

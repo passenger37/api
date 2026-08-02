@@ -1,14 +1,29 @@
-import { PaginatedResult } from '../interfaces/paginated-result.interface';
-import { PaginatedResponseDto } from '../dto/paginated-response.dto';
+import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
 
 export class PaginationMapper {
-  static toResponse<TEntity, TResponse>(
-    result: PaginatedResult<TEntity>,
-    mapper: (entity: TEntity) => TResponse,
-  ): PaginatedResponseDto<TResponse> {
+  static toResponse<TSource, TResponse>(
+    items: TSource[],
+    total: number,
+    page: number,
+    pageSize: number,
+    mapper: (item: TSource) => TResponse,
+  ): PaginationResponseDto<TResponse> {
+    const totalPages = Math.ceil(total / pageSize);
+
     return {
-      items: result.items.map(mapper),
-      total: result.total,
+      items: items.map(mapper),
+
+      total,
+
+      page,
+
+      pageSize,
+
+      totalPages,
+
+      hasNext: page < totalPages,
+
+      hasPrevious: page > 1,
     };
   }
 }

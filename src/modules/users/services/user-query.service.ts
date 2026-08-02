@@ -14,13 +14,12 @@ import { PaginationMapper } from '../../../common/pagination/mappers/pagination.
 
 import { QueryUsersDto } from '../dto/query-users.dto';
 
-import { PaginatedResponseDto } from '../../../common/pagination';
+import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
 
 import { SearchUsersRequest } from '../dto/request/search-users.request';
 
 import { SearchUserResponse } from '../dto/response/search-user.response';
 
-import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @Injectable()
@@ -65,12 +64,17 @@ export class UserQueryService {
 
   async getUsers(
     query: QueryUsersDto,
-  ): Promise<PaginatedResponseDto<UserResponseDto>> {
+  ): Promise<PaginationResponseDto<UserResponseDto>> {
     const result = await this.usersRepository.findMany(query);
 
-    return PaginationMapper.toResponse(result, UserMapper.toResponse);
+    return PaginationMapper.toResponse(
+      result.items,
+      result.total,
+      query.page,
+      query.pageSize,
+      UserMapper.toResponse,
+    );
   }
-
   async getMyProfile(userId: string) {
     const user = await this.usersRepository.findMyProfile(userId);
 
