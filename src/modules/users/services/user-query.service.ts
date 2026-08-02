@@ -22,6 +22,8 @@ import { SearchUserResponse } from '../dto/response/search-user.response';
 
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
+import { FollowerResponse } from '../dto/response/follower.response';
+
 @Injectable()
 export class UserQueryService {
   constructor(private readonly usersRepository: UsersRepository) {}
@@ -132,6 +134,26 @@ export class UserQueryService {
 
     return UserMapper.toSearchUsersResponse(
       users,
+      pagination.page,
+      pagination.pageSize,
+      total,
+    );
+  }
+
+  async getFollowers(
+    userId: string,
+    pagination: PaginationQueryDto,
+  ): Promise<PaginationResponseDto<FollowerResponse>> {
+    await this.usersRepository.existsById(userId);
+
+    const { followers, total } = await this.usersRepository.findFollowers(
+      userId,
+      pagination.skip,
+      pagination.take,
+    );
+
+    return UserMapper.toFollowersResponse(
+      followers,
       pagination.page,
       pagination.pageSize,
       total,
