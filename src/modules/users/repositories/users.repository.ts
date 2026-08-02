@@ -14,6 +14,12 @@ import { UpdateMyProfileData } from '../domain/update-my-profile.interface';
 
 import { SearchUsersRequest } from '../dto/request/search-users.request';
 
+import {
+  MY_PROFILE_SELECT,
+  PUBLIC_PROFILE_SELECT,
+  SEARCH_USER_SELECT,
+} from './user.select';
+
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -266,51 +272,7 @@ export class UsersRepository {
         id: userId,
       },
 
-      select: {
-        id: true,
-
-        email: true,
-
-        username: true,
-
-        displayName: true,
-
-        avatarUrl: true,
-
-        coverImageUrl: true,
-
-        bio: true,
-
-        website: true,
-
-        phoneNumber: true,
-
-        dateOfBirth: true,
-
-        gender: true,
-
-        language: true,
-
-        timezone: true,
-
-        country: true,
-
-        state: true,
-
-        city: true,
-
-        location: true,
-
-        isPrivate: true,
-
-        isVerified: true,
-
-        status: true,
-
-        createdAt: true,
-
-        updatedAt: true,
-      },
+      select: MY_PROFILE_SELECT,
     });
   }
 
@@ -322,51 +284,7 @@ export class UsersRepository {
 
       data,
 
-      select: {
-        id: true,
-
-        email: true,
-
-        username: true,
-
-        displayName: true,
-
-        avatarUrl: true,
-
-        coverImageUrl: true,
-
-        bio: true,
-
-        website: true,
-
-        phoneNumber: true,
-
-        dateOfBirth: true,
-
-        gender: true,
-
-        language: true,
-
-        timezone: true,
-
-        country: true,
-
-        state: true,
-
-        city: true,
-
-        location: true,
-
-        isPrivate: true,
-
-        isVerified: true,
-
-        status: true,
-
-        createdAt: true,
-
-        updatedAt: true,
-      },
+      select: MY_PROFILE_SELECT,
     });
   }
 
@@ -380,31 +298,7 @@ export class UsersRepository {
         username,
       },
 
-      select: {
-        id: true,
-
-        username: true,
-
-        displayName: true,
-
-        avatarUrl: true,
-
-        coverImageUrl: true,
-
-        bio: true,
-
-        website: true,
-
-        country: true,
-
-        state: true,
-
-        city: true,
-
-        isVerified: true,
-
-        createdAt: true,
-      },
+      select: PUBLIC_PROFILE_SELECT,
     });
   }
 
@@ -444,17 +338,7 @@ export class UsersRepository {
           username: 'asc',
         },
 
-        select: {
-          id: true,
-
-          username: true,
-
-          displayName: true,
-
-          avatarUrl: true,
-
-          isVerified: true,
-        },
+        select: SEARCH_USER_SELECT,
       }),
 
       this.prisma.user.count({
