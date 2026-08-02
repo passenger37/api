@@ -255,4 +255,58 @@ export class UsersRepository {
 
     return Object.keys(select).length ? select : undefined;
   }
+
+  async findMyProfile(userId: string) {
+    return this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+
+      select: {
+        id: true,
+
+        email: true,
+
+        username: true,
+
+        displayName: true,
+
+        avatarUrl: true,
+
+        coverImageUrl: true,
+
+        bio: true,
+
+        website: true,
+
+        phoneNumber: true,
+
+        dateOfBirth: true,
+
+        gender: true,
+
+        language: true,
+
+        timezone: true,
+
+        country: true,
+
+        state: true,
+
+        city: true,
+
+        location: true,
+
+        isPrivate: true,
+
+        isVerified: true,
+
+        status: true,
+
+        createdAt: true,
+
+        updatedAt: true,
+      },
+    });
+  }
 }

@@ -16,6 +16,10 @@ import { QueryUsersDto } from '../dto/query-users.dto';
 
 import { PaginatedResponseDto } from '../../../common/pagination';
 
+import { NotFoundException } from '@nestjs/common';
+
+import { UserMapper } from '../mappers/user.mapper';
+
 @Injectable()
 export class UserQueryService {
   constructor(private readonly usersRepository: UsersRepository) {}
@@ -72,5 +76,15 @@ export class UserQueryService {
     const result = await this.usersRepository.findMany(query);
 
     return PaginationMapper.toResponse(result, UserMapper.toResponse);
+  }
+
+  async getMyProfile(userId: string) {
+    const user = await this.repository.findMyProfile(userId);
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    return UserMapper.toMyProfileResponse(user);
   }
 }

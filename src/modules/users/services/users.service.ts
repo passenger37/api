@@ -49,4 +49,8 @@ export class UsersService {
 
     return UserMapper.toResponse(user);
   }
+
+  async getMyProfile(userId: string) {
+    return this.queryService.getMyProfile(userId);
+  }
 }

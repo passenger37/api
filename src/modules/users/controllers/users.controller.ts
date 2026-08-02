@@ -10,6 +10,7 @@ import {
   UseGuards,
   Put,
   Delete,
+  Req,
 } from '@nestjs/common';
 
 import {
@@ -176,5 +177,11 @@ export class UsersController {
   ) {
     console.log('   -----------------', user);
     return this.userProfileDomainService.updateProfile(user.id, dto);
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async getMyProfile(@CurrentUser() user: { id: string }) {
+    return this.usersService.getMyProfile(user.id);
   }
 }
