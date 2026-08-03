@@ -164,4 +164,12 @@ export class UsersService {
   async muteUser(muterId: string, mutedId: string): Promise<void> {
     await this.commandService.muteUser(muterId, mutedId);
   }
+
+  // =====================================================
+  // Unmute User
+  // =====================================================
+
+  async unmuteUser(muterId: string, mutedId: string): Promise<void> {
+    await this.commandService.unmuteUser(muterId, mutedId);
+  }
 }

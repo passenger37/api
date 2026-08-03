@@ -380,4 +380,17 @@ export class UsersController {
   ): Promise<void> {
     await this.usersService.muteUser(user.sub, userId);
   }
+
+  // =====================================================
+  // Unmute User
+  // =====================================================
+
+  @Delete(':userId/mute')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async unmuteUser(
+    @CurrentUser() user: JwtPayload,
+    @Param('userId') userId: string,
+  ): Promise<void> {
+    await this.usersService.unmuteUser(user.sub, userId);
+  }
 }
