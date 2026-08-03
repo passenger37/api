@@ -194,4 +194,19 @@ export class UsersService {
   ): Promise<void> {
     await this.commandService.cancelFollowRequest(requesterId, receiverId);
   }
+
+  // =====================================================
+  // Accept Follow Request
+  // =====================================================
+
+  // =====================================================
+  // Accept Follow Request
+  // =====================================================
+
+  async acceptFollowRequest(
+    receiverId: string,
+    requesterId: string,
+  ): Promise<void> {
+    await this.commandService.acceptFollowRequest(receiverId, requesterId);
+  }
 }

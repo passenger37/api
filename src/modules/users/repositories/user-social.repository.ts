@@ -29,8 +29,8 @@ export class UserSocialRepository {
     followerId: string,
     followingId: string,
     prisma: PrismaExecutor = this.prisma,
-  ) {
-    return prisma.follow.create({
+  ): Promise<void> {
+    await prisma.follow.create({
       data: {
         followerId,
         followingId,
@@ -510,8 +510,8 @@ export class UserSocialRepository {
     requesterId: string,
     receiverId: string,
     prisma: PrismaExecutor = this.prisma,
-  ) {
-    return prisma.followRequest.delete({
+  ): Promise<void> {
+    await prisma.followRequest.delete({
       where: {
         requesterId_receiverId: {
           requesterId,
@@ -542,5 +542,31 @@ export class UserSocialRepository {
     });
 
     return !!request;
+  }
+
+  // =====================================================
+  // Accept Follow Request
+  // =====================================================
+
+  async acceptFollowRequest(
+    requesterId: string,
+    receiverId: string,
+    prisma: PrismaExecutor = this.prisma,
+  ): Promise<void> {
+    await prisma.follow.create({
+      data: {
+        followerId: requesterId,
+        followingId: receiverId,
+      },
+    });
+
+    await prisma.followRequest.delete({
+      where: {
+        requesterId_receiverId: {
+          requesterId,
+          receiverId,
+        },
+      },
+    });
   }
 }

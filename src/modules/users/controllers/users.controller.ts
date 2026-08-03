@@ -421,4 +421,13 @@ export class UsersController {
   ): Promise<void> {
     await this.usersService.cancelFollowRequest(user.sub, userId);
   }
+
+  @Post(':userId/follow-request/accept')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async acceptFollowRequest(
+    @CurrentUser() user: JwtPayload,
+    @Param('userId') userId: string,
+  ): Promise<void> {
+    await this.usersService.acceptFollowRequest(user.sub, userId);
+  }
 }
