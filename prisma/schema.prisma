@@ -138,6 +138,7 @@ model User {
 
   sentFollowRequests     FollowRequest[] @relation("UserSentFollowRequests")
   receivedFollowRequests FollowRequest[] @relation("UserReceivedFollowRequests")
+  ownedServers           Server[]        @relation("OwnedServers")
 }
 
 model Follow {
@@ -346,4 +347,32 @@ model FollowRequest {
   @@unique([requesterId, receiverId])
   @@index([requesterId])
   @@index([receiverId])
+}
+
+enum ServerVisibility {
+  PUBLIC
+  PRIVATE
+  INVITE_ONLY
+}
+
+model Server {
+  id String @id @default(cuid())
+
+  name String
+  slug String @unique
+
+  description String?
+  iconUrl     String?
+  bannerUrl   String?
+
+  visibility ServerVisibility @default(PUBLIC)
+
+  ownerId String
+  owner   User   @relation("OwnedServers", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([visibility])
 }
