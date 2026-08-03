@@ -139,6 +139,8 @@ model User {
   sentFollowRequests     FollowRequest[] @relation("UserSentFollowRequests")
   receivedFollowRequests FollowRequest[] @relation("UserReceivedFollowRequests")
   ownedServers           Server[]        @relation("OwnedServers")
+
+  serverMemberships ServerMember[]
 }
 
 model Follow {
@@ -373,6 +375,26 @@ model Server {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  members ServerMember[]
+
   @@index([ownerId])
   @@index([visibility])
+}
+
+model ServerMember {
+  id String @id @default(cuid())
+
+  serverId String
+  userId   String
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  nickname String?
+
+  joinedAt DateTime @default(now())
+
+  @@unique([serverId, userId])
+  @@index([serverId])
+  @@index([userId])
 }
