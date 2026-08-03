@@ -52,6 +52,7 @@ export class UserSocialRepository {
       },
     });
   }
+
   async existsFollow(
     followerId: string,
     followingId: string,
@@ -63,15 +64,13 @@ export class UserSocialRepository {
           followingId,
         },
       },
+      select: {
+        id: true,
+      },
     });
 
     return !!follow;
   }
-
-  // =====================================================
-  // Followers
-  // =====================================================
-
   // =====================================================
   // Remove Follow Relationship
   // =====================================================

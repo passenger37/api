@@ -61,28 +61,34 @@ export class UserCommandService {
     return UserMapper.toMyProfileResponse(user);
   }
 
+  // =====================================================
+  // Follow User
+  // =====================================================
+
   async followUser(followerId: string, followingId: string): Promise<void> {
-    // Step 1 — Verify target user exists
     await this.validation.validateUserExists(followingId);
 
-    // Step 2 — Prevent following yourself
     this.validation.validateNotSelfFollow(followerId, followingId);
 
-    // Step 3 — Prevent duplicate follow relationships
     await this.validation.validateNotAlreadyFollowing(followerId, followingId);
 
-    // Step 4 — Create follow relationship
-    await this.socialRepository.followUser(followerId, followingId);
+    await this.prisma.$transaction(async (tx) => {
+      await this.socialRepository.followUser(followerId, followingId, tx);
+    });
   }
+
+  // =====================================================
+  // Unfollow User
+  // =====================================================
 
   async unfollowUser(followerId: string, followingId: string): Promise<void> {
     await this.validation.validateUserExists(followingId);
 
-    this.validation.validateNotSelfFollow(followerId, followingId);
+    await this.validation.validateFollowExists(followerId, followingId);
 
-    await this.validation.validateAlreadyFollowing(followerId, followingId);
-
-    await this.socialRepository.followUser(followerId, followingId);
+    await this.prisma.$transaction(async (tx) => {
+      await this.socialRepository.unfollowUser(followerId, followingId, tx);
+    });
   }
 
   // =====================================================

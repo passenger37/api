@@ -142,4 +142,22 @@ export class UserValidationService {
       throw new NotFoundException('Block relationship not found.');
     }
   }
+
+  // =====================================================
+  // Validate Follow Exists
+  // =====================================================
+
+  async validateFollowExists(
+    followerId: string,
+    followingId: string,
+  ): Promise<void> {
+    const exists = await this.socialRepository.existsFollow(
+      followerId,
+      followingId,
+    );
+
+    if (!exists) {
+      throw new NotFoundException('You are not following this user.');
+    }
+  }
 }
