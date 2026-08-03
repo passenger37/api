@@ -97,27 +97,13 @@ export class UserCommandService {
     await this.validation.validateNotAlreadyBlocked(blockerId, blockedId);
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.block.create({
-        data: {
-          blockerId,
-          blockedId,
-        },
-      });
+      await this.socialRepository.blockUser(blockerId, blockedId, tx);
 
-      await tx.follow.deleteMany({
-        where: {
-          OR: [
-            {
-              followerId: blockerId,
-              followingId: blockedId,
-            },
-            {
-              followerId: blockedId,
-              followingId: blockerId,
-            },
-          ],
-        },
-      });
+      await this.socialRepository.removeFollowRelationship(
+        blockerId,
+        blockedId,
+        tx,
+      );
     });
   }
 }

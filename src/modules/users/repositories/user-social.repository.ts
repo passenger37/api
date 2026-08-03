@@ -16,6 +16,7 @@ import { RelationshipStatsQuery } from '../queries/relationship-stats.query';
 
 import { UserRelationshipStatsRow } from '../database/rows/user-relationship-stats.row';
 
+type PrismaExecutor = Prisma.TransactionClient | PrismaService;
 @Injectable()
 export class UserSocialRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -24,8 +25,12 @@ export class UserSocialRepository {
   // Follow
   // =====================================================
 
-  async followUser(followerId: string, followingId: string) {
-    return this.prisma.follow.create({
+  async followUser(
+    followerId: string,
+    followingId: string,
+    prisma: PrismaExecutor = this.prisma,
+  ) {
+    return prisma.follow.create({
       data: {
         followerId,
         followingId,
@@ -33,8 +38,12 @@ export class UserSocialRepository {
     });
   }
 
-  async unfollowUser(followerId: string, followingId: string) {
-    return this.prisma.follow.delete({
+  async unfollowUser(
+    followerId: string,
+    followingId: string,
+    prisma: PrismaExecutor = this.prisma,
+  ) {
+    return prisma.follow.delete({
       where: {
         followerId_followingId: {
           followerId,
@@ -43,7 +52,6 @@ export class UserSocialRepository {
       },
     });
   }
-
   async existsFollow(
     followerId: string,
     followingId: string,
@@ -63,6 +71,31 @@ export class UserSocialRepository {
   // =====================================================
   // Followers
   // =====================================================
+
+  // =====================================================
+  // Remove Follow Relationship
+  // =====================================================
+
+  async removeFollowRelationship(
+    userA: string,
+    userB: string,
+    prisma: PrismaExecutor = this.prisma,
+  ) {
+    return prisma.follow.deleteMany({
+      where: {
+        OR: [
+          {
+            followerId: userA,
+            followingId: userB,
+          },
+          {
+            followerId: userB,
+            followingId: userA,
+          },
+        ],
+      },
+    });
+  }
 
   async countFollowers(userId: string): Promise<number> {
     return this.prisma.follow.count({
@@ -274,8 +307,12 @@ export class UserSocialRepository {
   // Block
   // =====================================================
 
-  async blockUser(blockerId: string, blockedId: string) {
-    return this.prisma.block.create({
+  async blockUser(
+    blockerId: string,
+    blockedId: string,
+    prisma: PrismaExecutor = this.prisma,
+  ) {
+    return prisma.block.create({
       data: {
         blockerId,
         blockedId,
@@ -283,8 +320,12 @@ export class UserSocialRepository {
     });
   }
 
-  async unblockUser(blockerId: string, blockedId: string) {
-    return this.prisma.block.delete({
+  async unblockUser(
+    blockerId: string,
+    blockedId: string,
+    prisma: PrismaExecutor = this.prisma,
+  ) {
+    return prisma.block.delete({
       where: {
         blockerId_blockedId: {
           blockerId,
