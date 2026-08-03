@@ -209,4 +209,15 @@ export class UsersService {
   ): Promise<void> {
     await this.commandService.acceptFollowRequest(receiverId, requesterId);
   }
+
+  // =====================================================
+  // Reject Follow Request
+  // =====================================================
+
+  async rejectFollowRequest(
+    receiverId: string,
+    requesterId: string,
+  ): Promise<void> {
+    await this.commandService.rejectFollowRequest(receiverId, requesterId);
+  }
 }

@@ -218,11 +218,7 @@ export class UserCommandService {
 
   // =====================================================
   // Accept Follow Request
-  // =====================================================
-
-  // =====================================================
-  // Accept Follow Request
-  // =====================================================
+  // ==========================================================================================================
 
   async acceptFollowRequest(
     receiverId: string,
@@ -235,6 +231,27 @@ export class UserCommandService {
     await this.prisma.$transaction(async (tx) => {
       await this.socialRepository.followUser(requesterId, receiverId, tx);
 
+      await this.socialRepository.cancelFollowRequest(
+        requesterId,
+        receiverId,
+        tx,
+      );
+    });
+  }
+
+  // =====================================================
+  // Reject Follow Request
+  // =====================================================
+
+  async rejectFollowRequest(
+    receiverId: string,
+    requesterId: string,
+  ): Promise<void> {
+    await this.validation.validateUserExists(requesterId);
+
+    await this.validation.validateFollowRequestExists(requesterId, receiverId);
+
+    await this.prisma.$transaction(async (tx) => {
       await this.socialRepository.cancelFollowRequest(
         requesterId,
         receiverId,
