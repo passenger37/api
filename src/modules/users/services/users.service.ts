@@ -220,4 +220,26 @@ export class UsersService {
   ): Promise<void> {
     await this.commandService.rejectFollowRequest(receiverId, requesterId);
   }
+
+  // =====================================================
+  // Incoming Follow Requests
+  // =====================================================
+
+  async getIncomingFollowRequests(
+    receiverId: string,
+    pagination: PaginationQueryDto,
+  ) {
+    return this.queryService.getIncomingFollowRequests(receiverId, pagination);
+  }
+
+  // =====================================================
+  // Outgoing Follow Requests
+  // =====================================================
+
+  async getOutgoingFollowRequests(
+    requesterId: string,
+    pagination: PaginationQueryDto,
+  ) {
+    return this.queryService.getOutgoingFollowRequests(requesterId, pagination);
+  }
 }

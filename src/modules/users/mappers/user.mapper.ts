@@ -21,6 +21,7 @@ import { UserRelationshipStatsResponse } from '../dto/response/user-relationship
 import { BlockedUserResponse } from '../dto/response/blocked-user.response';
 import { PaginationMapper } from '../../../common/pagination/mappers/pagination.mapper';
 import { MutedUserResponse } from '../dto/response/muted-user.response';
+import { FollowRequestResponse } from '../dto/response/follow-request.response';
 
 export class UserMapper {
   static toResponse(user: User): UserResponseDto {
@@ -480,6 +481,62 @@ export class UserMapper {
         isVerified: item.muted.isVerified,
         mutedAt: item.createdAt,
       }),
+    );
+  }
+
+  // =====================================================
+  // Follow Requests
+  // =====================================================
+
+  static toFollowRequestResponse(
+    requests: any[],
+    page: number,
+    pageSize: number,
+    total: number,
+  ): PaginationResponseDto<FollowRequestResponse> {
+    const items = requests.map((request) => ({
+      id: request.requester.id,
+      username: request.requester.username,
+      displayName: request.requester.displayName,
+      avatarUrl: request.requester.avatarUrl,
+      isVerified: request.requester.isVerified,
+      requestedAt: request.createdAt,
+    }));
+
+    return PaginationMapper.toResponse(
+      items,
+      total,
+      page,
+      pageSize,
+      (item) => item,
+    );
+  }
+
+  // =====================================================
+  // Outgoing Follow Requests
+  // =====================================================
+
+  static toOutgoingFollowRequestsResponse(
+    requests: any[],
+    page: number,
+    pageSize: number,
+    total: number,
+  ) {
+    const items = requests.map((request) => ({
+      id: request.receiver.id,
+      username: request.receiver.username,
+      displayName: request.receiver.displayName,
+      avatarUrl: request.receiver.avatarUrl,
+      isVerified: request.receiver.isVerified,
+      requestedAt: request.createdAt,
+    }));
+
+    return PaginationMapper.toResponse(
+      items,
+      total,
+      page,
+      pageSize,
+      (item) => item,
     );
   }
 }

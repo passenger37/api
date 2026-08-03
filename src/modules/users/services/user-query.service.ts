@@ -299,4 +299,48 @@ export class UserQueryService {
       total,
     );
   }
+
+  // =====================================================
+  // Incoming Follow Requests
+  // =====================================================
+
+  async getIncomingFollowRequests(
+    receiverId: string,
+    pagination: PaginationQueryDto,
+  ) {
+    const { requests, total } =
+      await this.socialRepository.findIncomingFollowRequests(
+        receiverId,
+        pagination,
+      );
+
+    return UserMapper.toFollowRequestResponse(
+      requests,
+      pagination.page,
+      pagination.pageSize,
+      total,
+    );
+  }
+
+  // =====================================================
+  // Outgoing Follow Requests
+  // =====================================================
+
+  async getOutgoingFollowRequests(
+    requesterId: string,
+    pagination: PaginationQueryDto,
+  ) {
+    const { requests, total } =
+      await this.socialRepository.findOutgoingFollowRequests(
+        requesterId,
+        pagination,
+      );
+
+    return UserMapper.toOutgoingFollowRequestsResponse(
+      requests,
+      pagination.page,
+      pagination.pageSize,
+      total,
+    );
+  }
 }

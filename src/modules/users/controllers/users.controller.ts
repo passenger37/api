@@ -439,4 +439,21 @@ export class UsersController {
   ): Promise<void> {
     await this.usersService.rejectFollowRequest(user.sub, userId);
   }
+
+  @Get('me/follow-requests/incoming')
+  async getIncomingFollowRequests(
+    @CurrentUser() user: JwtPayload,
+
+    @Query() pagination: PaginationQueryDto,
+  ) {
+    return this.usersService.getIncomingFollowRequests(user.sub, pagination);
+  }
+
+  @Get('me/follow-requests/outgoing')
+  async getOutgoingFollowRequests(
+    @CurrentUser() user: JwtPayload,
+    @Query() pagination: PaginationQueryDto,
+  ) {
+    return this.usersService.getOutgoingFollowRequests(user.sub, pagination);
+  }
 }

@@ -569,4 +569,98 @@ export class UserSocialRepository {
       },
     });
   }
+
+  // =====================================================
+  // Incoming Follow Requests
+  // =====================================================
+
+  async findIncomingFollowRequests(
+    receiverId: string,
+    pagination: PaginationQueryDto,
+  ) {
+    const [requests, total] = await this.prisma.$transaction([
+      this.prisma.followRequest.findMany({
+        where: {
+          receiverId,
+        },
+
+        include: {
+          requester: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              isVerified: true,
+            },
+          },
+        },
+
+        orderBy: {
+          createdAt: 'desc',
+        },
+
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+
+      this.prisma.followRequest.count({
+        where: {
+          receiverId,
+        },
+      }),
+    ]);
+
+    return {
+      requests,
+      total,
+    };
+  }
+
+  // =====================================================
+  // Outgoing Follow Requests
+  // =====================================================
+
+  async findOutgoingFollowRequests(
+    requesterId: string,
+    pagination: PaginationQueryDto,
+  ) {
+    const [requests, total] = await this.prisma.$transaction([
+      this.prisma.followRequest.findMany({
+        where: {
+          requesterId,
+        },
+
+        include: {
+          receiver: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              isVerified: true,
+            },
+          },
+        },
+
+        orderBy: {
+          createdAt: 'desc',
+        },
+
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+
+      this.prisma.followRequest.count({
+        where: {
+          requesterId,
+        },
+      }),
+    ]);
+
+    return {
+      requests,
+      total,
+    };
+  }
 }
