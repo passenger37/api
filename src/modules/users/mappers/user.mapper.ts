@@ -18,6 +18,8 @@ import { MutualConnectionResponse } from '../dto/response/mutual-connection.resp
 import { UserRelationshipStatsRow } from '../database/rows/user-relationship-stats.row';
 
 import { UserRelationshipStatsResponse } from '../dto/response/user-relationship-stats.response';
+import { BlockedUserResponse } from '../dto/response/blocked-user.response';
+import { PaginationMapper } from '../../../common/pagination/mappers/pagination.mapper';
 
 export class UserMapper {
   static toResponse(user: User): UserResponseDto {
@@ -408,5 +410,40 @@ export class UserMapper {
 
       mutualConnectionsCount: Number(row.mutualConnectionsCount),
     };
+  }
+
+  // =====================================================
+  // Blocked Users
+  // =====================================================
+
+  static toBlockedUsersResponse(
+    blockedUsers: Array<{
+      createdAt: Date;
+      blocked: {
+        id: string;
+        username: string;
+        displayName: string;
+        avatarUrl: string | null;
+        isVerified: boolean;
+      };
+    }>,
+    page: number,
+    pageSize: number,
+    total: number,
+  ): PaginationResponseDto<BlockedUserResponse> {
+    return PaginationMapper.toResponse(
+      blockedUsers,
+      total,
+      page,
+      pageSize,
+      (item): BlockedUserResponse => ({
+        id: item.blocked.id,
+        username: item.blocked.username,
+        displayName: item.blocked.displayName,
+        avatarUrl: item.blocked.avatarUrl,
+        isVerified: item.blocked.isVerified,
+        blockedAt: item.createdAt,
+      }),
+    );
   }
 }

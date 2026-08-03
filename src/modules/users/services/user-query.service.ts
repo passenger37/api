@@ -28,6 +28,8 @@ import { UserSocialRepository } from '../repositories/user-social.repository';
 
 import { UserRelationshipStatsResponse } from '../dto/response/user-relationship-stats.response';
 
+import { BlockedUserResponse } from '../dto/response/blocked-user.response';
+
 @Injectable()
 export class UserQueryService {
   constructor(
@@ -237,5 +239,34 @@ export class UserQueryService {
     );
 
     return UserMapper.toRelationshipStatsResponse(row);
+  }
+
+  // =====================================================
+  // Blocked Users
+  // =====================================================
+
+  async getBlockedUsers(
+    userId: string,
+    pagination: PaginationQueryDto,
+  ): Promise<PaginationResponseDto<BlockedUserResponse>> {
+    const exists = await this.usersRepository.existsById(userId);
+
+    if (!exists) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const { blockedUsers, total } =
+      await this.socialRepository.findBlockedUsers(
+        userId,
+        pagination.skip,
+        pagination.take,
+      );
+
+    return UserMapper.toBlockedUsersResponse(
+      blockedUsers,
+      pagination.page,
+      pagination.pageSize,
+      total,
+    );
   }
 }

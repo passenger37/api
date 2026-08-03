@@ -112,4 +112,18 @@ export class UserCommandService {
       );
     });
   }
+
+  // =====================================================
+  // Unblock User
+  // =====================================================
+
+  async unblockUser(blockerId: string, blockedId: string): Promise<void> {
+    await this.validation.validateUserExists(blockedId);
+
+    await this.validation.validateBlockExists(blockerId, blockedId);
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.socialRepository.unblockUser(blockerId, blockedId, tx);
+    });
+  }
 }

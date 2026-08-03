@@ -346,4 +346,45 @@ export class UserSocialRepository {
 
     return !!block;
   }
+
+  // =====================================================
+  // Find Blocked Users
+  // =====================================================
+
+  async findBlockedUsers(blockerId: string, skip: number, take: number) {
+    const [blockedUsers, total] = await this.prisma.$transaction([
+      this.prisma.block.findMany({
+        where: {
+          blockerId,
+        },
+        include: {
+          blocked: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              isVerified: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take,
+      }),
+
+      this.prisma.block.count({
+        where: {
+          blockerId,
+        },
+      }),
+    ]);
+
+    return {
+      blockedUsers,
+      total,
+    };
+  }
 }

@@ -140,4 +140,20 @@ export class UsersService {
   async blockUser(blockerId: string, blockedId: string): Promise<void> {
     await this.commandService.blockUser(blockerId, blockedId);
   }
+
+  // =====================================================
+  // Unblock User
+  // =====================================================
+
+  async unblockUser(blockerId: string, blockedId: string): Promise<void> {
+    await this.commandService.unblockUser(blockerId, blockedId);
+  }
+
+  // =====================================================
+  // Blocked Users
+  // =====================================================
+
+  async getBlockedUsers(userId: string, pagination: PaginationQueryDto) {
+    return this.queryService.getBlockedUsers(userId, pagination);
+  }
 }

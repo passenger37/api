@@ -31,6 +31,7 @@ import { Permissions } from '../../../common/decorators/permissions.decorator';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserProfileDto } from '../dto/update-user-profile.dto';
 import { PublicUserProfileDto, UserResponseDto } from '../responses';
+import { BlockedUserResponse } from '../dto/response/blocked-user.response';
 
 import { QueryUsersDto, SortOrder, UserSortBy } from '../dto/query-users.dto';
 
@@ -340,5 +341,30 @@ export class UsersController {
     @Param('userId') userId: string,
   ): Promise<void> {
     await this.usersService.blockUser(user.sub, userId);
+  }
+
+  // =====================================================
+  // Unblock User
+  // =====================================================
+
+  @Delete(':userId/block')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async unblockUser(
+    @CurrentUser() user: JwtPayload,
+    @Param('userId') userId: string,
+  ): Promise<void> {
+    await this.usersService.unblockUser(user.sub, userId);
+  }
+
+  // =====================================================
+  // Blocked Users
+  // =====================================================
+
+  @Get('me/blocked')
+  async getBlockedUsers(
+    @CurrentUser() user: JwtPayload,
+    @Query() pagination: PaginationQueryDto,
+  ): Promise<PaginationResponseDto<BlockedUserResponse>> {
+    return this.usersService.getBlockedUsers(user.sub, pagination);
   }
 }
