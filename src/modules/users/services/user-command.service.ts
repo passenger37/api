@@ -194,4 +194,25 @@ export class UserCommandService {
       await this.socialRepository.unmuteUser(muterId, mutedId, tx);
     });
   }
+
+  // =====================================================
+  // Cancel Follow Request
+  // =====================================================
+
+  async cancelFollowRequest(
+    requesterId: string,
+    receiverId: string,
+  ): Promise<void> {
+    await this.validation.validateUserExists(receiverId);
+
+    await this.validation.validateFollowRequestExists(requesterId, receiverId);
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.socialRepository.cancelFollowRequest(
+        requesterId,
+        receiverId,
+        tx,
+      );
+    });
+  }
 }

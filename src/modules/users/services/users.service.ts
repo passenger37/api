@@ -183,4 +183,15 @@ export class UsersService {
   async getMutedUsers(userId: string, pagination: PaginationQueryDto) {
     return this.queryService.getMutedUsers(userId, pagination);
   }
+
+  // =====================================================
+  // Cancel Follow Request
+  // =====================================================
+
+  async cancelFollowRequest(
+    requesterId: string,
+    receiverId: string,
+  ): Promise<void> {
+    await this.commandService.cancelFollowRequest(requesterId, receiverId);
+  }
 }

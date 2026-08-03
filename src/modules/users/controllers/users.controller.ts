@@ -407,4 +407,18 @@ export class UsersController {
   ): Promise<PaginationResponseDto<MutedUserResponse>> {
     return this.usersService.getMutedUsers(user.sub, pagination);
   }
+
+  // =====================================================
+  // Cancel Follow Request
+  // =====================================================
+
+  @Delete(':userId/follow-request')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async cancelFollowRequest(
+    @CurrentUser() user: JwtPayload,
+
+    @Param('userId') userId: string,
+  ): Promise<void> {
+    await this.usersService.cancelFollowRequest(user.sub, userId);
+  }
 }
