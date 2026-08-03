@@ -160,4 +160,41 @@ export class UserValidationService {
       throw new NotFoundException('You are not following this user.');
     }
   }
+
+  // =====================================================
+  // Validate Cannot Mute Self
+  // =====================================================
+
+  validateCannotMuteSelf(muterId: string, mutedId: string): void {
+    if (muterId === mutedId) {
+      throw new BadRequestException('You cannot mute yourself.');
+    }
+  }
+
+  // =====================================================
+  // Validate Not Already Muted
+  // =====================================================
+
+  async validateNotAlreadyMuted(
+    muterId: string,
+    mutedId: string,
+  ): Promise<void> {
+    const exists = await this.socialRepository.existsMute(muterId, mutedId);
+
+    if (exists) {
+      throw new ConflictException('User is already muted.');
+    }
+  }
+
+  // =====================================================
+  // Validate Mute Exists
+  // =====================================================
+
+  async validateMuteExists(muterId: string, mutedId: string): Promise<void> {
+    const exists = await this.socialRepository.existsMute(muterId, mutedId);
+
+    if (!exists) {
+      throw new NotFoundException('User is not muted.');
+    }
+  }
 }

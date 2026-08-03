@@ -156,4 +156,12 @@ export class UsersService {
   async getBlockedUsers(userId: string, pagination: PaginationQueryDto) {
     return this.queryService.getBlockedUsers(userId, pagination);
   }
+
+  // =====================================================
+  // Mute User
+  // =====================================================
+
+  async muteUser(muterId: string, mutedId: string): Promise<void> {
+    await this.commandService.muteUser(muterId, mutedId);
+  }
 }

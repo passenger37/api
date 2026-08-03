@@ -367,4 +367,17 @@ export class UsersController {
   ): Promise<PaginationResponseDto<BlockedUserResponse>> {
     return this.usersService.getBlockedUsers(user.sub, pagination);
   }
+
+  // =====================================================
+  // Mute User
+  // =====================================================
+
+  @Post(':userId/mute')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async muteUser(
+    @CurrentUser() user: JwtPayload,
+    @Param('userId') userId: string,
+  ): Promise<void> {
+    await this.usersService.muteUser(user.sub, userId);
+  }
 }

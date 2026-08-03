@@ -126,4 +126,20 @@ export class UserCommandService {
       await this.socialRepository.unblockUser(blockerId, blockedId, tx);
     });
   }
+
+  // =====================================================
+  // Mute User
+  // =====================================================
+
+  async muteUser(muterId: string, mutedId: string): Promise<void> {
+    await this.validation.validateUserExists(mutedId);
+
+    this.validation.validateCannotMuteSelf(muterId, mutedId);
+
+    await this.validation.validateNotAlreadyMuted(muterId, mutedId);
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.socialRepository.muteUser(muterId, mutedId, tx);
+    });
+  }
 }

@@ -132,6 +132,8 @@ model User {
   blockedUsers Block[] @relation("UserBlocks")
 
   blockedByUsers Block[] @relation("UserBlockedBy")
+  mutedUsers     Mute[]  @relation("UserMutes")
+  mutedByUsers   Mute[]  @relation("UserMutedBy")
 }
 
 model Follow {
@@ -307,4 +309,20 @@ model Block {
   @@unique([blockerId, blockedId])
   @@index([blockerId])
   @@index([blockedId])
+}
+
+model Mute {
+  id String @id @default(cuid())
+
+  muterId String
+  mutedId String
+
+  muter User @relation("UserMutes", fields: [muterId], references: [id], onDelete: Cascade)
+  muted User @relation("UserMutedBy", fields: [mutedId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([muterId, mutedId])
+  @@index([muterId])
+  @@index([mutedId])
 }
