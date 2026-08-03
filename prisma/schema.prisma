@@ -132,8 +132,12 @@ model User {
   blockedUsers Block[] @relation("UserBlocks")
 
   blockedByUsers Block[] @relation("UserBlockedBy")
-  mutedUsers     Mute[]  @relation("UserMutes")
-  mutedByUsers   Mute[]  @relation("UserMutedBy")
+
+  mutedUsers   Mute[] @relation("UserMutes")
+  mutedByUsers Mute[] @relation("UserMutedBy")
+
+  sentFollowRequests     FollowRequest[] @relation("UserSentFollowRequests")
+  receivedFollowRequests FollowRequest[] @relation("UserReceivedFollowRequests")
 }
 
 model Follow {
@@ -325,4 +329,21 @@ model Mute {
   @@unique([muterId, mutedId])
   @@index([muterId])
   @@index([mutedId])
+}
+
+model FollowRequest {
+  id String @id @default(cuid())
+
+  requesterId String
+  receiverId  String
+
+  requester User @relation("UserSentFollowRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+
+  receiver User @relation("UserReceivedFollowRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([requesterId, receiverId])
+  @@index([requesterId])
+  @@index([receiverId])
 }

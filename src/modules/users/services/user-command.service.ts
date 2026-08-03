@@ -1,24 +1,27 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Gender, Prisma } from '@prisma/client';
 
-import { Prisma } from '@prisma/client';
+import { PrismaService } from '../../../core/database/prisma.service';
+
+import { UsersRepository } from '../repositories/users.repository';
+import { UserSocialRepository } from '../repositories/user-social.repository';
+
+import { UserDomainService } from './user-domain.service';
+import { UserProfileDomainService } from './user-profile-domain.service';
+import { UserValidationService } from './user-validation.service';
+
+import { UserMapper } from '../mappers/user.mapper';
 
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserProfileDto } from '../dto/update-user-profile.dto';
 
+import { UpdateMyProfileRequest } from '../dto/request/update-my-profile.request';
+import { UpdateMyProfileData } from '../domain/update-my-profile.interface';
+
 import { UserResponseDto } from '../responses';
 
-import { UserDomainService } from './user-domain.service';
-import { UserProfileDomainService } from './user-profile-domain.service';
-import { UsersRepository } from '../repositories/users.repository';
-
-import { UpdateMyProfileRequest } from '../dto/request/update-my-profile.request';
-
-import { UpdateMyProfileData } from '../domain/update-my-profile.interface';
-import { UserMapper } from '../mappers/user.mapper';
-import { UserValidationService } from './user-validation.service';
-import { Gender } from '@prisma/client';
-import { UserSocialRepository } from '../repositories/user-social.repository';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { FollowActionResponse } from '../dto/response/follow-action.response';
+import { FollowActionResult } from '../enums/follow-action-result.enum';
 
 @Injectable()
 export class UserCommandService {
@@ -31,6 +34,10 @@ export class UserCommandService {
     private readonly socialRepository: UserSocialRepository,
   ) {}
 
+  // =====================================================
+  // Registration
+  // =====================================================
+
   async createForRegistration(input: Prisma.UserCreateInput) {
     return this.userDomainService.createForRegistration(input);
   }
@@ -38,6 +45,10 @@ export class UserCommandService {
   async createByAdmin(dto: CreateUserDto): Promise<UserResponseDto> {
     return this.userDomainService.createByAdmin(dto);
   }
+
+  // =====================================================
+  // Profile
+  // =====================================================
 
   async updateProfile(userId: string, dto: UpdateUserProfileDto) {
     return this.userProfileDomainService.updateProfile(userId, dto);
@@ -65,15 +76,42 @@ export class UserCommandService {
   // Follow User
   // =====================================================
 
-  async followUser(followerId: string, followingId: string): Promise<void> {
+  async followUser(
+    followerId: string,
+    followingId: string,
+  ): Promise<FollowActionResponse> {
     await this.validation.validateUserExists(followingId);
 
-    this.validation.validateNotSelfFollow(followerId, followingId);
+    this.validation.validateCannotFollowSelf(followerId, followingId);
 
     await this.validation.validateNotAlreadyFollowing(followerId, followingId);
 
-    await this.prisma.$transaction(async (tx) => {
+    await this.validation.validateNotAlreadyRequested(followerId, followingId);
+
+    const targetUser = await this.repository.findById(followingId);
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found.');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      if (targetUser.isPrivate) {
+        await this.socialRepository.sendFollowRequest(
+          followerId,
+          followingId,
+          tx,
+        );
+
+        return {
+          status: FollowActionResult.REQUEST_SENT,
+        };
+      }
+
       await this.socialRepository.followUser(followerId, followingId, tx);
+
+      return {
+        status: FollowActionResult.FOLLOWED,
+      };
     });
   }
 

@@ -484,4 +484,63 @@ export class UserSocialRepository {
       total,
     };
   }
+
+  // =====================================================
+  // Send Follow Request
+  // =====================================================
+
+  async sendFollowRequest(
+    requesterId: string,
+    receiverId: string,
+    prisma: PrismaExecutor = this.prisma,
+  ) {
+    return prisma.followRequest.create({
+      data: {
+        requesterId,
+        receiverId,
+      },
+    });
+  }
+
+  // =====================================================
+  // Cancel Follow Request
+  // =====================================================
+
+  async cancelFollowRequest(
+    requesterId: string,
+    receiverId: string,
+    prisma: PrismaExecutor = this.prisma,
+  ) {
+    return prisma.followRequest.delete({
+      where: {
+        requesterId_receiverId: {
+          requesterId,
+          receiverId,
+        },
+      },
+    });
+  }
+
+  // =====================================================
+  // Exists Follow Request
+  // =====================================================
+
+  async existsFollowRequest(
+    requesterId: string,
+    receiverId: string,
+  ): Promise<boolean> {
+    const request = await this.prisma.followRequest.findUnique({
+      where: {
+        requesterId_receiverId: {
+          requesterId,
+          receiverId,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return !!request;
+  }
 }

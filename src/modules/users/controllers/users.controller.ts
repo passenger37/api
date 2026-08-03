@@ -50,6 +50,8 @@ import type { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
 import { FollowerResponse } from '../dto/response/follower.response';
 import { MutedUserResponse } from '../dto/response/muted-user.response';
+import { FollowActionResponse } from '../dto/response/follow-action.response';
+
 @ApiTags('Users')
 @Controller({
   path: 'users',
@@ -239,7 +241,7 @@ export class UsersController {
   }
 
   @Post(':userId/follow')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   async followUser(
     @CurrentUser() user: JwtPayload,

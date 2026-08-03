@@ -197,4 +197,50 @@ export class UserValidationService {
       throw new NotFoundException('User is not muted.');
     }
   }
+
+  // =====================================================
+  // Validate Not Already Requested
+  // =====================================================
+
+  async validateNotAlreadyRequested(
+    requesterId: string,
+    receiverId: string,
+  ): Promise<void> {
+    const exists = await this.socialRepository.existsFollowRequest(
+      requesterId,
+      receiverId,
+    );
+
+    if (exists) {
+      throw new ConflictException('Follow request already exists.');
+    }
+  }
+
+  // =====================================================
+  // Validate Follow Request Exists
+  // =====================================================
+
+  async validateFollowRequestExists(
+    requesterId: string,
+    receiverId: string,
+  ): Promise<void> {
+    const exists = await this.socialRepository.existsFollowRequest(
+      requesterId,
+      receiverId,
+    );
+
+    if (!exists) {
+      throw new NotFoundException('Follow request not found.');
+    }
+  }
+
+  // =====================================================
+  // Validate Cannot Follow Self
+  // =====================================================
+
+  validateCannotFollowSelf(followerId: string, followingId: string): void {
+    if (followerId === followingId) {
+      throw new BadRequestException('You cannot follow yourself.');
+    }
+  }
 }

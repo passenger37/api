@@ -20,8 +20,8 @@ import { PasswordService } from '../../security/services/password.service';
 
 import { UserFactory } from '../factories/user.factory';
 import { UpdateMyProfileRequest } from '../dto/request/update-my-profile.request';
-import { PaginationResponseDto } from '../../../common/dto/pagination-response.dto';
-import { FollowerResponse } from '../dto/response/follower.response';
+import { FollowActionResponse } from '../dto/response/follow-action.response';
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -97,8 +97,11 @@ export class UsersService {
     return this.queryService.getSuggestedUsers(currentUserId, pagination);
   }
 
-  async followUser(followerId: string, followingId: string): Promise<void> {
-    await this.commandService.followUser(followerId, followingId);
+  async followUser(
+    followerId: string,
+    followingId: string,
+  ): Promise<FollowActionResponse> {
+    return this.commandService.followUser(followerId, followingId);
   }
 
   async unfollowUser(followerId: string, followingId: string): Promise<void> {
