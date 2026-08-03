@@ -30,6 +30,8 @@ import { UserRelationshipStatsResponse } from '../dto/response/user-relationship
 
 import { BlockedUserResponse } from '../dto/response/blocked-user.response';
 
+import { MutedUserResponse } from '../dto/response/muted-user.response';
+
 @Injectable()
 export class UserQueryService {
   constructor(
@@ -264,6 +266,34 @@ export class UserQueryService {
 
     return UserMapper.toBlockedUsersResponse(
       blockedUsers,
+      pagination.page,
+      pagination.pageSize,
+      total,
+    );
+  }
+
+  // =====================================================
+  // Muted Users
+  // =====================================================
+
+  async getMutedUsers(
+    userId: string,
+    pagination: PaginationQueryDto,
+  ): Promise<PaginationResponseDto<MutedUserResponse>> {
+    const exists = await this.usersRepository.existsById(userId);
+
+    if (!exists) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const { mutedUsers, total } = await this.socialRepository.findMutedUsers(
+      userId,
+      pagination.skip,
+      pagination.take,
+    );
+
+    return UserMapper.toMutedUsersResponse(
+      mutedUsers,
       pagination.page,
       pagination.pageSize,
       total,

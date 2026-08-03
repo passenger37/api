@@ -49,7 +49,7 @@ import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
 import type { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
 import { FollowerResponse } from '../dto/response/follower.response';
-
+import { MutedUserResponse } from '../dto/response/muted-user.response';
 @ApiTags('Users')
 @Controller({
   path: 'users',
@@ -392,5 +392,17 @@ export class UsersController {
     @Param('userId') userId: string,
   ): Promise<void> {
     await this.usersService.unmuteUser(user.sub, userId);
+  }
+
+  // =====================================================
+  // Get Muted Users
+  // =====================================================
+
+  @Get('me/muted')
+  async getMutedUsers(
+    @CurrentUser() user: JwtPayload,
+    @Query() pagination: PaginationQueryDto,
+  ): Promise<PaginationResponseDto<MutedUserResponse>> {
+    return this.usersService.getMutedUsers(user.sub, pagination);
   }
 }

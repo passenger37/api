@@ -20,6 +20,7 @@ import { UserRelationshipStatsRow } from '../database/rows/user-relationship-sta
 import { UserRelationshipStatsResponse } from '../dto/response/user-relationship-stats.response';
 import { BlockedUserResponse } from '../dto/response/blocked-user.response';
 import { PaginationMapper } from '../../../common/pagination/mappers/pagination.mapper';
+import { MutedUserResponse } from '../dto/response/muted-user.response';
 
 export class UserMapper {
   static toResponse(user: User): UserResponseDto {
@@ -443,6 +444,41 @@ export class UserMapper {
         avatarUrl: item.blocked.avatarUrl,
         isVerified: item.blocked.isVerified,
         blockedAt: item.createdAt,
+      }),
+    );
+  }
+
+  // =====================================================
+  // Muted Users
+  // =====================================================
+
+  static toMutedUsersResponse(
+    mutedUsers: Array<{
+      createdAt: Date;
+      muted: {
+        id: string;
+        username: string;
+        displayName: string;
+        avatarUrl: string | null;
+        isVerified: boolean;
+      };
+    }>,
+    page: number,
+    pageSize: number,
+    total: number,
+  ): PaginationResponseDto<MutedUserResponse> {
+    return PaginationMapper.toResponse(
+      mutedUsers,
+      total,
+      page,
+      pageSize,
+      (item): MutedUserResponse => ({
+        id: item.muted.id,
+        username: item.muted.username,
+        displayName: item.muted.displayName,
+        avatarUrl: item.muted.avatarUrl,
+        isVerified: item.muted.isVerified,
+        mutedAt: item.createdAt,
       }),
     );
   }

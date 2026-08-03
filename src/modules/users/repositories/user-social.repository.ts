@@ -443,4 +443,45 @@ export class UserSocialRepository {
 
     return !!mute;
   }
+
+  // =====================================================
+  // Find Muted Users
+  // =====================================================
+
+  async findMutedUsers(muterId: string, skip: number, take: number) {
+    const [mutedUsers, total] = await this.prisma.$transaction([
+      this.prisma.mute.findMany({
+        where: {
+          muterId,
+        },
+        include: {
+          muted: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              isVerified: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take,
+      }),
+
+      this.prisma.mute.count({
+        where: {
+          muterId,
+        },
+      }),
+    ]);
+
+    return {
+      mutedUsers,
+      total,
+    };
+  }
 }
