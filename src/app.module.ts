@@ -15,6 +15,8 @@ import { UserRolesModule } from './modules/user-roles/user-roles.module';
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { BootstrapService } from './bootstrap/bootstrap.service';
 import { RedisModule } from './core/redis/redis.module';
+import { ServersModule } from './modules/servers/servers.module';
+
 @Module({
   imports: [
     AppConfigModule,
@@ -29,6 +31,7 @@ import { RedisModule } from './core/redis/redis.module';
     UserRolesModule,
     AuthorizationModule,
     RedisModule,
+    ServersModule,
   ],
   controllers: [],
   // providers: [AppService],

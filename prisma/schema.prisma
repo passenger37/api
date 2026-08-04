@@ -21,6 +21,25 @@ enum Gender {
   PREFER_NOT_TO_SAY
 }
 
+enum ServerChannelType {
+  TEXT
+  VOICE
+  ANNOUNCEMENT
+  FORUM
+  STAGE
+}
+
+enum ServerTemplateType {
+  CODING
+  CLASSROOM
+  STUDY_GROUP
+  SCHOOL_CLUB
+  UNIVERSITY
+  COMPANY
+  GAMING
+  CUSTOM
+}
+
 model User {
   // ===========================
   // Identity
@@ -377,6 +396,8 @@ model Server {
 
   members ServerMember[]
 
+  categories ServerCategory[]
+
   @@index([ownerId])
   @@index([visibility])
 }
@@ -397,4 +418,43 @@ model ServerMember {
   @@unique([serverId, userId])
   @@index([serverId])
   @@index([userId])
+}
+
+model ServerCategory {
+  id String @id @default(cuid())
+
+  serverId String
+  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  name     String
+  position Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  channels ServerChannel[]
+
+  @@unique([serverId, position])
+  @@index([serverId])
+}
+
+model ServerChannel {
+  id String @id @default(cuid())
+
+  categoryId String
+  category   ServerCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  name String
+
+  type ServerChannelType
+
+  topic String?
+
+  position Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([categoryId, position])
+  @@index([categoryId])
 }
