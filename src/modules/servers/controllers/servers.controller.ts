@@ -1,8 +1,4 @@
-import {
-  Body,
-  Controller,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
@@ -14,9 +10,7 @@ import { ServersService } from '../services/servers.service';
 
 @Controller('servers')
 export class ServersController {
-  constructor(
-    private readonly serversService: ServersService,
-  ) {}
+  constructor(private readonly serversService: ServersService) {}
 
   @Post()
   async createServer(
@@ -26,9 +20,6 @@ export class ServersController {
     @Body()
     request: CreateServerRequest,
   ) {
-    return this.serversService.createServer(
-      user.sub,
-      request,
-    );
+    return this.serversService.createServer(user.sub, request);
   }
 }

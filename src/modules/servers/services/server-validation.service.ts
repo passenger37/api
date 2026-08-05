@@ -13,9 +13,7 @@ export class ServerValidationService {
     }
 
     if (!request.name?.trim()) {
-      throw new BadRequestException(
-        'Server name is required.',
-      );
+      throw new BadRequestException('Server name is required.');
     }
   }
 }

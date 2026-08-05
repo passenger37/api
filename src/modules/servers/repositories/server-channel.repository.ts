@@ -5,9 +5,7 @@ import { PrismaService } from '../../../core/database/prisma.service';
 
 @Injectable()
 export class ServerChannelRepository {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(
     data: Prisma.ServerChannelCreateInput,

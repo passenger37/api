@@ -40,6 +40,12 @@ enum ServerTemplateType {
   CUSTOM
 }
 
+enum ServerVisibility {
+  PUBLIC
+  PRIVATE
+  UNLISTED
+}
+
 model User {
   // ===========================
   // Identity
@@ -160,6 +166,7 @@ model User {
   ownedServers           Server[]        @relation("OwnedServers")
 
   serverMemberships ServerMember[]
+  ServerInvite      ServerInvite[]
 }
 
 model Follow {
@@ -398,6 +405,10 @@ model Server {
 
   categories ServerCategory[]
 
+  roles ServerRole[]
+
+  invites ServerInvite[]
+
   @@index([ownerId])
   @@index([visibility])
 }
@@ -414,6 +425,8 @@ model ServerMember {
   nickname String?
 
   joinedAt DateTime @default(now())
+
+  roles ServerMemberRole[]
 
   @@unique([serverId, userId])
   @@index([serverId])
@@ -457,4 +470,128 @@ model ServerChannel {
 
   @@unique([categoryId, position])
   @@index([categoryId])
+}
+
+model ServerRole {
+  id String @id @default(cuid())
+
+  serverId String
+  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  name     String
+  position Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members ServerMemberRole[]
+
+  permissions ServerRolePermission[]
+
+  @@index([serverId])
+}
+
+model ServerMemberRole {
+  id String @id @default(cuid())
+
+  memberId String
+  roleId   String
+
+  assignedAt DateTime @default(now())
+
+  member ServerMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  role   ServerRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, roleId])
+  @@index([memberId])
+  @@index([roleId])
+}
+
+enum ServerPermission {
+  // ===== Server =====
+  SERVER_VIEW
+  SERVER_UPDATE
+  SERVER_DELETE
+
+  // ===== Invites =====
+  INVITE_CREATE
+  INVITE_DELETE
+
+  // ===== Categories =====
+  CATEGORY_CREATE
+  CATEGORY_UPDATE
+  CATEGORY_DELETE
+
+  // ===== Channels =====
+  CHANNEL_VIEW
+  CHANNEL_CREATE
+  CHANNEL_UPDATE
+  CHANNEL_DELETE
+
+  // ===== Messages =====
+  MESSAGE_SEND
+  MESSAGE_UPDATE
+  MESSAGE_DELETE
+  MESSAGE_PIN
+
+  // ===== Members =====
+  MEMBER_INVITE
+  MEMBER_KICK
+  MEMBER_BAN
+  MEMBER_TIMEOUT
+
+  // ===== Roles =====
+  ROLE_CREATE
+  ROLE_UPDATE
+  ROLE_DELETE
+  ROLE_ASSIGN
+
+  // ===== Webhooks =====
+  WEBHOOK_MANAGE
+
+  // ===== Emojis =====
+  EMOJI_MANAGE
+
+  // ===== Audit =====
+  AUDIT_LOG_VIEW
+
+  // ===== Administration =====
+  ADMINISTRATOR
+}
+
+model ServerRolePermission {
+  id String @id @default(cuid())
+
+  roleId String
+
+  role ServerRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  permission ServerPermission
+
+  @@unique([roleId, permission])
+  @@index([roleId])
+}
+
+model ServerInvite {
+  id String @id @default(cuid())
+
+  serverId String
+  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  code String @unique
+
+  creatorId String
+  creator   User   @relation(fields: [creatorId], references: [id])
+
+  maxUses Int?
+  uses    Int  @default(0)
+
+  expiresAt DateTime?
+
+  isTemporary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([serverId])
+  @@index([code])
 }

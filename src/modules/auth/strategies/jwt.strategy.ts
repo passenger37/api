@@ -7,6 +7,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 
 import { UserQueryService } from '../../users/services/user-query.service';
+import { CurrentUserDto } from '../dto/current-user.dto';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -23,15 +24,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
-    console.log('JWT Payload:', payload);
-
+  async validate(payload: any): Promise<CurrentUserDto> {
     const user = await this.userQueryService.findById(payload.sub);
 
     if (!user) {
       throw new UnauthorizedException();
     }
 
-    return user;
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+    };
   }
 }

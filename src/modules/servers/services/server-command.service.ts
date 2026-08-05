@@ -8,6 +8,7 @@ import { CreateServerResponse } from '../dto/response/create-server.response';
 import { ServerRepository } from '../repositories/server.repository';
 import { ServerMemberRepository } from '../repositories/server-member.repository';
 import { ServerRoleRepository } from '../repositories/server-role.repository';
+import { ServerRoleAssignmentRepository } from '../repositories/server-role-assignment.repository';
 
 import { ServerValidationService } from './server-validation.service';
 import { ServerSlugService } from './server-slug.service';
@@ -16,6 +17,7 @@ import { ServerTemplateFactory } from '../factories/server-template.factory';
 
 import { ServerMapper } from '../mappers/server.mapper';
 import { ServerStructureService } from './server-structure.service';
+import { ServerRoleService } from './server-role.service';
 
 @Injectable()
 export class ServerCommandService {
@@ -24,66 +26,87 @@ export class ServerCommandService {
     private readonly validation: ServerValidationService,
     private readonly slugService: ServerSlugService,
     private readonly serverRepository: ServerRepository,
-    private readonly memberRepository: ServerMemberRepository,
-    private readonly roleRepository: ServerRoleRepository,
     private readonly templateFactory: ServerTemplateFactory,
-     private readonly serverStructureService: ServerStructureService,
+    private readonly serverStructureService: ServerStructureService,
+    private readonly serverRoleService: ServerRoleService,
+    private readonly serverMemberRepository: ServerMemberRepository,
+    private readonly serverRoleRepository: ServerRoleRepository,
+    private readonly serverRoleAssignmentRepository: ServerRoleAssignmentRepository,
   ) {}
 
   async createServer(
     ownerId: string,
     request: CreateServerRequest,
   ): Promise<CreateServerResponse> {
-    await this.validation.validateCreateServer(
-      ownerId,
-      request,
-    );
+    // validation
 
-    const slug = await this.slugService.generate(
-      request.name,
-    );
+    const slug = await this.slugService.generate(request.name);
 
     return this.prisma.$transaction(async (tx) => {
-      const server =
-        await this.serverRepository.create(
-          {
-            name: request.name,
-            slug,
-            description: request.description,
-            visibility: request.visibility,
+      const server = await this.serverRepository.create(
+        {
+          name: request.name,
+          slug,
+          description: request.description,
+          visibility: request.visibility,
 
-            owner: {
-              connect: {
-                id: ownerId,
-              },
+          owner: {
+            connect: {
+              id: ownerId,
             },
           },
-          tx,
-        );
+        },
+        tx,
+      );
 
-      await this.memberRepository.createOwnerMembership(
+      await this.serverMemberRepository.createOwnerMembership(
         server.id,
         ownerId,
         tx,
       );
 
-      await this.roleRepository.createDefaultRoles(
+      const ownerMembership =
+        await this.serverMemberRepository.findByServerAndUser(
+          server.id,
+          ownerId,
+          tx,
+        );
+
+      const ownerRole = await this.serverRoleRepository.findByName(
         server.id,
+        'Owner',
         tx,
       );
 
-const template =
-  this.templateFactory.getTemplate(
-    request.template,
-  );
+      if (!ownerMembership || !ownerRole) {
+        throw new Error('Failed to initialize owner role.');
+      }
 
-const structure = template.build();
+      await this.serverRoleAssignmentRepository.create(
+        {
+          member: {
+            connect: {
+              id: ownerMembership.id,
+            },
+          },
+          role: {
+            connect: {
+              id: ownerRole.id,
+            },
+          },
+        },
+        tx,
+      );
 
-await this.serverStructureService.createStructure(
-  server.id,
-  structure,
-  tx,
-);;
+      const template = this.templateFactory.getTemplate(request.template);
+
+      const structure = template.build();
+
+      await this.serverStructureService.createStructure(
+        server.id,
+        structure,
+        tx,
+      );
 
       return ServerMapper.toCreateResponse(server);
     });

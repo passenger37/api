@@ -252,7 +252,7 @@ export class UsersRepository {
       return undefined;
     }
 
-    const select: Prisma.UserSelect = {};
+    const select: Record<string, boolean> = {};
 
     const requestedFields = query.fields
       .split(',')
@@ -260,11 +260,13 @@ export class UsersRepository {
 
     for (const field of requestedFields) {
       if (this.allowedFields.includes(field as keyof Prisma.UserSelect)) {
-        select[field as keyof Prisma.UserSelect] = true;
+        select[field] = true;
       }
     }
 
-    return Object.keys(select).length ? select : undefined;
+    return Object.keys(select).length
+      ? (select as Prisma.UserSelect)
+      : undefined;
   }
 
   async findMyProfile(userId: string) {

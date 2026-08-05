@@ -22,20 +22,19 @@ export class ServerStructureService {
     let categoryPosition = 0;
 
     for (const category of structure.categories) {
-      const createdCategory =
-        await this.categoryRepository.create(
-          {
-            name: category.name,
-            position: categoryPosition++,
+      const createdCategory = await this.categoryRepository.create(
+        {
+          name: category.name,
+          position: categoryPosition++,
 
-            server: {
-              connect: {
-                id: serverId,
-              },
+          server: {
+            connect: {
+              id: serverId,
             },
           },
-          tx,
-        );
+        },
+        tx,
+      );
 
       let channelPosition = 0;
 
@@ -44,8 +43,7 @@ export class ServerStructureService {
           {
             name: channel.name,
 
-            type:
-              channel.type as ServerChannelType,
+            type: channel.type as ServerChannelType,
 
             topic: channel.topic,
 

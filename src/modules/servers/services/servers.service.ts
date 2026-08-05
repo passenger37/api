@@ -6,17 +6,9 @@ import { ServerCommandService } from './server-command.service';
 
 @Injectable()
 export class ServersService {
-  constructor(
-    private readonly commandService: ServerCommandService,
-  ) {}
+  constructor(private readonly commandService: ServerCommandService) {}
 
-  async createServer(
-    ownerId: string,
-    request: CreateServerRequest,
-  ) {
-    return this.commandService.createServer(
-      ownerId,
-      request,
-    );
+  async createServer(ownerId: string, request: CreateServerRequest) {
+    return this.commandService.createServer(ownerId, request);
   }
 }
