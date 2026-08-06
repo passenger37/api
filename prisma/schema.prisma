@@ -40,12 +40,6 @@ enum ServerTemplateType {
   CUSTOM
 }
 
-enum ServerVisibility {
-  PUBLIC
-  PRIVATE
-  UNLISTED
-}
-
 model User {
   // ===========================
   // Identity

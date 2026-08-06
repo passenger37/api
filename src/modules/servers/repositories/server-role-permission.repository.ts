@@ -29,4 +29,27 @@ export class ServerRolePermissionRepository {
 
     return permissions.map((p) => p.permission);
   }
+
+  async replacePermissions(
+    roleId: string,
+    permissions: ServerPermission[],
+    tx: Prisma.TransactionClient,
+  ) {
+    await tx.serverRolePermission.deleteMany({
+      where: {
+        roleId,
+      },
+    });
+
+    if (permissions.length === 0) {
+      return;
+    }
+
+    await tx.serverRolePermission.createMany({
+      data: permissions.map((permission) => ({
+        roleId,
+        permission,
+      })),
+    });
+  }
 }
