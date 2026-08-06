@@ -1,13 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ServerPermission } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
+import { ServerPermission } from '@prisma/client';
+
 import { CreateServerRoleRequest } from '../dto/request/create-server-role.request';
+import { UpdateServerRoleRequest } from '../dto/request/update-server-role.request';
 import { ReorderServerRolesRequest } from '../dto/request/reorder-server-roles.request';
+
 import { ServerRoleRepository } from '../repositories/server-role.repository';
+
 import { ServerRoleValidationService } from './server-role-validation.service';
 import { ServerPermissionService } from './server-permission.service';
 import { ServerHierarchyService } from './server-hierarchy.service';
-import { UpdateServerRoleRequest } from '../dto/request/update-server-role.request';
 
 @Injectable()
 export class ServerRoleCommandService {
@@ -59,21 +62,6 @@ export class ServerRoleCommandService {
     userId: string,
     request: UpdateServerRoleRequest,
   ) {
-    // 1. Permission Check
-    await this.permissionService.requirePermission(
-      serverId,
-      userId,
-      ServerPermission.ROLE_UPDATE,
-    );
-
-    // 2. Ensure Role Exists
-    await this.validation.validateRoleExists(roleId);
-
-    // 3. Validate Name (only if provided)
-    if (request.name) {
-      await this.validation.validateUniqueName(serverId, request.name);
-    }
-
     await this.permissionService.requirePermission(
       serverId,
       userId,
@@ -82,7 +70,12 @@ export class ServerRoleCommandService {
 
     await this.hierarchyService.requireManageRole(serverId, userId, roleId);
 
-    // 4. Update Role
+    await this.validation.validateRoleExists(roleId);
+
+    if (request.name) {
+      await this.validation.validateUniqueName(serverId, request.name);
+    }
+
     return this.prisma.$transaction(async (tx) => {
       return this.roleRepository.update(
         roleId,
@@ -91,17 +84,10 @@ export class ServerRoleCommandService {
             name: request.name,
           }),
 
-          // ...(request.color && {
-          //   color: request.color,
-          // }),
-
-          // ...(request.hoist !== undefined && {
-          //   hoist: request.hoist,
-          // }),
-
-          // ...(request.mentionable !== undefined && {
-          //   mentionable: request.mentionable,
-          // }),
+          // Future
+          // color
+          // hoist
+          // mentionable
         },
         tx,
       );
@@ -115,6 +101,8 @@ export class ServerRoleCommandService {
       ServerPermission.ROLE_DELETE,
     );
 
+    await this.hierarchyService.requireManageRole(serverId, userId, roleId);
+
     const role = await this.roleRepository.findById(roleId);
 
     if (!role) {
@@ -124,13 +112,7 @@ export class ServerRoleCommandService {
     await this.validation.validateNotDefaultRole(role);
 
     await this.validation.validateRoleHasNoMembers(roleId);
-    await this.permissionService.requirePermission(
-      serverId,
-      userId,
-      ServerPermission.ROLE_DELETE,
-    );
 
-    await this.hierarchyService.requireManageRole(serverId, userId, roleId);
     return this.prisma.$transaction(async (tx) => {
       await this.roleRepository.delete(roleId, tx);
     });

@@ -40,6 +40,7 @@ import { ServerRoleController } from './controllers/server-role.controller';
 import { ServerAuthorizationService } from './services/server-authorization.service';
 import { ServerRolePermissionCommandService } from './services/server-role-permission-command.service';
 import { ServerRolePermissionQueryService } from './services/server-role-permission-query.service';
+import { ServerRolePermissionValidationService } from './services/server-role-permission-validation.service';
 
 @Module({
   imports: [PrismaModule],
@@ -85,6 +86,7 @@ import { ServerRolePermissionQueryService } from './services/server-role-permiss
     ServerHierarchyService,
     ServerRolePermissionCommandService,
     ServerRolePermissionQueryService,
+    ServerRolePermissionValidationService,
   ],
 
   exports: [ServersService],
