@@ -5,4 +5,8 @@ import { ServerRolePermissionRepository } from '../repositories/server-role-perm
 @Injectable()
 export class ServerRolePermissionQueryService {
   constructor(private readonly repository: ServerRolePermissionRepository) {}
+
+  async getPermissions(roleId: string) {
+    return this.repository.findPermissions(roleId);
+  }
 }

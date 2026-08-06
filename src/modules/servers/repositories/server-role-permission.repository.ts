@@ -52,4 +52,15 @@ export class ServerRolePermissionRepository {
       })),
     });
   }
+
+  async findPermissions(roleId: string) {
+    return this.prisma.serverRolePermission.findMany({
+      where: {
+        roleId,
+      },
+      orderBy: {
+        permission: 'asc',
+      },
+    });
+  }
 }
