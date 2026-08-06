@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 
 import { ServerPermission } from '@prisma/client';
@@ -42,6 +42,31 @@ export class ServerRoleAssignmentCommandService {
 
     return this.prisma.$transaction(async (tx) => {
       return this.repository.assignRole(memberId, roleId, tx);
+    });
+  }
+
+  async removeRole(
+    serverId: string,
+    memberId: string,
+    roleId: string,
+    userId: string,
+  ) {
+    await this.permissionService.requirePermission(
+      serverId,
+      userId,
+      ServerPermission.ROLE_ASSIGN,
+    );
+
+    await this.validation.validateRoleExists(roleId);
+
+    await this.memberQueryService.getMemberOrThrow(serverId, memberId);
+
+    await this.hierarchyService.requireManageRole(serverId, userId, roleId);
+
+    return this.prisma.$transaction(async (tx) => {
+      await this.repository.removeRole(memberId, roleId, tx);
+
+      this.permissionService.clearCache(serverId, memberId);
     });
   }
 }

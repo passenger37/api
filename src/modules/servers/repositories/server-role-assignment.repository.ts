@@ -125,4 +125,17 @@ export class ServerRoleAssignmentRepository {
       },
     });
   }
+
+  async removeRole(
+    memberId: string,
+    roleId: string,
+    prisma: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    return prisma.serverMemberRole.deleteMany({
+      where: {
+        memberId,
+        roleId,
+      },
+    });
+  }
 }
