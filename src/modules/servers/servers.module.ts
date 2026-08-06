@@ -41,6 +41,7 @@ import { ServerAuthorizationService } from './services/server-authorization.serv
 import { ServerRolePermissionCommandService } from './services/server-role-permission-command.service';
 import { ServerRolePermissionQueryService } from './services/server-role-permission-query.service';
 import { ServerRolePermissionValidationService } from './services/server-role-permission-validation.service';
+import { ServerRolePermissionController } from './controllers/server-role-permission.controller';
 
 @Module({
   imports: [PrismaModule],
@@ -49,6 +50,7 @@ import { ServerRolePermissionValidationService } from './services/server-role-pe
     ServersController,
     ServerInviteController,
     ServerRoleController,
+    ServerRolePermissionController,
   ],
 
   providers: [

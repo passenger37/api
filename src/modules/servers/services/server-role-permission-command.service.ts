@@ -7,7 +7,7 @@ import { ServerRolePermissionRepository } from '../repositories/server-role-perm
 import { ServerPermissionService } from './server-permission.service';
 import { ServerRoleValidationService } from './server-role-validation.service';
 import { ServerHierarchyService } from './server-hierarchy.service';
-import { UpdateRolePermissionsRequest } from '../dto/request/update-role-permissions.request';
+import { ReplaceRolePermissionsRequest } from '../dto/request/replace-role-permissions.request';
 
 @Injectable()
 export class ServerRolePermissionCommandService {
@@ -24,7 +24,7 @@ export class ServerRolePermissionCommandService {
     serverId: string,
     roleId: string,
     actorId: string,
-    request: UpdateRolePermissionsRequest,
+    request: ReplaceRolePermissionsRequest,
   ) {
     // Permission
     await this.permissionService.requirePermission(

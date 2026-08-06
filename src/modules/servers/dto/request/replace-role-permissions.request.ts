@@ -2,7 +2,7 @@ import { ArrayUnique, IsArray, IsEnum } from 'class-validator';
 
 import { ServerPermission } from '@prisma/client';
 
-export class UpdateRolePermissionsRequest {
+export class ReplaceRolePermissionsRequest {
   @IsArray()
   @ArrayUnique()
   @IsEnum(ServerPermission, {
