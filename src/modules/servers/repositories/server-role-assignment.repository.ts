@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
+
+type PrismaExecutor = Prisma.TransactionClient | PrismaService;
 
 @Injectable()
 export class ServerRoleAssignmentRepository {
@@ -106,6 +108,19 @@ export class ServerRoleAssignmentRepository {
   async countMembers(roleId: string): Promise<number> {
     return this.prisma.serverMemberRole.count({
       where: {
+        roleId,
+      },
+    });
+  }
+
+  async assignRole(
+    memberId: string,
+    roleId: string,
+    prisma: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    return prisma.serverMemberRole.create({
+      data: {
+        memberId,
         roleId,
       },
     });
