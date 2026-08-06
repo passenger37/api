@@ -138,4 +138,24 @@ export class ServerRoleAssignmentRepository {
       },
     });
   }
+
+  async findRolesByMember(memberId: string) {
+    return this.prisma.serverMemberRole.findMany({
+      where: {
+        memberId,
+      },
+      include: {
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
+      },
+      orderBy: {
+        role: {
+          position: 'desc',
+        },
+      },
+    });
+  }
 }

@@ -38,11 +38,13 @@ import { ServerRoleCommandService } from './services/server-role-command.service
 import { ServerRoleValidationService } from './services/server-role-validation.service';
 import { ServerRoleController } from './controllers/server-role.controller';
 import { ServerAuthorizationService } from './services/server-authorization.service';
+import { ServerRoleAssignmentCommandService } from './services/server-role-assignment-command.service';
+import { ServerRoleAssignmentQueryService } from './services/server-role-assignment-query.service';
 import { ServerRolePermissionCommandService } from './services/server-role-permission-command.service';
 import { ServerRolePermissionQueryService } from './services/server-role-permission-query.service';
 import { ServerRolePermissionValidationService } from './services/server-role-permission-validation.service';
 import { ServerRolePermissionController } from './controllers/server-role-permission.controller';
-
+import { ServerMemberController } from './controllers/server-member.controller';
 @Module({
   imports: [PrismaModule],
 
@@ -51,6 +53,7 @@ import { ServerRolePermissionController } from './controllers/server-role-permis
     ServerInviteController,
     ServerRoleController,
     ServerRolePermissionController,
+    ServerMemberController,
   ],
 
   providers: [
@@ -89,6 +92,8 @@ import { ServerRolePermissionController } from './controllers/server-role-permis
     ServerRolePermissionCommandService,
     ServerRolePermissionQueryService,
     ServerRolePermissionValidationService,
+    ServerRoleAssignmentCommandService,
+    ServerRoleAssignmentQueryService,
   ],
 
   exports: [ServersService],
