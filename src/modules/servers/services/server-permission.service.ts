@@ -1,20 +1,38 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { ServerPermission } from '@prisma/client';
+
 import { ServerMemberQueryService } from './server-member-query.service';
-import { ServerRoleAssignmentService } from './server-role-assignment.service';
 
 @Injectable()
 export class ServerPermissionService {
-  constructor(
-    private readonly roleAssignmentService: ServerRoleAssignmentService,
-    private readonly memberQueryService: ServerMemberQueryService,
-  ) {}
+  /**
+   * Cache:
+   * Key = serverId:userId
+   * Value = Set<ServerPermission>
+   */
+  private readonly permissionCache = new Map<string, Set<ServerPermission>>();
+
+  constructor(private readonly memberQueryService: ServerMemberQueryService) {}
+
+  private getCacheKey(serverId: string, userId: string): string {
+    return `${serverId}:${userId}`;
+  }
 
   async hasPermission(
     serverId: string,
     userId: string,
     permission: ServerPermission,
   ): Promise<boolean> {
+    const cacheKey = this.getCacheKey(serverId, userId);
+
+    const cached = this.permissionCache.get(cacheKey);
+
+    if (cached) {
+      return (
+        cached.has(ServerPermission.ADMINISTRATOR) || cached.has(permission)
+      );
+    }
+
     const member = await this.memberQueryService.getMemberWithRoles(
       serverId,
       userId,
@@ -24,21 +42,20 @@ export class ServerPermissionService {
       return false;
     }
 
+    const permissionSet = new Set<ServerPermission>();
+
     for (const assignment of member.roles) {
-      const role = assignment.role;
-
-      const permissions = role.permissions.map((p) => p.permission);
-
-      if (permissions.includes(ServerPermission.ADMINISTRATOR)) {
-        return true;
-      }
-
-      if (permissions.includes(permission)) {
-        return true;
+      for (const rolePermission of assignment.role.permissions) {
+        permissionSet.add(rolePermission.permission);
       }
     }
 
-    return false;
+    this.permissionCache.set(cacheKey, permissionSet);
+
+    return (
+      permissionSet.has(ServerPermission.ADMINISTRATOR) ||
+      permissionSet.has(permission)
+    );
   }
 
   async requirePermission(
@@ -51,5 +68,21 @@ export class ServerPermissionService {
     if (!allowed) {
       throw new ForbiddenException(`Missing permission: ${permission}`);
     }
+  }
+
+  clearCache(serverId: string, userId: string): void {
+    this.permissionCache.delete(this.getCacheKey(serverId, userId));
+  }
+
+  clearServerCache(serverId: string): void {
+    for (const key of this.permissionCache.keys()) {
+      if (key.startsWith(`${serverId}:`)) {
+        this.permissionCache.delete(key);
+      }
+    }
+  }
+
+  clearAllCache(): void {
+    this.permissionCache.clear();
   }
 }
