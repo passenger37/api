@@ -26,6 +26,7 @@ import { ServerHierarchyService } from './services/server-hierarchy.service';
 import { ServerRoleService } from './services/server-role.service';
 import { InviteCodeService } from './invites/services/invite-code.service';
 import { ServerInviteValidationService } from './invites/services/server-invite-validation.service';
+import { ServerInviteQueryService } from './invites/services/server-invite-query.service';
 import { ServerPermissionGuard } from './gaurds/server-permission.guard';
 import { ServerInviteCommandService } from './invites/services/server-invite-command.service';
 import { ServerMemberService } from './services/server-member.service';
@@ -119,6 +120,7 @@ import { ServerChannelPermissionOverwriteController } from './controllers/server
     ServerChannelPermissionOverwriteCommandService,
     ServerChannelPermissionOverwriteQueryService,
     ServerPermissionResolverService,
+    ServerInviteQueryService,
   ],
 
   exports: [ServersService],
