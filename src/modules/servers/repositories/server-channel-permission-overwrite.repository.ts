@@ -119,4 +119,24 @@ export class ServerChannelPermissionOverwriteRepository {
       },
     });
   }
+
+  async findRoleOverwrites(channelId: string, roleIds: string[]) {
+    return this.prisma.serverChannelPermissionOverwrite.findMany({
+      where: {
+        channelId,
+        roleId: {
+          in: roleIds,
+        },
+      },
+    });
+  }
+
+  async findMemberOverwrites(channelId: string, memberId: string) {
+    return this.prisma.serverChannelPermissionOverwrite.findMany({
+      where: {
+        channelId,
+        memberId,
+      },
+    });
+  }
 }

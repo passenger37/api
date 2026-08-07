@@ -16,6 +16,10 @@ export class ServerPermissionResolverService {
     userId: string,
     channelId?: string,
   ): Promise<Set<ServerPermission>> {
+    // -------------------------------------------------
+    // Load Member with Roles
+    // -------------------------------------------------
+
     const member = await this.memberQueryService.getMemberWithRoles(
       serverId,
       userId,
@@ -25,53 +29,53 @@ export class ServerPermissionResolverService {
       return new Set<ServerPermission>();
     }
 
+    // -------------------------------------------------
+    // Collect Base Role Permissions
+    // -------------------------------------------------
+
     const permissions = new Set<ServerPermission>();
 
-    // -----------------------------
-    // Base Role Permissions
-    // -----------------------------
     for (const assignment of member.roles) {
       for (const permission of assignment.role.permissions) {
         permissions.add(permission.permission);
       }
     }
 
-    // -----------------------------
+    // -------------------------------------------------
     // Administrator Shortcut
-    // -----------------------------
+    // -------------------------------------------------
+
     if (permissions.has(ServerPermission.ADMINISTRATOR)) {
-      return new Set(Object.values(ServerPermission));
+      return new Set<ServerPermission>(Object.values(ServerPermission));
     }
 
-    // -----------------------------
-    // Server-level check only
-    // -----------------------------
+    // -------------------------------------------------
+    // Server-Level Permissions Only
+    // -------------------------------------------------
+
     if (!channelId) {
       return permissions;
     }
 
-    // -----------------------------
-    // Channel Overwrites
-    // -----------------------------
-    const overwrites =
-      await this.overwriteRepository.findAllForChannel(channelId);
+    // -------------------------------------------------
+    // Load Only Required Overwrites
+    // -------------------------------------------------
 
-    // -----------------------------
-    // Role Overwrites
-    // -----------------------------
-    for (const overwrite of overwrites) {
-      if (!overwrite.roleId) {
-        continue;
-      }
+    const roleIds = member.roles.map((role) => role.roleId);
 
-      const hasRole = member.roles.some(
-        (role) => role.roleId === overwrite.roleId,
-      );
+    const roleOverwrites = await this.overwriteRepository.findRoleOverwrites(
+      channelId,
+      roleIds,
+    );
 
-      if (!hasRole) {
-        continue;
-      }
+    const memberOverwrites =
+      await this.overwriteRepository.findMemberOverwrites(channelId, member.id);
 
+    // -------------------------------------------------
+    // Apply Role Overwrites
+    // -------------------------------------------------
+
+    for (const overwrite of roleOverwrites) {
       if (overwrite.allow) {
         permissions.add(overwrite.permission);
       }
@@ -81,14 +85,11 @@ export class ServerPermissionResolverService {
       }
     }
 
-    // -----------------------------
-    // Member Overwrites
-    // -----------------------------
-    for (const overwrite of overwrites) {
-      if (overwrite.memberId !== member.id) {
-        continue;
-      }
+    // -------------------------------------------------
+    // Apply Member Overwrites
+    // -------------------------------------------------
 
+    for (const overwrite of memberOverwrites) {
       if (overwrite.allow) {
         permissions.add(overwrite.permission);
       }
