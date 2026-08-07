@@ -223,4 +223,23 @@ export class ServerMemberRepository {
       },
     });
   }
+  async findByUser(serverId: string, userId: string) {
+    return this.prisma.serverMember.findUnique({
+      where: {
+        serverId_userId: {
+          serverId,
+          userId,
+        },
+      },
+    });
+  }
+
+  async create(
+    data: Prisma.ServerMemberCreateInput,
+    prisma: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    return prisma.serverMember.create({
+      data,
+    });
+  }
 }
