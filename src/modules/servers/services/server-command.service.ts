@@ -104,6 +104,7 @@ export class ServerCommandService {
 
       await this.serverStructureService.createStructure(
         server.id,
+        ownerId,
         structure,
         tx,
       );

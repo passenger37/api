@@ -161,6 +161,8 @@ model User {
 
   serverMemberships ServerMember[]
   ServerInvite      ServerInvite[]
+
+  createdChannels ServerChannel[]
 }
 
 model Follow {
@@ -399,6 +401,8 @@ model Server {
 
   categories ServerCategory[]
 
+  channels ServerChannel[]
+
   roles ServerRole[]
 
   invites ServerInvite[]
@@ -425,45 +429,6 @@ model ServerMember {
   @@unique([serverId, userId])
   @@index([serverId])
   @@index([userId])
-}
-
-model ServerCategory {
-  id String @id @default(cuid())
-
-  serverId String
-  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-
-  name     String
-  position Int
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  channels ServerChannel[]
-
-  @@unique([serverId, position])
-  @@index([serverId])
-}
-
-model ServerChannel {
-  id String @id @default(cuid())
-
-  categoryId String
-  category   ServerCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  name String
-
-  type ServerChannelType
-
-  topic String?
-
-  position Int
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([categoryId, position])
-  @@index([categoryId])
 }
 
 model ServerRole {
@@ -588,4 +553,70 @@ model ServerInvite {
 
   @@index([serverId])
   @@index([code])
+}
+
+enum ChannelType {
+  TEXT
+  VOICE
+  ANNOUNCEMENT
+  FORUM
+  STAGE
+}
+
+model ServerCategory {
+  id String @id @default(cuid())
+
+  serverId String
+
+  name String
+
+  position Int
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  channels ServerChannel[]
+
+  @@unique([serverId, position])
+  @@unique([serverId, name])
+  @@index([serverId])
+}
+
+model ServerChannel {
+  id String @id @default(cuid())
+
+  serverId String
+
+  categoryId String?
+
+  createdById String
+
+  name String
+
+  description String?
+
+  type ChannelType
+
+  position Int
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  category ServerCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  topic String?
+
+  @@unique([serverId, name])
+  @@unique([serverId, position])
+  @@index([serverId])
+  @@index([categoryId])
+  @@index([createdById])
 }

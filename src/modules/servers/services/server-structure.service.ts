@@ -16,6 +16,7 @@ export class ServerStructureService {
 
   async createStructure(
     serverId: string,
+    ownerId: string,
     structure: ServerStructure,
     tx: Prisma.TransactionClient,
   ): Promise<void> {
@@ -45,9 +46,19 @@ export class ServerStructureService {
 
             type: channel.type as ServerChannelType,
 
-            topic: channel.topic,
-
             position: channelPosition++,
+
+            server: {
+              connect: {
+                id: serverId,
+              },
+            },
+
+            createdBy: {
+              connect: {
+                id: ownerId,
+              },
+            },
 
             category: {
               connect: {
