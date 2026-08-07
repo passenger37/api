@@ -50,6 +50,7 @@ import { ServerCategoryCommandService } from './services/server-category-command
 import { ServerChannelQueryService } from './services/server-channel-query.service';
 import { ServerChannelPermissionOverwriteValidationService } from './services/server-channel-permission-overwrite-validation.service';
 import { ServerChannelPermissionOverwriteCommandService } from './services/server-channel-permission-overwrite-command.service';
+import { ServerChannelPermissionOverwriteQueryService } from './services/server-channel-permission-overwrite-query.service';
 
 import { ServerRolePermissionController } from './controllers/server-role-permission.controller';
 import { ServerMemberController } from './controllers/server-member.controller';
@@ -113,6 +114,7 @@ import { ServerChannelController } from './controllers/server-channel.controller
     ServerChannelPermissionOverwriteRepository,
     ServerChannelPermissionOverwriteValidationService,
     ServerChannelPermissionOverwriteCommandService,
+    ServerChannelPermissionOverwriteQueryService,
   ],
 
   exports: [ServersService],
