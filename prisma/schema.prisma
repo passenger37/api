@@ -405,7 +405,8 @@ model Server {
 
   roles ServerRole[]
 
-  invites ServerInvite[]
+  invites        ServerInvite[]
+  ChannelMessage ChannelMessage[]
 
   @@index([ownerId])
   @@index([visibility])
@@ -427,6 +428,7 @@ model ServerMember {
   roles ServerMemberRole[]
 
   channelPermissionOverwrites ServerChannelPermissionOverwrite[]
+  ChannelMessage              ChannelMessage[]
 
   @@unique([serverId, userId])
   @@index([serverId])
@@ -634,6 +636,7 @@ model ServerChannel {
   invites ServerInvite[]
 
   permissionOverwrites ServerChannelPermissionOverwrite[]
+  ChannelMessage       ChannelMessage[]
 
   @@unique([serverId, name])
   @@unique([serverId, position])
@@ -668,4 +671,51 @@ model ServerChannelPermissionOverwrite {
   @@index([roleId])
   @@index([memberId])
   @@index([permission])
+}
+
+model ChannelMessage {
+  id String @id @default(cuid())
+
+  content String @db.Text
+
+  serverId String
+
+  channelId String
+
+  authorMemberId String
+
+  parentMessageId String?
+
+  isEdited Boolean @default(false)
+
+  editedAt DateTime?
+
+  isDeleted Boolean @default(false)
+
+  deletedAt DateTime?
+
+  isPinned Boolean @default(false)
+
+  pinnedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  channel ServerChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  author ServerMember @relation(fields: [authorMemberId], references: [id], onDelete: Cascade)
+
+  parentMessage ChannelMessage? @relation("MessageReplies", fields: [parentMessageId], references: [id], onDelete: SetNull)
+
+  replies ChannelMessage[] @relation("MessageReplies")
+
+  @@index([channelId, createdAt])
+  @@index([authorMemberId])
+  @@index([parentMessageId])
+  @@index([serverId])
+  @@index([isPinned])
+  @@index([isDeleted])
 }
