@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { NotFoundException } from '@nestjs/common';
 
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageValidationService } from './channel-message-validation.service';
 import { ChannelMessageQueryService } from './channel-message-query.service';
+import { ChannelMessageGateway } from '../gateways/channel-message.gateway';
 
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
 
@@ -13,8 +13,12 @@ export class ChannelMessageCommandService {
   constructor(
     private readonly prisma: PrismaService,
 
+    private readonly gateway: ChannelMessageGateway,
+
     private readonly repository: ChannelMessageRepository,
+
     private readonly queryService: ChannelMessageQueryService,
+
     private readonly validation: ChannelMessageValidationService,
 
     private readonly memberQueryService: ServerMemberQueryService,
@@ -35,9 +39,12 @@ export class ChannelMessageCommandService {
 
     this.validation.validateContent(content);
 
-    const member = await this.memberQueryService.getMember(serverId, userId);
+    const member = await this.memberQueryService.getMemberOrThrow(
+      serverId,
+      userId,
+    );
 
-    return this.prisma.$transaction(async (tx) => {
+    const message = await this.prisma.$transaction(async (tx) => {
       return this.repository.create(
         {
           content,
@@ -71,6 +78,10 @@ export class ChannelMessageCommandService {
         tx,
       );
     });
+
+    this.gateway.broadcastMessageCreated(channelId, message);
+
+    return message;
   }
 
   async editMessage(
@@ -81,10 +92,12 @@ export class ChannelMessageCommandService {
   ) {
     this.validation.validateContent(content);
 
-    await this.repository.findById(messageId);
     const message = await this.queryService.getMessage(messageId);
 
-    const member = await this.memberQueryService.getMember(serverId, userId);
+    const member = await this.memberQueryService.getMemberOrThrow(
+      serverId,
+      userId,
+    );
 
     await this.validation.validateEditPermission(
       message.authorMemberId,
@@ -93,17 +106,22 @@ export class ChannelMessageCommandService {
       userId,
     );
 
-    return this.repository.update(messageId, {
+    const updated = await this.repository.update(messageId, {
       content,
 
       isEdited: true,
 
       editedAt: new Date(),
     });
+
+    this.gateway.broadcastMessageUpdated(updated.channelId, updated);
+
+    return updated;
   }
 
   async deleteMessage(messageId: string, serverId: string, userId: string) {
     const message = await this.queryService.getMessage(messageId);
+
     const member = await this.memberQueryService.getMemberOrThrow(
       serverId,
       userId,
@@ -116,18 +134,32 @@ export class ChannelMessageCommandService {
       userId,
     );
 
-    return this.repository.softDelete(messageId);
+    await this.repository.softDelete(messageId);
+
+    this.gateway.broadcastMessageDeleted(message.channelId, message.id);
+
+    return {
+      success: true,
+    };
   }
 
   async pinMessage(messageId: string, serverId: string, userId: string) {
     await this.validation.validatePinPermission(serverId, userId);
 
-    return this.repository.pin(messageId);
+    const pinned = await this.repository.pin(messageId);
+
+    this.gateway.broadcastMessagePinned(pinned.channelId, pinned.id);
+
+    return pinned;
   }
 
   async unpinMessage(messageId: string, serverId: string, userId: string) {
     await this.validation.validatePinPermission(serverId, userId);
 
-    return this.repository.unpin(messageId);
+    const unpinned = await this.repository.unpin(messageId);
+
+    this.gateway.broadcastMessageUnpinned(unpinned.channelId, unpinned.id);
+
+    return unpinned;
   }
 }
