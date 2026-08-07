@@ -135,4 +135,31 @@ export class ChannelMessageRepository {
       },
     });
   }
+
+  async findPinnedMessages(channelId: string) {
+    return this.prisma.channelMessage.findMany({
+      where: {
+        channelId,
+        isPinned: true,
+        isDeleted: false,
+      },
+
+      orderBy: {
+        pinnedAt: 'desc',
+      },
+    });
+  }
+
+  async findReplies(parentMessageId: string) {
+    return this.prisma.channelMessage.findMany({
+      where: {
+        parentMessageId,
+        isDeleted: false,
+      },
+
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+  }
 }

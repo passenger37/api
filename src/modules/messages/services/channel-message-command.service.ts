@@ -86,7 +86,6 @@ export class ChannelMessageCommandService {
     if (!message) {
       throw new NotFoundException('Message not found.');
     }
-
     const member = await this.memberQueryService.getMember(serverId, userId);
 
     await this.validation.validateEditPermission(
@@ -111,7 +110,6 @@ export class ChannelMessageCommandService {
     if (!message) {
       throw new NotFoundException('Message not found.');
     }
-
     const member = await this.memberQueryService.getMemberOrThrow(
       serverId,
       userId,
