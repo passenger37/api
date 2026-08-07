@@ -215,4 +215,12 @@ export class ServerMemberRepository {
 
     return member?.roles[0]?.role ?? null;
   }
+
+  async findById(id: string) {
+    return this.prisma.serverMember.findUnique({
+      where: {
+        id,
+      },
+    });
+  }
 }

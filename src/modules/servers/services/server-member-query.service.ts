@@ -77,4 +77,14 @@ export class ServerMemberQueryService {
   async getMemberWithRoles(serverId: string, userId: string) {
     return this.memberRepository.findByServerAndUserWithRoles(serverId, userId);
   }
+
+  async getMemberById(memberId: string) {
+    const member = await this.memberRepository.findById(memberId);
+
+    if (!member) {
+      throw new NotFoundException('Member not found.');
+    }
+
+    return member;
+  }
 }
