@@ -12,7 +12,7 @@ import { ServerSlugService } from './services/server-slug.service';
 import { ServerStructureService } from './services/server-structure.service';
 import { ServerRoleAssignmentService } from './services/server-role-assignment.service';
 import { ServerPermissionService } from './services/server-permission.service';
-
+import { ServerChannelPermissionOverwriteRepository } from './repositories/server-channel-permission-overwrite.repository';
 import { ServerRepository } from './repositories/server.repository';
 import { ServerMemberRepository } from './repositories/server-member.repository';
 import { ServerRoleRepository } from './repositories/server-role.repository';
@@ -107,6 +107,7 @@ import { ServerChannelController } from './controllers/server-channel.controller
     ServerCategoryValidationService,
     ServerCategoryCommandService,
     ServerChannelQueryService,
+    ServerChannelPermissionOverwriteRepository,
   ],
 
   exports: [ServersService],
