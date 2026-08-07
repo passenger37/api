@@ -1,88 +1,77 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
+
 import { ServerPermission } from '@prisma/client';
 
-import { ServerMemberQueryService } from './server-member-query.service';
+import { ServerPermissionResolverService } from './server-permission-resolver.service';
 
 @Injectable()
 export class ServerPermissionService {
-  /**
-   * Cache:
-   * Key = serverId:userId
-   * Value = Set<ServerPermission>
-   */
   private readonly permissionCache = new Map<string, Set<ServerPermission>>();
 
-  constructor(private readonly memberQueryService: ServerMemberQueryService) {}
+  constructor(private readonly resolver: ServerPermissionResolverService) {}
 
-  private getCacheKey(serverId: string, userId: string): string {
-    return `${serverId}:${userId}`;
+  private getCacheKey(
+    serverId: string,
+    userId: string,
+    channelId?: string,
+  ): string {
+    return `${serverId}:${userId}:${channelId ?? 'server'}`;
+  }
+
+  clearCache(serverId: string, userId: string, channelId?: string) {
+    this.permissionCache.delete(this.getCacheKey(serverId, userId, channelId));
+  }
+
+  async getPermissions(
+    serverId: string,
+    userId: string,
+    channelId?: string,
+  ): Promise<Set<ServerPermission>> {
+    const cacheKey = this.getCacheKey(serverId, userId, channelId);
+
+    const cached = this.permissionCache.get(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
+    const permissions = await this.resolver.resolvePermissions(
+      serverId,
+      userId,
+      channelId,
+    );
+
+    this.permissionCache.set(cacheKey, permissions);
+
+    return permissions;
   }
 
   async hasPermission(
     serverId: string,
     userId: string,
     permission: ServerPermission,
+    channelId?: string,
   ): Promise<boolean> {
-    const cacheKey = this.getCacheKey(serverId, userId);
+    const permissions = await this.getPermissions(serverId, userId, channelId);
 
-    const cached = this.permissionCache.get(cacheKey);
-
-    if (cached) {
-      return (
-        cached.has(ServerPermission.ADMINISTRATOR) || cached.has(permission)
-      );
-    }
-
-    const member = await this.memberQueryService.getMemberWithRoles(
-      serverId,
-      userId,
-    );
-
-    if (!member) {
-      return false;
-    }
-
-    const permissionSet = new Set<ServerPermission>();
-
-    for (const assignment of member.roles) {
-      for (const rolePermission of assignment.role.permissions) {
-        permissionSet.add(rolePermission.permission);
-      }
-    }
-
-    this.permissionCache.set(cacheKey, permissionSet);
-
-    return (
-      permissionSet.has(ServerPermission.ADMINISTRATOR) ||
-      permissionSet.has(permission)
-    );
+    return permissions.has(permission);
   }
 
   async requirePermission(
     serverId: string,
     userId: string,
     permission: ServerPermission,
+    channelId?: string,
   ): Promise<void> {
-    const allowed = await this.hasPermission(serverId, userId, permission);
+    const allowed = await this.hasPermission(
+      serverId,
+      userId,
+      permission,
+      channelId,
+    );
 
     if (!allowed) {
       throw new ForbiddenException(`Missing permission: ${permission}`);
     }
-  }
-
-  clearCache(serverId: string, userId: string): void {
-    this.permissionCache.delete(this.getCacheKey(serverId, userId));
-  }
-
-  clearServerCache(serverId: string): void {
-    for (const key of this.permissionCache.keys()) {
-      if (key.startsWith(`${serverId}:`)) {
-        this.permissionCache.delete(key);
-      }
-    }
-  }
-
-  clearAllCache(): void {
-    this.permissionCache.clear();
   }
 }
