@@ -26,6 +26,14 @@ export class ServerInviteRepository {
     });
   }
 
+  async findById(id: string): Promise<ServerInvite | null> {
+    return this.prisma.serverInvite.findUnique({
+      where: {
+        id,
+      },
+    });
+  }
+
   async existsByCode(code: string): Promise<boolean> {
     const count = await this.prisma.serverInvite.count({
       where: {
@@ -34,6 +42,17 @@ export class ServerInviteRepository {
     });
 
     return count > 0;
+  }
+
+  async findByServer(serverId: string): Promise<ServerInvite[]> {
+    return this.prisma.serverInvite.findMany({
+      where: {
+        serverId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 
   async incrementUses(
@@ -50,6 +69,17 @@ export class ServerInviteRepository {
         uses: {
           increment: 1,
         },
+      },
+    });
+  }
+
+  async revoke(id: string): Promise<ServerInvite> {
+    return this.prisma.serverInvite.update({
+      where: {
+        id,
+      },
+      data: {
+        revoked: true,
       },
     });
   }
