@@ -426,6 +426,8 @@ model ServerMember {
 
   roles ServerMemberRole[]
 
+  channelPermissionOverwrites ServerChannelPermissionOverwrite[]
+
   @@unique([serverId, userId])
   @@index([serverId])
   @@index([userId])
@@ -446,6 +448,8 @@ model ServerRole {
   members ServerMemberRole[]
 
   permissions ServerRolePermission[]
+
+  channelPermissionOverwrites ServerChannelPermissionOverwrite[]
 
   @@index([serverId])
 }
@@ -614,9 +618,39 @@ model ServerChannel {
 
   topic String?
 
+  permissionOverwrites ServerChannelPermissionOverwrite[]
+
   @@unique([serverId, name])
   @@unique([serverId, position])
   @@index([serverId])
   @@index([categoryId])
   @@index([createdById])
+}
+
+model ServerChannelPermissionOverwrite {
+  id String @id @default(cuid())
+
+  channelId String
+  roleId    String?
+  memberId  String?
+
+  permission ServerPermission
+
+  allow Boolean @default(false)
+  deny  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  channel ServerChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  role ServerRole? @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  member ServerMember? @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, roleId, memberId, permission])
+  @@index([channelId])
+  @@index([roleId])
+  @@index([memberId])
+  @@index([permission])
 }
