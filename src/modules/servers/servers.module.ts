@@ -50,6 +50,8 @@ import { ServerCategoryCommandService } from './services/server-category-command
 import { ServerChannelQueryService } from './services/server-channel-query.service';
 import { ServerRolePermissionController } from './controllers/server-role-permission.controller';
 import { ServerMemberController } from './controllers/server-member.controller';
+import { ServerChannelController } from './controllers/server-channel.controller';
+
 @Module({
   imports: [PrismaModule],
 
@@ -59,6 +61,7 @@ import { ServerMemberController } from './controllers/server-member.controller';
     ServerRoleController,
     ServerRolePermissionController,
     ServerMemberController,
+    ServerChannelController,
   ],
 
   providers: [
