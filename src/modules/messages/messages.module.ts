@@ -9,7 +9,7 @@ import { ChannelMessageRepository } from './repositories/channel-message.reposit
 import { ChannelMessageCommandService } from './services/channel-message-command.service';
 import { ChannelMessageQueryService } from './services/channel-message-query.service';
 import { ChannelMessageValidationService } from './services/channel-message-validation.service';
-
+import { ChannelMessageGateway } from './gateways/channel-message.gateway';
 import { ChannelMessageController } from './controllers/channel-message.controller';
 
 @Module({
@@ -20,6 +20,7 @@ import { ChannelMessageController } from './controllers/channel-message.controll
     ChannelMessageValidationService,
     ChannelMessageQueryService,
     ChannelMessageCommandService,
+    ChannelMessageGateway,
   ],
 
   exports: [ChannelMessageQueryService, ChannelMessageCommandService],
