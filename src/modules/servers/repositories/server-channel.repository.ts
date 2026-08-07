@@ -111,4 +111,15 @@ export class ServerChannelRepository {
       },
     });
   }
+
+  async findByCategory(categoryId: string) {
+    return this.prisma.serverChannel.findMany({
+      where: {
+        categoryId,
+      },
+      orderBy: {
+        position: 'asc',
+      },
+    });
+  }
 }

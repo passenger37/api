@@ -47,6 +47,7 @@ import { ServerChannelCommandService } from './services/server-channel-command.s
 import { ServerChannelValidationService } from './services/server-channel-validation.service';
 import { ServerCategoryValidationService } from './services/server-category-validation.service';
 import { ServerCategoryCommandService } from './services/server-category-command.service';
+import { ServerChannelQueryService } from './services/server-channel-query.service';
 import { ServerRolePermissionController } from './controllers/server-role-permission.controller';
 import { ServerMemberController } from './controllers/server-member.controller';
 @Module({
@@ -102,6 +103,7 @@ import { ServerMemberController } from './controllers/server-member.controller';
     ServerChannelValidationService,
     ServerCategoryValidationService,
     ServerCategoryCommandService,
+    ServerChannelQueryService,
   ],
 
   exports: [ServersService],
