@@ -123,6 +123,13 @@ import { ServerChannelPermissionOverwriteController } from './controllers/server
     ServerInviteQueryService,
   ],
 
-  exports: [ServersService],
+  exports: [
+    ServersService,
+    ServerPermissionService,
+    ServerMemberQueryService,
+    ServerChannelQueryService,
+    ServerPermissionResolverService,
+    ServerMemberQueryService,
+  ],
 })
 export class ServersModule {}

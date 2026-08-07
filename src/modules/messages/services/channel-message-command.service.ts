@@ -4,6 +4,7 @@ import { NotFoundException } from '@nestjs/common';
 
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageValidationService } from './channel-message-validation.service';
+import { ChannelMessageQueryService } from './channel-message-query.service';
 
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
 
@@ -13,7 +14,7 @@ export class ChannelMessageCommandService {
     private readonly prisma: PrismaService,
 
     private readonly repository: ChannelMessageRepository,
-
+    private readonly queryService: ChannelMessageQueryService,
     private readonly validation: ChannelMessageValidationService,
 
     private readonly memberQueryService: ServerMemberQueryService,
@@ -81,11 +82,8 @@ export class ChannelMessageCommandService {
     this.validation.validateContent(content);
 
     await this.repository.findById(messageId);
-    const message = await this.repository.findById(messageId);
+    const message = await this.queryService.getMessage(messageId);
 
-    if (!message) {
-      throw new NotFoundException('Message not found.');
-    }
     const member = await this.memberQueryService.getMember(serverId, userId);
 
     await this.validation.validateEditPermission(
@@ -105,11 +103,7 @@ export class ChannelMessageCommandService {
   }
 
   async deleteMessage(messageId: string, serverId: string, userId: string) {
-    const message = await this.repository.findById(messageId);
-
-    if (!message) {
-      throw new NotFoundException('Message not found.');
-    }
+    const message = await this.queryService.getMessage(messageId);
     const member = await this.memberQueryService.getMemberOrThrow(
       serverId,
       userId,

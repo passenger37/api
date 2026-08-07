@@ -4,10 +4,7 @@ import { ChannelMessageRepository } from '../repositories/channel-message.reposi
 
 @Injectable()
 export class ChannelMessageQueryService {
-  constructor(
-    private readonly repository: ChannelMessageRepository,
-    private readonly queryService: ChannelMessageQueryService,
-  ) {}
+  constructor(private readonly repository: ChannelMessageRepository) {}
 
   async getMessage(messageId: string) {
     const message = await this.repository.findById(messageId);
