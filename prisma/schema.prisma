@@ -498,6 +498,7 @@ enum ServerPermission {
   MESSAGE_UPDATE
   MESSAGE_DELETE
   MESSAGE_PIN
+  MANAGE_MESSAGES
 
   // ===== Members =====
   MEMBER_INVITE

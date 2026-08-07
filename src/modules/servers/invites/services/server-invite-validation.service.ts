@@ -6,14 +6,18 @@ import {
 } from '@nestjs/common';
 
 import { ServerRepository } from '../../repositories/server.repository';
+import { ServerInviteRepository } from '../../invites/repositories/server-invite.repository';
 import { ServerMemberRepository } from '../../repositories/server-member.repository';
+import { ServerPermissionService } from '../../services/server-permission.service';
 import { ServerPermission } from '@prisma/client';
-
+import { ServerInvite } from '@prisma/client';
 @Injectable()
 export class ServerInviteValidationService {
   constructor(
     private readonly serverRepository: ServerRepository,
     private readonly memberRepository: ServerMemberRepository,
+    private readonly inviteRepository: ServerInviteRepository,
+    private readonly permissionService: ServerPermissionService,
   ) {}
 
   async validateServer(serverId: string): Promise<void> {
