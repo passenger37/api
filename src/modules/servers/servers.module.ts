@@ -55,6 +55,7 @@ import { ServerChannelPermissionOverwriteQueryService } from './services/server-
 import { ServerRolePermissionController } from './controllers/server-role-permission.controller';
 import { ServerMemberController } from './controllers/server-member.controller';
 import { ServerChannelController } from './controllers/server-channel.controller';
+import { ServerChannelPermissionOverwriteController } from './controllers/server-channel-permission-overwrite.controller';
 
 @Module({
   imports: [PrismaModule],
@@ -66,6 +67,7 @@ import { ServerChannelController } from './controllers/server-channel.controller
     ServerRolePermissionController,
     ServerMemberController,
     ServerChannelController,
+    ServerChannelPermissionOverwriteController,
   ],
 
   providers: [
