@@ -48,6 +48,86 @@ export class ServerInviteValidationService {
     // }
   }
 
+  async validateInviteExists(inviteId: string): Promise<ServerInvite> {
+    const invite = await this.inviteRepository.findById(inviteId);
+
+    if (!invite) {
+      throw new NotFoundException('Invite not found.');
+    }
+
+    return invite;
+  }
+
+  async validateInviteCode(code: string): Promise<ServerInvite> {
+    const invite = await this.inviteRepository.findByCode(code);
+
+    if (!invite) {
+      throw new NotFoundException('Invite not found.');
+    }
+
+    return invite;
+  }
+
+  validateInviteNotRevoked(invite: ServerInvite): void {
+    if (invite.revoked) {
+      throw new BadRequestException('Invite has been revoked.');
+    }
+  }
+
+  validateInviteNotExpired(invite: ServerInvite): void {
+    if (invite.expiresAt && invite.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException('Invite has expired.');
+    }
+  }
+
+  validateInviteUses(invite: ServerInvite): void {
+    if (invite.maxUses !== null && invite.uses >= invite.maxUses) {
+      throw new BadRequestException(
+        'Invite has reached its maximum number of uses.',
+      );
+    }
+  }
+
+  async validateCanCreateInvite(
+    serverId: string,
+    userId: string,
+  ): Promise<void> {
+    const allowed = await this.permissionService.hasPermission(
+      serverId,
+      userId,
+      ServerPermission.INVITE_CREATE,
+    );
+
+    if (!allowed) {
+      throw new ForbiddenException(
+        'You do not have permission to create invites.',
+      );
+    }
+  }
+
+  async validateCanDeleteInvite(
+    serverId: string,
+    userId: string,
+  ): Promise<void> {
+    const allowed = await this.permissionService.hasPermission(
+      serverId,
+      userId,
+      ServerPermission.INVITE_DELETE,
+    );
+
+    if (!allowed) {
+      throw new ForbiddenException(
+        'You do not have permission to delete invites.',
+      );
+    }
+  }
+
+  validateInvite(invite: ServerInvite): void {
+    this.validateInviteNotRevoked(invite);
+    this.validateInviteNotExpired(invite);
+    this.validateInviteUses(invite);
+  }
+
   async validateRequest(
     maxUses?: number,
     expiresInHours?: number,

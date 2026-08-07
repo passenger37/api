@@ -12,6 +12,10 @@ import { ServerInviteValidationService } from './server-invite-validation.servic
 
 import { ServerInviteMapper } from '../mappers/server-invite.mapper';
 
+import { ServerPermissionService } from '../../services/server-permission.service';
+
+import { ServerPermission } from '@prisma/client';
+
 @Injectable()
 export class ServerInviteCommandService {
   constructor(
@@ -19,6 +23,7 @@ export class ServerInviteCommandService {
     private readonly repository: ServerInviteRepository,
     private readonly validation: ServerInviteValidationService,
     private readonly inviteCodeService: InviteCodeService,
+    private readonly permissionService: ServerPermissionService,
   ) {}
 
   private async generateUniqueCode(): Promise<string> {
@@ -42,8 +47,11 @@ export class ServerInviteCommandService {
 
     await this.validation.validateMember(serverId, creatorId);
 
-    // Permission validation will be added
-    // after the Permission Engine is implemented.
+    await this.permissionService.requirePermission(
+      serverId,
+      creatorId,
+      ServerPermission.INVITE_CREATE,
+    );
 
     await this.validation.validateRequest(
       request.maxUses,
@@ -60,9 +68,13 @@ export class ServerInviteCommandService {
       return this.repository.create(
         {
           code,
+
           maxUses: request.maxUses,
+
           expiresAt,
+
           temporary: request.isTemporary ?? false,
+
           uses: 0,
 
           server: {
@@ -82,5 +94,37 @@ export class ServerInviteCommandService {
     });
 
     return ServerInviteMapper.toResponse(invite);
+  }
+
+  async revokeInvite(
+    serverId: string,
+    userId: string,
+    inviteId: string,
+  ): Promise<void> {
+    await this.permissionService.requirePermission(
+      serverId,
+      userId,
+      ServerPermission.INVITE_DELETE,
+    );
+
+    await this.validation.validateInviteExists(inviteId);
+
+    await this.repository.revoke(inviteId);
+  }
+
+  async deleteInvite(
+    serverId: string,
+    userId: string,
+    inviteId: string,
+  ): Promise<void> {
+    await this.permissionService.requirePermission(
+      serverId,
+      userId,
+      ServerPermission.INVITE_DELETE,
+    );
+
+    await this.validation.validateInviteExists(inviteId);
+
+    await this.repository.delete(inviteId);
   }
 }
