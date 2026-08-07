@@ -2,17 +2,17 @@ import { IsArray, IsInt, IsString, ValidateNested } from 'class-validator';
 
 import { Type } from 'class-transformer';
 
-class RolePositionDto {
+class CategoryPositionDto {
   @IsString()
-  roleId: string;
+  categoryId: string;
 
   @IsInt()
   position: number;
 }
 
-export class ReorderServerRolesRequest {
+export class ReorderServerCategoriesRequest {
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => RolePositionDto)
-  roles: RolePositionDto[];
+  @Type(() => CategoryPositionDto)
+  categories: CategoryPositionDto[];
 }
