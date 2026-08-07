@@ -111,4 +111,12 @@ export class ServerChannelPermissionOverwriteRepository {
       },
     });
   }
+
+  async findAllForChannel(channelId: string) {
+    return this.prisma.serverChannelPermissionOverwrite.findMany({
+      where: {
+        channelId,
+      },
+    });
+  }
 }
