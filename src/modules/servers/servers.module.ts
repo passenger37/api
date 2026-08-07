@@ -32,7 +32,7 @@ import { ServerInviteCommandService } from './invites/services/server-invite-com
 import { ServerMemberService } from './services/server-member.service';
 import { ServerInviteRepository } from './invites/repositories/server-invite.repository';
 import { ServerMemberQueryService } from './services/server-member-query.service';
-import { ServerInviteController } from './controllers/server-invite.controller';
+import { ServerInviteController } from './invites/controllers/server-invite.controller';
 import { ServerRoleQueryService } from './services/server-role-query.service';
 import { ServerRolePermissionRepository } from './repositories/server-role-permission.repository';
 import { ServerRoleCommandService } from './services/server-role-command.service';
