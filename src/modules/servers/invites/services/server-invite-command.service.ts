@@ -62,7 +62,7 @@ export class ServerInviteCommandService {
           code,
           maxUses: request.maxUses,
           expiresAt,
-          isTemporary: request.isTemporary ?? false,
+          temporary: request.isTemporary ?? false,
           uses: 0,
 
           server: {
@@ -71,7 +71,7 @@ export class ServerInviteCommandService {
             },
           },
 
-          creator: {
+          createdBy: {
             connect: {
               id: creatorId,
             },

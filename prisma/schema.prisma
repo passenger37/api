@@ -538,25 +538,38 @@ model ServerRolePermission {
 model ServerInvite {
   id String @id @default(cuid())
 
+  code String @unique
+
+  // Relations
   serverId String
   server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
 
-  code String @unique
+  channelId String?
+  channel   ServerChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
 
-  creatorId String
-  creator   User   @relation(fields: [creatorId], references: [id])
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
+  // Settings
   maxUses Int?
-  uses    Int  @default(0)
+
+  uses Int @default(0)
 
   expiresAt DateTime?
 
-  isTemporary Boolean @default(false)
+  temporary Boolean @default(false)
 
+  revoked Boolean @default(false)
+
+  // Audit
   createdAt DateTime @default(now())
 
+  updatedAt DateTime @updatedAt
+
   @@index([serverId])
-  @@index([code])
+  @@index([channelId])
+  @@index([createdById])
+  @@index([expiresAt])
 }
 
 enum ChannelType {
@@ -617,6 +630,8 @@ model ServerChannel {
   createdBy User @relation(fields: [createdById], references: [id])
 
   topic String?
+
+  invites ServerInvite[]
 
   permissionOverwrites ServerChannelPermissionOverwrite[]
 
