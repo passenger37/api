@@ -103,4 +103,12 @@ export class ServerChannelRepository {
       },
     });
   }
+
+  async count(serverId: string): Promise<number> {
+    return this.prisma.serverChannel.count({
+      where: {
+        serverId,
+      },
+    });
+  }
 }
