@@ -10,9 +10,11 @@ import { ChannelMessageCommandService } from './services/channel-message-command
 import { ChannelMessageQueryService } from './services/channel-message-query.service';
 import { ChannelMessageValidationService } from './services/channel-message-validation.service';
 
+import { ChannelMessageController } from './controllers/channel-message.controller';
+
 @Module({
   imports: [PrismaModule, ServersModule],
-
+  controllers: [ChannelMessageController],
   providers: [
     ChannelMessageRepository,
     ChannelMessageValidationService,

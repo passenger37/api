@@ -20,7 +20,7 @@ export class ChannelMessageCommandService {
     private readonly memberQueryService: ServerMemberQueryService,
   ) {}
 
-  async sendMessage(
+  async createMessage(
     serverId: string,
     channelId: string,
     userId: string,
