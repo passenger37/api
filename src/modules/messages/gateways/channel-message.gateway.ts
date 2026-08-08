@@ -8,14 +8,19 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 
+import { UseGuards } from '@nestjs/common';
+
 import { Server, Socket } from 'socket.io';
 
+import { WebSocketJwtGuard } from '../gaurds/websocket-jwt.guard';
 @WebSocketGateway({
   namespace: '/messages',
+
   cors: {
     origin: '*',
   },
 })
+@UseGuards(WebSocketJwtGuard)
 export class ChannelMessageGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
@@ -23,36 +28,50 @@ export class ChannelMessageGateway
   server: Server;
 
   handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
+    const userId = client.data.userId;
+
+    console.log(`WebSocket connected: ${client.id} | user: ${userId}`);
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
+    const userId = client.data.userId;
+
+    console.log(`WebSocket disconnected: ${client.id} | user: ${userId}`);
   }
 
   @SubscribeMessage('join-channel')
   async joinChannel(
     @ConnectedSocket() client: Socket,
-    @MessageBody() channelId: string,
+
+    @MessageBody()
+    channelId: string,
   ) {
     await client.join(channelId);
 
     return {
       success: true,
+
       channelId,
+
+      userId: client.data.userId,
     };
   }
 
   @SubscribeMessage('leave-channel')
   async leaveChannel(
     @ConnectedSocket() client: Socket,
-    @MessageBody() channelId: string,
+
+    @MessageBody()
+    channelId: string,
   ) {
     await client.leave(channelId);
 
     return {
       success: true,
+
       channelId,
+
+      userId: client.data.userId,
     };
   }
 
