@@ -23,7 +23,9 @@ import { UnpinChannelMessageRequest } from '../dto/request/unpin-channel-message
 import { ChannelMessageReactionCommandService } from '../services/channel-message-reaction-command.service';
 import { AddMessageReactionRequest } from '../dto/request/add-message-reaction.request';
 import { RemoveMessageReactionRequest } from '../dto/request/remove-message-reaction.request';
-
+import { ChannelMessageReactionQueryService } from '../services/channel-message-reaction-query.service';
+import { GetMessageReactionsRequest } from '../dto/request/get-message-reactions.request';
+import { GetReactionCountsRequest } from '../dto/request/get-reaction-counts.request';
 @WebSocketGateway({
   namespace: '/messages',
 
@@ -39,8 +41,10 @@ export class ChannelMessageGateway
   server: Server;
 
   constructor(
+    private readonly messageQueryService: ChannelMessageQueryService,
     private readonly reactionCommandService: ChannelMessageReactionCommandService,
     private readonly validation: ChannelMessageValidationService,
+    private readonly reactionQueryService: ChannelMessageReactionQueryService,
     private readonly queryService: ChannelMessageQueryService,
     @Inject(forwardRef(() => ChannelMessageCommandService))
     private readonly commandService: ChannelMessageCommandService,
@@ -255,6 +259,54 @@ export class ChannelMessageGateway
     return {
       success: true,
       ...reaction,
+    };
+  }
+
+  @SubscribeMessage('get-message-reactions')
+  async getMessageReactions(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: GetMessageReactionsRequest,
+  ) {
+    const userId = client.data.userId;
+
+    const message = await this.messageQueryService.getMessage(
+      request.messageId,
+    );
+
+    await this.validation.validateChannelAccess(message.channelId, userId);
+
+    const reactions = await this.reactionQueryService.getMessageReactions(
+      request.messageId,
+    );
+
+    return {
+      success: true,
+      messageId: request.messageId,
+      reactions,
+    };
+  }
+
+  @SubscribeMessage('get-reaction-counts')
+  async getReactionCounts(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: GetReactionCountsRequest,
+  ) {
+    const userId = client.data.userId;
+
+    const message = await this.messageQueryService.getMessage(
+      request.messageId,
+    );
+
+    await this.validation.validateChannelAccess(message.channelId, userId);
+
+    const counts = await this.reactionQueryService.getReactionCounts(
+      request.messageId,
+    );
+
+    return {
+      success: true,
+      messageId: request.messageId,
+      counts,
     };
   }
 
