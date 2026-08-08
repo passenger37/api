@@ -8,8 +8,8 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 
-import { UseGuards, Inject, forwardRef } from '@nestjs/common';
-
+import { UseGuards, Inject, forwardRef, UseFilters } from '@nestjs/common';
+import { WebSocketExceptionFilter } from '../filters/websocket-exception.filter';
 import { Server, Socket } from 'socket.io';
 import { DeleteChannelMessageRequest } from '../dto/request/delete-channel-message.request';
 import { ChannelMessageValidationService } from '../services/channel-message-validation.service';
@@ -34,6 +34,7 @@ import { GetReactionCountsRequest } from '../dto/request/get-reaction-counts.req
   },
 })
 @UseGuards(WebSocketJwtGuard)
+@UseFilters(WebSocketExceptionFilter)
 export class ChannelMessageGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
