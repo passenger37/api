@@ -52,7 +52,6 @@ export class ChannelMessageRepository {
       },
 
       skip,
-
       take,
     });
   }
@@ -136,7 +135,7 @@ export class ChannelMessageRepository {
     });
   }
 
-  async findPinnedMessages(channelId: string) {
+  async findPinnedMessages(channelId: string): Promise<ChannelMessage[]> {
     return this.prisma.channelMessage.findMany({
       where: {
         channelId,
@@ -150,7 +149,7 @@ export class ChannelMessageRepository {
     });
   }
 
-  async findReplies(parentMessageId: string) {
+  async findReplies(parentMessageId: string): Promise<ChannelMessage[]> {
     return this.prisma.channelMessage.findMany({
       where: {
         parentMessageId,

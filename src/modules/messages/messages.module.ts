@@ -11,6 +11,10 @@ import { ChannelMessageValidationService } from './services/channel-message-vali
 import { ChannelMessageGateway } from './gateways/channel-message.gateway';
 import { ChannelMessageController } from './controllers/channel-message.controller';
 import { WebSocketJwtGuard } from './gaurds/websocket-jwt.guard';
+import { ChannelMessageReactionCommandService } from './services/channel-message-reaction-command.service';
+import { ChannelMessageReactionRepository } from './repositories/channel-message-reaction.repository';
+import { ChannelMessageReactionQueryService } from './services/channel-message-reaction-query.service';
+
 @Module({
   imports: [PrismaModule, ServersModule, AuthModule],
   controllers: [ChannelMessageController],
@@ -21,8 +25,16 @@ import { WebSocketJwtGuard } from './gaurds/websocket-jwt.guard';
     ChannelMessageCommandService,
     ChannelMessageGateway,
     WebSocketJwtGuard,
+    ChannelMessageReactionCommandService,
+    ChannelMessageReactionRepository,
+    ChannelMessageReactionQueryService,
   ],
 
-  exports: [ChannelMessageQueryService, ChannelMessageCommandService],
+  exports: [
+    ChannelMessageQueryService,
+    ChannelMessageCommandService,
+    ChannelMessageReactionCommandService,
+    ChannelMessageReactionQueryService,
+  ],
 })
 export class MessagesModule {}

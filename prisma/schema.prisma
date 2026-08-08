@@ -430,6 +430,8 @@ model ServerMember {
   channelPermissionOverwrites ServerChannelPermissionOverwrite[]
   ChannelMessage              ChannelMessage[]
 
+  messageReactions ChannelMessageReaction[]
+  
   @@unique([serverId, userId])
   @@index([serverId])
   @@index([userId])
@@ -713,10 +715,27 @@ model ChannelMessage {
 
   replies ChannelMessage[] @relation("MessageReplies")
 
+  reactions ChannelMessageReaction[]
+
   @@index([channelId, createdAt])
   @@index([authorMemberId])
   @@index([parentMessageId])
   @@index([serverId])
   @@index([isPinned])
   @@index([isDeleted])
+}
+
+model ChannelMessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  memberId  String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  member  ServerMember   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, memberId, emoji])
+  @@index([messageId])
+  @@index([memberId])
 }
