@@ -27,9 +27,8 @@ export class ChannelMessageValidationService {
   ) {}
 
   async validateChannel(channelId: string) {
-    await this.channelQueryService.getChannel(channelId);
+    return this.channelQueryService.getChannel(channelId);
   }
-
   async validateMember(serverId: string, userId: string) {
     await this.memberQueryService.getMemberOrThrow(serverId, userId);
   }
@@ -82,23 +81,27 @@ export class ChannelMessageValidationService {
   }
 
   async validateDeletePermission(
-    messageAuthorId: string,
-    currentMemberId: string,
+    authorMemberId: string,
+    requesterMemberId: string,
     serverId: string,
     userId: string,
-  ) {
-    if (messageAuthorId === currentMemberId) {
+  ): Promise<void> {
+    // Message author can delete their own message.
+    if (authorMemberId === requesterMemberId) {
       return;
     }
 
-    const hasPermission = await this.permissionService.hasPermission(
+    // Other users need message-management permission.
+    const allowed = await this.permissionService.hasPermission(
       serverId,
       userId,
       ServerPermission.MANAGE_MESSAGES,
     );
 
-    if (!hasPermission) {
-      throw new ForbiddenException('You cannot delete this message.');
+    if (!allowed) {
+      throw new ForbiddenException(
+        'You do not have permission to delete this message.',
+      );
     }
   }
 
@@ -112,5 +115,26 @@ export class ChannelMessageValidationService {
     if (!hasPermission) {
       throw new ForbiddenException('Missing MANAGE_MESSAGES permission.');
     }
+  }
+
+  async validateChannelAccess(channelId: string, userId: string) {
+    const channel = await this.channelQueryService.getChannelOrThrow(channelId);
+
+    const member = await this.memberQueryService.getMemberOrThrow(
+      channel.serverId,
+      userId,
+    );
+
+    await this.permissionService.requirePermission(
+      member.id,
+      channel.serverId,
+      ServerPermission.SERVER_VIEW,
+      userId,
+    );
+
+    return {
+      channel,
+      member,
+    };
   }
 }

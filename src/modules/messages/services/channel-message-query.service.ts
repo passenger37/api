@@ -35,4 +35,14 @@ export class ChannelMessageQueryService {
   async getThreadReplies(parentMessageId: string) {
     return this.repository.findReplies(parentMessageId);
   }
+
+  async getChannel(channelId: string) {
+    const channel = await this.repository.findById(channelId);
+
+    if (!channel) {
+      throw new NotFoundException('Channel not found.');
+    }
+
+    return channel;
+  }
 }

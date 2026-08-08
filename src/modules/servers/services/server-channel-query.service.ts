@@ -27,4 +27,8 @@ export class ServerChannelQueryService {
   async searchChannels(serverId: string, keyword: string) {
     return this.repository.search(serverId, keyword);
   }
+
+  async getChannelOrThrow(channelId: string) {
+    return this.getChannel(channelId);
+  }
 }

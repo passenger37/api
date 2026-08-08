@@ -1,11 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
 
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageValidationService } from './channel-message-validation.service';
 import { ChannelMessageQueryService } from './channel-message-query.service';
 import { ChannelMessageGateway } from '../gateways/channel-message.gateway';
-
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
 
 @Injectable()
@@ -13,6 +12,7 @@ export class ChannelMessageCommandService {
   constructor(
     private readonly prisma: PrismaService,
 
+    @Inject(forwardRef(() => ChannelMessageGateway))
     private readonly gateway: ChannelMessageGateway,
 
     private readonly repository: ChannelMessageRepository,
@@ -25,26 +25,34 @@ export class ChannelMessageCommandService {
   ) {}
 
   async createMessage(
-    serverId: string,
     channelId: string,
     userId: string,
     content: string,
     parentMessageId?: string,
   ) {
-    await this.validation.validateChannel(channelId);
+    // 1. Validate channel and get the channel record.
+    const channel = await this.validation.validateChannel(channelId);
 
+    // 2. Get server from the channel.
+    const serverId = channel.serverId;
+
+    // 3. Validate that the user belongs to the server.
     await this.validation.validateMember(serverId, userId);
 
+    // 4. Validate reply target if this is a reply.
     await this.validation.validateParentMessage(parentMessageId);
 
+    // 5. Validate message content.
     this.validation.validateContent(content);
 
+    // 6. Get the server member.
     const member = await this.memberQueryService.getMemberOrThrow(
       serverId,
       userId,
     );
 
-    const message = await this.prisma.$transaction(async (tx) => {
+    // 7. Create message inside a transaction.
+    return this.prisma.$transaction(async (tx) => {
       return this.repository.create(
         {
           content,
@@ -78,10 +86,6 @@ export class ChannelMessageCommandService {
         tx,
       );
     });
-
-    this.gateway.broadcastMessageCreated(channelId, message);
-
-    return message;
   }
 
   async editMessage(
@@ -114,8 +118,6 @@ export class ChannelMessageCommandService {
       editedAt: new Date(),
     });
 
-    this.gateway.broadcastMessageUpdated(updated.channelId, updated);
-
     return updated;
   }
 
@@ -136,8 +138,6 @@ export class ChannelMessageCommandService {
 
     await this.repository.softDelete(messageId);
 
-    this.gateway.broadcastMessageDeleted(message.channelId, message.id);
-
     return {
       success: true,
     };
@@ -148,8 +148,6 @@ export class ChannelMessageCommandService {
 
     const pinned = await this.repository.pin(messageId);
 
-    this.gateway.broadcastMessagePinned(pinned.channelId, pinned.id);
-
     return pinned;
   }
 
@@ -157,8 +155,6 @@ export class ChannelMessageCommandService {
     await this.validation.validatePinPermission(serverId, userId);
 
     const unpinned = await this.repository.unpin(messageId);
-
-    this.gateway.broadcastMessageUnpinned(unpinned.channelId, unpinned.id);
 
     return unpinned;
   }

@@ -8,11 +8,17 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 
-import { UseGuards } from '@nestjs/common';
+import { UseGuards, Inject, forwardRef } from '@nestjs/common';
 
 import { Server, Socket } from 'socket.io';
-
+import { DeleteChannelMessageRequest } from '../dto/request/delete-channel-message.request';
+import { ChannelMessageValidationService } from '../services/channel-message-validation.service';
+import { ChannelMessageCommandService } from '../services/channel-message-command.service';
+import { SendChannelMessageRequest } from '../dto/request/send-channel-message.request';
+import { ChannelMessageQueryService } from '../services/channel-message-query.service';
 import { WebSocketJwtGuard } from '../gaurds/websocket-jwt.guard';
+import { EditChannelMessageRequest } from '../dto/request/edit-channel-message.request';
+
 @WebSocketGateway({
   namespace: '/messages',
 
@@ -26,6 +32,13 @@ export class ChannelMessageGateway
 {
   @WebSocketServer()
   server: Server;
+
+  constructor(
+    private readonly validation: ChannelMessageValidationService,
+    private readonly queryService: ChannelMessageQueryService,
+    @Inject(forwardRef(() => ChannelMessageCommandService))
+    private readonly commandService: ChannelMessageCommandService,
+  ) {}
 
   handleConnection(client: Socket) {
     const userId = client.data.userId;
@@ -42,36 +55,103 @@ export class ChannelMessageGateway
   @SubscribeMessage('join-channel')
   async joinChannel(
     @ConnectedSocket() client: Socket,
-
-    @MessageBody()
-    channelId: string,
+    @MessageBody() channelId: string,
   ) {
+    const userId = client.data.userId;
+
+    await this.validation.validateChannelAccess(channelId, userId);
+
     await client.join(channelId);
 
     return {
       success: true,
-
       channelId,
-
-      userId: client.data.userId,
+      userId,
     };
   }
 
   @SubscribeMessage('leave-channel')
   async leaveChannel(
     @ConnectedSocket() client: Socket,
-
-    @MessageBody()
-    channelId: string,
+    @MessageBody() channelId: string,
   ) {
     await client.leave(channelId);
 
     return {
       success: true,
-
       channelId,
-
       userId: client.data.userId,
+    };
+  }
+
+  @SubscribeMessage('send-message')
+  async sendMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: SendChannelMessageRequest,
+  ) {
+    const userId = client.data.userId;
+
+    await this.validation.validateChannelAccess(request.channelId, userId);
+
+    const message = await this.commandService.createMessage(
+      request.channelId,
+      userId,
+      request.content,
+      request.parentMessageId,
+    );
+
+    this.broadcastMessageCreated(request.channelId, message);
+
+    return {
+      success: true,
+      message,
+    };
+  }
+
+  @SubscribeMessage('edit-message')
+  async editMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: EditChannelMessageRequest,
+  ) {
+    const userId = client.data.userId;
+
+    const message = await this.queryService.getMessage(request.messageId);
+
+    const updatedMessage = await this.commandService.editMessage(
+      request.messageId,
+      message.serverId,
+      userId,
+      request.content,
+    );
+
+    this.broadcastMessageUpdated(message.channelId, updatedMessage);
+
+    return {
+      success: true,
+      message: updatedMessage,
+    };
+  }
+
+  @SubscribeMessage('delete-message')
+  async deleteMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DeleteChannelMessageRequest,
+  ) {
+    const userId = client.data.userId;
+
+    const message = await this.queryService.getMessage(request.messageId);
+
+    await this.commandService.deleteMessage(
+      request.messageId,
+      message.serverId,
+      userId,
+    );
+
+    this.broadcastMessageDeleted(message.channelId, request.messageId);
+
+    return {
+      success: true,
+      messageId: request.messageId,
     };
   }
 
