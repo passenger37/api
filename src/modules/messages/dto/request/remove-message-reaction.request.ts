@@ -1,11 +1,11 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 
 export class RemoveMessageReactionRequest {
-  @IsString()
-  @IsNotEmpty()
-  messageId: string;
+  @IsUUID()
+  messageId!: string;
 
   @IsString()
-  @IsNotEmpty()
-  emoji: string;
+  @MinLength(1)
+  @MaxLength(16)
+  emoji!: string;
 }

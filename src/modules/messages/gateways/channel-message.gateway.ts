@@ -26,6 +26,7 @@ import { RemoveMessageReactionRequest } from '../dto/request/remove-message-reac
 import { ChannelMessageReactionQueryService } from '../services/channel-message-reaction-query.service';
 import { GetMessageReactionsRequest } from '../dto/request/get-message-reactions.request';
 import { GetReactionCountsRequest } from '../dto/request/get-reaction-counts.request';
+
 @WebSocketGateway({
   namespace: '/messages',
 
@@ -102,8 +103,6 @@ export class ChannelMessageGateway
   ) {
     const userId = client.data.userId;
 
-    await this.validation.validateChannelAccess(request.channelId, userId);
-
     const message = await this.commandService.createMessage(
       request.channelId,
       userId,
@@ -115,7 +114,8 @@ export class ChannelMessageGateway
 
     return {
       success: true,
-      message,
+      event: 'send-message',
+      data: message,
     };
   }
 
@@ -128,18 +128,21 @@ export class ChannelMessageGateway
 
     const message = await this.queryService.getMessage(request.messageId);
 
-    const updatedMessage = await this.commandService.editMessage(
+    await this.commandService.editMessage(
       request.messageId,
       message.serverId,
       userId,
       request.content,
     );
 
-    this.broadcastMessageUpdated(message.channelId, updatedMessage);
+    this.server.to(message.channelId).emit('message-updated', {
+      messageId: request.messageId,
+      content: request.content,
+    });
 
     return {
       success: true,
-      message: updatedMessage,
+      messageId: request.messageId,
     };
   }
 
@@ -158,7 +161,9 @@ export class ChannelMessageGateway
       userId,
     );
 
-    this.broadcastMessageDeleted(message.channelId, request.messageId);
+    this.server.to(message.channelId).emit('message-deleted', {
+      messageId: request.messageId,
+    });
 
     return {
       success: true,
