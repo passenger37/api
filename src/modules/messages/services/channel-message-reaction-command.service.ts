@@ -18,76 +18,38 @@ export class ChannelMessageReactionCommandService {
     private readonly memberQueryService: ServerMemberQueryService,
   ) {}
 
-  async addReaction(
-    messageId: string,
-    serverId: string,
-    userId: string,
-    emoji: string,
-  ) {
-    if (!emoji?.trim()) {
-      throw new BadRequestException('Reaction emoji is required.');
-    }
-
+  async addReaction(messageId: string, userId: string, emoji: string) {
     const message = await this.messageQueryService.getMessage(messageId);
 
-    if (message.serverId !== serverId) {
-      throw new NotFoundException('Message not found.');
-    }
-
-    await this.validation.validateChannelAccess(message.channelId, userId);
-
     const member = await this.memberQueryService.getMemberOrThrow(
-      serverId,
+      message.serverId,
       userId,
     );
 
-    const existing = await this.repository.findReaction(
-      messageId,
-      member.id,
-      emoji,
-    );
+    const existing = await this.repository.findOne(messageId, member.id, emoji);
 
     if (existing) {
-      return existing;
+      throw new BadRequestException('Reaction already exists.');
     }
 
-    return this.repository.addReaction(messageId, member.id, emoji);
+    return this.repository.create(messageId, member.id, emoji);
   }
 
-  async removeReaction(
-    messageId: string,
-    serverId: string,
-    userId: string,
-    emoji: string,
-  ) {
-    if (!emoji?.trim()) {
-      throw new BadRequestException('Reaction emoji is required.');
-    }
-
+  async removeReaction(messageId: string, userId: string, emoji: string) {
     const message = await this.messageQueryService.getMessage(messageId);
 
-    if (message.serverId !== serverId) {
-      throw new NotFoundException('Message not found.');
-    }
-
-    await this.validation.validateChannelAccess(message.channelId, userId);
-
     const member = await this.memberQueryService.getMemberOrThrow(
-      serverId,
+      message.serverId,
       userId,
     );
 
-    const reaction = await this.repository.findReaction(
-      messageId,
-      member.id,
-      emoji,
-    );
+    const existing = await this.repository.findOne(messageId, member.id, emoji);
 
-    if (!reaction) {
-      throw new NotFoundException('Reaction not found.');
+    if (!existing) {
+      throw new BadRequestException('Reaction does not exist.');
     }
 
-    await this.repository.removeReaction(messageId, member.id, emoji);
+    await this.repository.delete(messageId, member.id, emoji);
 
     return {
       messageId,

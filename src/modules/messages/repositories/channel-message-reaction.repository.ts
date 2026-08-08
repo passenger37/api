@@ -94,4 +94,16 @@ export class ChannelMessageReactionRepository {
       },
     });
   }
+
+  async findOne(messageId: string, memberId: string, emoji: string) {
+    return this.prisma.channelMessageReaction.findUnique({
+      where: {
+        messageId_memberId_emoji: {
+          messageId,
+          memberId,
+          emoji,
+        },
+      },
+    });
+  }
 }

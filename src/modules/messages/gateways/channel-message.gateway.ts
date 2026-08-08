@@ -218,19 +218,17 @@ export class ChannelMessageGateway
   ) {
     const userId = client.data.userId;
 
-    const message = await this.queryService.getMessage(request.messageId);
+    const message = await this.messageQueryService.getMessage(
+      request.messageId,
+    );
 
     const reaction = await this.reactionCommandService.addReaction(
       request.messageId,
-      message.serverId,
       userId,
       request.emoji,
     );
 
-    this.server.to(message.channelId).emit('reaction-added', {
-      messageId: request.messageId,
-      reaction,
-    });
+    this.server.to(message.channelId).emit('reaction-added', reaction);
 
     return {
       success: true,
@@ -245,11 +243,12 @@ export class ChannelMessageGateway
   ) {
     const userId = client.data.userId;
 
-    const message = await this.queryService.getMessage(request.messageId);
+    const message = await this.messageQueryService.getMessage(
+      request.messageId,
+    );
 
     const reaction = await this.reactionCommandService.removeReaction(
       request.messageId,
-      message.serverId,
       userId,
       request.emoji,
     );
@@ -258,7 +257,7 @@ export class ChannelMessageGateway
 
     return {
       success: true,
-      ...reaction,
+      reaction,
     };
   }
 
@@ -334,5 +333,13 @@ export class ChannelMessageGateway
     this.server.to(channelId).emit('message-unpinned', {
       messageId,
     });
+  }
+
+  broadcastReactionAdded(channelId: string, payload: unknown) {
+    this.server.to(channelId).emit('reaction-added', payload);
+  }
+
+  broadcastReactionRemoved(channelId: string, payload: unknown) {
+    this.server.to(channelId).emit('reaction-removed', payload);
   }
 }
