@@ -7,7 +7,8 @@ import {
 import { ServerPermission } from '@prisma/client';
 
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
-
+import { NexusException } from '../../../common/error/nexus.exception';
+import { NexusErrorCode } from '../../../common/error/nexus-error-code';
 import { ServerChannelQueryService } from '../../servers/services/server-channel-query.service';
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
 import { ServerPermissionService } from '../../servers/services/server-permission.service';
@@ -37,7 +38,10 @@ export class ChannelMessageValidationService {
     const value = content.trim();
 
     if (!value.length) {
-      throw new BadRequestException('Message cannot be empty.');
+      throw new NexusException(
+        NexusErrorCode.MESSAGE_EMPTY,
+        'Message cannot be empty.',
+      );
     }
 
     if (value.length > ChannelMessageValidationService.MAX_MESSAGE_LENGTH) {
