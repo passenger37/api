@@ -7,6 +7,7 @@ import { configureSwagger } from './config/swagger';
 import { configureHelmet } from './config/helmet';
 import { configureCors } from './config/cors/index';
 import { configureVersioning } from './config/versioning/index';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {

@@ -14,7 +14,9 @@ import { Roles } from '../../../common/decorators';
 import { Public } from '../../../common/decorators';
 import { SystemRole } from '../../../common/constants/system-role.enum';
 import { Permissions } from '../../../common/decorators';
-
+import { Res } from '@nestjs/common';
+import type { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 import { PermissionsGuard } from '../../../common/guards';
 
 @ApiTags('Authentication')
@@ -24,7 +26,10 @@ import { PermissionsGuard } from '../../../common/guards';
   version: '1',
 })
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Public()
   @Post('register')
@@ -40,8 +45,8 @@ export class AuthController {
   @ApiOperation({
     summary: 'Login using email or username',
   })
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
+    const result = this.authService.login(dto);
   }
 
   @Post('logout')

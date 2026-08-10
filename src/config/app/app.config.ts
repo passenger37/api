@@ -9,5 +9,5 @@ export default registerAs('app', () => ({
 
   apiPrefix: process.env.API_PREFIX ?? 'api',
 
-  frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+  frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
 }));

@@ -90,6 +90,7 @@ export class AuthService {
     });
 
     return {
+      sessionId,
       accessToken,
       refreshToken,
       user: {

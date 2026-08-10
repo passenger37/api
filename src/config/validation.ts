@@ -39,4 +39,27 @@ export const validationSchema = Joi.object({
   MINIO_SECRET_KEY: Joi.string().required(),
 
   MINIO_BUCKET: Joi.string().required(),
+
+  SESSION_COOKIE_NAME: Joi.string().default('nexus_session'),
+
+  SESSION_COOKIE_HTTP_ONLY: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(true),
+
+  SESSION_COOKIE_SECURE: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(false),
+
+  SESSION_COOKIE_SAME_SITE: Joi.string()
+    .valid('lax', 'strict', 'none')
+    .default('lax'),
+
+  SESSION_COOKIE_PATH: Joi.string().default('/'),
+
+  SESSION_COOKIE_MAX_AGE_MS: Joi.number()
+    .integer()
+    .positive()
+    .default(2592000000),
 });
