@@ -21,6 +21,7 @@ export class ServerStructureService {
     tx: Prisma.TransactionClient,
   ): Promise<void> {
     let categoryPosition = 0;
+    let channelPosition = 0;
 
     for (const category of structure.categories) {
       const createdCategory = await this.categoryRepository.create(
@@ -36,8 +37,6 @@ export class ServerStructureService {
         },
         tx,
       );
-
-      let channelPosition = 0;
 
       for (const channel of category.channels) {
         await this.channelRepository.create(

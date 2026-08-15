@@ -10,7 +10,7 @@ export class UsersFilterBuilder {
       }),
 
       ...(query.verified !== undefined && {
-        verified: query.verified,
+        isVerified: query.verified,
       }),
 
       ...(query.search && {

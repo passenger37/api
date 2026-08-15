@@ -15,12 +15,14 @@ import { CreateServerInviteResponse } from '../dto/reponse/create-server-invite.
 
 import { ServerInviteCommandService } from '../services/server-invite-command.service';
 import { ServerInviteQueryService } from '../services/server-invite-query.service';
+import { ServerInviteJoinService } from '../services/server-invite-join.service';
 
 @Controller()
 export class ServerInviteController {
   constructor(
     private readonly commandService: ServerInviteCommandService,
     private readonly queryService: ServerInviteQueryService,
+    private readonly joinService: ServerInviteJoinService,
   ) {}
 
   @Post('servers/:serverId/invites')
@@ -40,6 +42,14 @@ export class ServerInviteController {
   @Get('invites/:code')
   async resolveInvite(@Param('code') code: string) {
     return this.queryService.resolveInvite(code);
+  }
+
+  @Post('invites/:code/join')
+  async joinServer(
+    @Param('code') code: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.joinService.join(code, userId);
   }
 
   @Patch('invites/:inviteId/revoke')

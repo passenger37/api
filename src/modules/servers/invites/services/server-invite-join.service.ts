@@ -9,6 +9,7 @@ import { ServerInviteValidationService } from './server-invite-validation.servic
 import { ServerInviteRepository } from '../repositories/server-invite.repository';
 
 import { ServerMemberRepository } from '../../repositories/server-member.repository';
+import { ServerMemberService } from '../../services/server-member.service';
 
 @Injectable()
 export class ServerInviteJoinService {
@@ -18,6 +19,8 @@ export class ServerInviteJoinService {
     private readonly inviteRepository: ServerInviteRepository,
 
     private readonly memberRepository: ServerMemberRepository,
+
+    private readonly memberService: ServerMemberService,
 
     private readonly validation: ServerInviteValidationService,
   ) {}
@@ -49,20 +52,9 @@ export class ServerInviteJoinService {
     // ---------------------------------------
 
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const member = await this.memberRepository.create(
-        {
-          server: {
-            connect: {
-              id: invite.serverId,
-            },
-          },
-
-          user: {
-            connect: {
-              id: userId,
-            },
-          },
-        },
+      const member = await this.memberService.createMemberWithDefaultRole(
+        invite.serverId,
+        userId,
         tx,
       );
 

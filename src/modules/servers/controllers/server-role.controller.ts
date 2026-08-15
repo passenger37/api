@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
@@ -11,6 +11,7 @@ import { RequireServerPermission } from '../decorators/require-server-permission
 import { ServerPermission } from '@prisma/client';
 
 import { ServerRoleCommandService } from '../services/server-role-command.service';
+import { ServerRoleQueryService } from '../services/server-role-query.service';
 
 import { CreateServerRoleRequest } from '../dto/request/create-server-role.request';
 
@@ -19,7 +20,19 @@ import { CreateServerRoleRequest } from '../dto/request/create-server-role.reque
 @Controller('servers/:serverId/roles')
 @UseGuards(JwtAuthGuard)
 export class ServerRoleController {
-  constructor(private readonly roleCommandService: ServerRoleCommandService) {}
+  constructor(
+    private readonly roleCommandService: ServerRoleCommandService,
+    private readonly roleQueryService: ServerRoleQueryService,
+  ) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'Get server roles',
+  })
+  @RequireServerPermission(ServerPermission.SERVER_VIEW)
+  async getRoles(@Param('serverId') serverId: string) {
+    return this.roleQueryService.getRoles(serverId);
+  }
 
   @Post()
   @ApiOperation({

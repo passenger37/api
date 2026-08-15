@@ -99,6 +99,20 @@ export class ServerRoleRepository {
     return role?.position ?? 0;
   }
 
+  async getLowestPosition(serverId: string): Promise<number> {
+    const role = await this.prisma.serverRole.findFirst({
+      where: {
+        serverId,
+      },
+
+      orderBy: {
+        position: 'asc',
+      },
+    });
+
+    return role?.position ?? 0;
+  }
+
   async existsByName(serverId: string, name: string): Promise<boolean> {
     const count = await this.prisma.serverRole.count({
       where: {

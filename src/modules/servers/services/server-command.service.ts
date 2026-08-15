@@ -59,6 +59,8 @@ export class ServerCommandService {
         tx,
       );
 
+      await this.serverRoleService.createDefaultRoles(server.id, tx);
+
       await this.serverMemberRepository.createOwnerMembership(
         server.id,
         ownerId,

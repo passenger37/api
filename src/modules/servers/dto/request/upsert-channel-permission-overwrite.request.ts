@@ -1,14 +1,14 @@
-import { IsBoolean, IsEnum, IsOptional, IsUUID } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 
 import { ServerPermission } from '@prisma/client';
 
 export class UpsertChannelPermissionOverwriteRequest {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   roleId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   memberId?: string;
 
   @IsEnum(ServerPermission)

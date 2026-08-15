@@ -85,4 +85,25 @@ export class ServerQueryService {
       totalPages: Math.ceil(total / limit),
     };
   }
+
+  /**
+   * Public server directory for the landing page.
+   */
+  async getPublicDirectory(take = 9) {
+    return this.serverRepository.findPublicDirectory(take);
+  }
+
+  /**
+   * Public preview of a single server for non-members. Returns null when the
+   * server does not exist or is not public.
+   */
+  async getPublicPreview(serverId: string) {
+    const server = await this.serverRepository.findById(serverId);
+
+    if (!server || server.visibility !== 'PUBLIC') {
+      return null;
+    }
+
+    return server;
+  }
 }

@@ -130,10 +130,46 @@ export class ChannelMessageValidationService {
     );
 
     await this.permissionService.requirePermission(
-      member.id,
       channel.serverId,
-      ServerPermission.SERVER_VIEW,
       userId,
+      ServerPermission.CHANNEL_VIEW,
+      channelId,
+    );
+
+    return {
+      channel,
+      member,
+    };
+  }
+
+  async validateSendPermission(channelId: string, userId: string) {
+    const channel = await this.channelQueryService.getChannelOrThrow(channelId);
+
+    await this.memberQueryService.getMemberOrThrow(channel.serverId, userId);
+
+    await this.permissionService.requirePermission(
+      channel.serverId,
+      userId,
+      ServerPermission.MESSAGE_SEND,
+      channelId,
+    );
+
+    return channel;
+  }
+
+  async validateChannelViewPermission(channelId: string, userId: string) {
+    const channel = await this.channelQueryService.getChannelOrThrow(channelId);
+
+    const member = await this.memberQueryService.getMemberOrThrow(
+      channel.serverId,
+      userId,
+    );
+
+    await this.permissionService.requirePermission(
+      channel.serverId,
+      userId,
+      ServerPermission.CHANNEL_VIEW,
+      channelId,
     );
 
     return {

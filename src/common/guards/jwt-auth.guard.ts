@@ -1,4 +1,8 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 import { Reflector } from '@nestjs/core';
 
@@ -6,14 +10,19 @@ import { AuthGuard } from '@nestjs/passport';
 
 import { IS_PUBLIC_KEY } from '../decorators';
 
+import { SessionsService } from '../../modules/sessions/services/sessions.service';
+
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  constructor(private readonly reflector: Reflector) {
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly sessionsService: SessionsService,
+  ) {
     super();
   }
 
-  canActivate(context: ExecutionContext) {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
@@ -22,6 +31,25 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       return true;
     }
 
-    return super.canActivate(context);
+    const request = context.switchToHttp().getRequest();
+
+    const sessionId = request.cookies?.nexus_session;
+
+    if (sessionId) {
+      const session = await this.sessionsService.findBySessionId(sessionId);
+
+      if (session) {
+        request.user = {
+          id: session.user.id,
+          sub: session.user.id,
+          email: session.user.email,
+          username: session.user.username,
+        };
+
+        return true;
+      }
+    }
+
+    return super.canActivate(context) as Promise<boolean>;
   }
 }

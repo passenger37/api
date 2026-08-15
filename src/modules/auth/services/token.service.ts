@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { SignOptions } from 'jsonwebtoken';
-
+import { randomUUID } from 'crypto';
 import { User } from '@prisma/client';
 
 import { JwtPayload, RefreshTokenPayload } from '../interfaces';
@@ -32,18 +32,23 @@ export class TokenService {
   async generateRefreshToken(
     userId: string,
     sessionId: string,
-  ): Promise<string> {
+  ): Promise<{ token: string; jti: string }> {
+    const jti = randomUUID();
+
     const payload: RefreshTokenPayload = {
       sub: userId,
       sid: sessionId,
+      jti,
     };
 
-    return this.jwtService.signAsync(payload, {
+    const token = await this.jwtService.signAsync(payload, {
       secret: this.configService.getOrThrow<string>('jwt.refreshToken.secret'),
       expiresIn: this.configService.getOrThrow<string>(
         'jwt.refreshToken.expiresIn',
       ) as SignOptions['expiresIn'],
     });
+
+    return { token, jti };
   }
 
   async verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {

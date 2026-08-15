@@ -106,4 +106,33 @@ export class ServerRepository {
       },
     });
   }
+
+  async findPublicDirectory(take: number) {
+    return this.prisma.server.findMany({
+      where: {
+        visibility: 'PUBLIC',
+      },
+
+      include: {
+        _count: {
+          select: {
+            members: true,
+          },
+        },
+      },
+
+      orderBy: [
+        {
+          members: {
+            _count: 'desc',
+          },
+        },
+        {
+          createdAt: 'desc',
+        },
+      ],
+
+      take,
+    });
+  }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { ServerInvite } from '@prisma/client';
 
@@ -24,8 +24,12 @@ export class ServerInviteQueryService {
     return this.repository.findByServer(serverId);
   }
 
-  async resolveInvite(code: string): Promise<ServerInvite> {
-    const invite = await this.validation.validateInviteCode(code);
+  async resolveInvite(code: string) {
+    const invite = await this.repository.findByCodeWithServer(code);
+
+    if (!invite) {
+      throw new NotFoundException('Invite not found.');
+    }
 
     this.validation.validateInvite(invite);
 

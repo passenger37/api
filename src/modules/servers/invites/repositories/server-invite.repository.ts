@@ -26,6 +26,18 @@ export class ServerInviteRepository {
     });
   }
 
+  async findByCodeWithServer(code: string) {
+    return this.prisma.serverInvite.findUnique({
+      where: {
+        code,
+      },
+
+      include: {
+        server: true,
+      },
+    });
+  }
+
   async findById(id: string): Promise<ServerInvite | null> {
     return this.prisma.serverInvite.findUnique({
       where: {

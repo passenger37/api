@@ -11,7 +11,7 @@ import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { LogoutDto } from '../dto';
-
+import { RefreshTokenPayload } from '../interfaces/refresh-token-payload.interface';
 import { TokenService } from './token.service';
 
 import { PasswordService } from '../../security/services/password.service';
@@ -74,15 +74,13 @@ export class AuthService {
 
     const accessToken = await this.tokenService.generateAccessToken(user);
 
-    const refreshToken = await this.tokenService.generateRefreshToken(
-      user.id,
-      sessionId,
-    );
+    const { token: refreshToken, jti } =
+      await this.tokenService.generateRefreshToken(user.id, sessionId);
 
     await this.sessionsService.create({
       userId: user.id,
       sessionId,
-      refreshToken,
+      refreshTokenJti: jti,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       deviceName: 'Unknown',
       userAgent: 'Unknown',
@@ -108,38 +106,40 @@ export class AuthService {
   // =====================================================
 
   async refresh(dto: RefreshTokenDto) {
-    const payload = await this.tokenService.verifyRefreshToken(
-      dto.refreshToken,
-    );
+    // 1. Verify JWT signature + expiration
+    let payload: RefreshTokenPayload;
 
+    try {
+      payload = await this.tokenService.verifyRefreshToken(dto.refreshToken);
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // 2. Verify token against the database session
     const session = await this.sessionsService.verifyRefreshToken(
       payload.sid,
-      dto.refreshToken,
+      payload.jti,
     );
 
-    if (session.isRevoked) {
-      throw new UnauthorizedException('Session revoked');
-    }
-
-    if (session.expiresAt < new Date()) {
-      throw new UnauthorizedException('Session expired');
-    }
-
+    // 3. Get user
     const user = await this.userQueryService.findById(payload.sub);
 
     if (!user) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('User not found');
     }
 
+    // 4. Generate new access token
     const accessToken = await this.tokenService.generateAccessToken(user);
 
-    const refreshToken = await this.tokenService.generateRefreshToken(
-      user.id,
-      session.sessionId,
-    );
+    // 5. Generate NEW refresh token
+    //    This gets a NEW jti
+    const { token: refreshToken, jti } =
+      await this.tokenService.generateRefreshToken(user.id, session.sessionId);
 
-    await this.sessionsService.rotateRefreshToken(session.id, refreshToken);
+    // 6. Replace old refresh-token hash (hashed by jti)
+    await this.sessionsService.rotateRefreshToken(session.id, jti);
 
+    // 7. Return new token pair
     return {
       accessToken,
       refreshToken,

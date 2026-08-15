@@ -1,10 +1,18 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from '../services/auth.service';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
-
 import { RegisterDto } from '../dto/register.dto';
+import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { LoginDto } from '../dto/login.dto';
 import { LogoutDto } from '../dto';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -45,22 +53,66 @@ export class AuthController {
   @ApiOperation({
     summary: 'Login using email or username',
   })
-  login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
-    const result = this.authService.login(dto);
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.login(dto);
+
+    const cookie = this.configService.get('session.cookie');
+
+    response.cookie(cookie.name, result.sessionId, {
+      httpOnly: cookie.httpOnly,
+      secure: cookie.secure,
+      sameSite: cookie.sameSite,
+      path: cookie.path,
+      maxAge: cookie.maxAge,
+    });
+
+    return result;
   }
 
   @Post('logout')
-  logout(@Body() dto: LogoutDto) {
-    return this.authService.logout(dto);
+  async logout(
+    @Body() dto: LogoutDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.logout(dto);
+
+    const cookie = this.configService.get('session.cookie');
+
+    response.clearCookie(cookie.name, {
+      httpOnly: cookie.httpOnly,
+      secure: cookie.secure,
+      sameSite: cookie.sameSite,
+      path: cookie.path,
+    });
+
+    return result;
   }
 
-  // @Post('logout-all')
-  // @UseGuards(JwtAuthGuard)
-  // logoutAll(
-  //   @CurrentUser() user: JwtPayload,
-  // ) {
-  //   return this.authService.logoutAll(user.sub);
-  // }
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async logoutAll(
+    @CurrentUser() user: { id: string },
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    await this.authService.logoutAll(user.id);
+
+    const cookie = this.configService.get('session.cookie');
+
+    response.clearCookie(cookie.name, {
+      httpOnly: cookie.httpOnly,
+      secure: cookie.secure,
+      sameSite: cookie.sameSite,
+      path: cookie.path,
+    });
+
+    return {
+      message: 'Logged out from all devices',
+    };
+  }
 
   @Get('profile')
   @UseGuards(PermissionsGuard)
@@ -75,5 +127,11 @@ export class AuthController {
   @Roles(SystemRole.SUPER_ADMIN)
   findAllUsers() {
     return 'hi';
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refresh(dto);
   }
 }

@@ -18,11 +18,11 @@ import { UserFactory } from './factories/user.factory';
 import { UserProfileFactory } from './factories';
 
 import { UserMapper } from './mappers';
-
+import { SessionsModule } from '../sessions/sessions.module';
 import { UserSocialRepository } from './repositories/user-social.repository';
 
 @Module({
-  imports: [SecurityModule],
+  imports: [SecurityModule, SessionsModule],
 
   controllers: [UsersController],
 

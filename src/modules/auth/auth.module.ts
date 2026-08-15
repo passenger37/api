@@ -93,6 +93,7 @@ import { SecurityModule } from '../security/security.module';
     RoleService,
     PermissionService,
     AuthorizationBootstrapService,
+    JwtStrategy,
   ],
 })
 export class AuthModule {}

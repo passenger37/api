@@ -35,15 +35,15 @@ export class ServerRoleCommandService {
 
     await this.validation.validateUniqueName(serverId, request.name);
 
-    const highestPosition =
-      await this.roleRepository.getHighestPosition(serverId);
+    const lowestPosition =
+      await this.roleRepository.getLowestPosition(serverId);
 
     return this.prisma.$transaction(async (tx) => {
       return this.roleRepository.create(
         {
           name: request.name,
 
-          position: highestPosition + 1,
+          position: lowestPosition - 1,
 
           server: {
             connect: {

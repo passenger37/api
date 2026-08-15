@@ -30,14 +30,12 @@ export class ChannelMessageCommandService {
     content: string,
     parentMessageId?: string,
   ) {
-    // 1. Validate channel and get the channel record.
-    const channel = await this.validation.validateChannel(channelId);
+    const channel = await this.validation.validateSendPermission(
+      channelId,
+      userId,
+    );
 
-    // 2. Get server from the channel.
     const serverId = channel.serverId;
-
-    // 3. Validate that the user belongs to the server.
-    await this.validation.validateMember(serverId, userId);
 
     // 4. Validate reply target if this is a reply.
     await this.validation.validateParentMessage(parentMessageId);

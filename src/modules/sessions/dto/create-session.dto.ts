@@ -3,7 +3,7 @@ export class CreateSessionDto {
 
   sessionId: string;
 
-  refreshToken: string;
+  refreshTokenJti: string;
 
   expiresAt: Date;
 

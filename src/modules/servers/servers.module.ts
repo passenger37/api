@@ -29,7 +29,9 @@ import { ServerInviteValidationService } from './invites/services/server-invite-
 import { ServerInviteQueryService } from './invites/services/server-invite-query.service';
 import { ServerPermissionGuard } from './gaurds/server-permission.guard';
 import { ServerInviteCommandService } from './invites/services/server-invite-command.service';
+import { ServerInviteJoinService } from './invites/services/server-invite-join.service';
 import { ServerMemberService } from './services/server-member.service';
+import { ServerJoinService } from './services/server-join.service';
 import { ServerInviteRepository } from './invites/repositories/server-invite.repository';
 import { ServerMemberQueryService } from './services/server-member-query.service';
 import { ServerInviteController } from './invites/controllers/server-invite.controller';
@@ -94,10 +96,12 @@ import { ServerChannelPermissionOverwriteController } from './controllers/server
     InviteCodeService,
     ServerInviteValidationService,
     ServerInviteCommandService,
+    ServerInviteJoinService,
     ServerRoleAssignmentService,
     ServerPermissionService,
     ServerPermissionGuard,
     ServerMemberService,
+    ServerJoinService,
     ServerMemberQueryService,
     ServerRoleQueryService,
     ServerRolePermissionRepository,

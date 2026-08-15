@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-
+import { ChannelMessageValidationService } from '../services/channel-message-validation.service';
 import { ChannelMessageCommandService } from '../services/channel-message-command.service';
 import { ChannelMessageQueryService } from '../services/channel-message-query.service';
 
@@ -22,29 +22,32 @@ export class ChannelMessageController {
   constructor(
     private readonly commandService: ChannelMessageCommandService,
     private readonly queryService: ChannelMessageQueryService,
+    private readonly validation: ChannelMessageValidationService,
   ) {}
 
   @Post('servers/:serverId/channels/:channelId/messages')
   async create(
-    @Param('serverId') serverId: string,
     @Param('channelId') channelId: string,
     @CurrentUser('id') userId: string,
     @Body() request: CreateChannelMessageRequest,
   ) {
     return this.commandService.createMessage(
-      serverId,
       channelId,
       userId,
       request.content,
+      request.parentMessageId,
     );
   }
 
   @Get('servers/:serverId/channels/:channelId/messages')
   async getMessages(
     @Param('channelId') channelId: string,
+    @CurrentUser('id') userId: string,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
   ) {
+    await this.validation.validateChannelAccess(channelId, userId);
+
     return this.queryService.getChannelMessages(
       channelId,
       Number(skip ?? 0),

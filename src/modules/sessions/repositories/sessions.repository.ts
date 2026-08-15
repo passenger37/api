@@ -25,18 +25,14 @@ export class SessionsRepository {
     });
   }
 
-  async updateRefreshToken(
-    id: string,
-    refreshTokenHash: string,
-    expiresAt: Date,
-  ) {
+  async updateRefreshToken(id: string, refreshTokenHash: string) {
     return this.prisma.userSession.update({
       where: {
         id,
       },
       data: {
         refreshTokenHash,
-        expiresAt,
+        lastUsedAt: new Date(),
       },
     });
   }
@@ -45,6 +41,9 @@ export class SessionsRepository {
     return this.prisma.userSession.findUnique({
       where: {
         sessionId,
+      },
+      include: {
+        user: true,
       },
     });
   }

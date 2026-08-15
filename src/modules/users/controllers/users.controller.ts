@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   Param,
-  ParseUUIDPipe,
   Post,
   Query,
   Patch,
@@ -187,12 +186,7 @@ export class UsersController {
     description: 'User not found.',
   })
   async getUserById(
-    @Param(
-      'id',
-      new ParseUUIDPipe({
-        version: '4',
-      }),
-    )
+    @Param('id')
     id: string,
   ) {
     return this.userQueryService.getUserById(id);
@@ -248,8 +242,8 @@ export class UsersController {
 
     @Param('userId')
     followingId: string,
-  ): Promise<void> {
-    await this.usersService.followUser(user.sub, followingId);
+  ): Promise<FollowActionResponse> {
+    return this.usersService.followUser(user.sub, followingId);
   }
 
   @Delete(':userId/follow')

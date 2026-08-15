@@ -1,13 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { IsNotEmpty, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class AssignRoleToUserDto {
   @ApiProperty({
     description: 'Role ID',
-    example: '6d6e5f08-08dd-4d0d-a58b-56d5f7e96b66',
+    example: 'cmrop3lp40003ejs02hr02ea9',
   })
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   roleId: string;
 }
