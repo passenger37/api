@@ -18,10 +18,10 @@ export class ChannelMessageRepository {
     });
   }
 
-  async findById(id: string): Promise<ChannelMessage | null> {
+  async findById(messageId: string) {
     return this.prisma.channelMessage.findUnique({
       where: {
-        id,
+        id: messageId,
       },
     });
   }

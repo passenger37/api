@@ -51,15 +51,22 @@ export class ChannelMessageValidationService {
     }
   }
 
-  async validateParentMessage(parentMessageId?: string) {
+  async validateParentMessage(
+    parentMessageId: string | undefined,
+    channelId: string,
+  ) {
     if (!parentMessageId) {
       return;
     }
 
-    const exists = await this.repository.exists(parentMessageId);
+    const parentMessage = await this.repository.findById(parentMessageId);
 
-    if (!exists) {
+    if (!parentMessage) {
       throw new BadRequestException('Reply target does not exist.');
+    }
+
+    if (parentMessage.channelId !== channelId) {
+      throw new BadRequestException('Reply target belongs to another channel.');
     }
   }
 

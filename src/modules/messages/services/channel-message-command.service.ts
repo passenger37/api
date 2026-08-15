@@ -37,19 +37,15 @@ export class ChannelMessageCommandService {
 
     const serverId = channel.serverId;
 
-    // 4. Validate reply target if this is a reply.
-    await this.validation.validateParentMessage(parentMessageId);
+    await this.validation.validateParentMessage(parentMessageId, channelId);
 
-    // 5. Validate message content.
     this.validation.validateContent(content);
 
-    // 6. Get the server member.
     const member = await this.memberQueryService.getMemberOrThrow(
       serverId,
       userId,
     );
 
-    // 7. Create message inside a transaction.
     return this.prisma.$transaction(async (tx) => {
       return this.repository.create(
         {
