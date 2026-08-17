@@ -82,16 +82,11 @@ export class ChannelMessageCommandService {
     });
   }
 
-  async editMessage(
-    messageId: string,
-    serverId: string,
-    userId: string,
-    content: string,
-  ) {
+  async editMessage(messageId: string, userId: string, content: string) {
     this.validation.validateContent(content);
 
     const message = await this.queryService.getMessage(messageId);
-
+    const serverId = message.serverId;
     const member = await this.memberQueryService.getMemberOrThrow(
       serverId,
       userId,

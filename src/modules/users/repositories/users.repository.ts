@@ -264,9 +264,7 @@ export class UsersRepository {
       }
     }
 
-    return Object.keys(select).length
-      ? (select as Prisma.UserSelect)
-      : undefined;
+    return Object.keys(select).length ? select : undefined;
   }
 
   async findMyProfile(userId: string) {

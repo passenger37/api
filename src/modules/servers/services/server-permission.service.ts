@@ -6,8 +6,15 @@ import { ServerPermissionResolverService } from './server-permission-resolver.se
 
 @Injectable()
 export class ServerPermissionService {
-  private readonly permissionCache = new Map<string, Set<ServerPermission>>();
+  private readonly CACHE_TTL_MS = 30_000;
 
+  private readonly permissionCache = new Map<
+    string,
+    {
+      permissions: Set<ServerPermission>;
+      expiresAt: number;
+    }
+  >();
   constructor(private readonly resolver: ServerPermissionResolverService) {}
 
   private getCacheKey(
@@ -22,6 +29,16 @@ export class ServerPermissionService {
     this.permissionCache.delete(this.getCacheKey(serverId, userId, channelId));
   }
 
+  clearUserCache(serverId: string, userId: string) {
+    const prefix = `${serverId}:${userId}:`;
+
+    for (const key of this.permissionCache.keys()) {
+      if (key.startsWith(prefix)) {
+        this.permissionCache.delete(key);
+      }
+    }
+  }
+
   async getPermissions(
     serverId: string,
     userId: string,
@@ -32,7 +49,12 @@ export class ServerPermissionService {
     const cached = this.permissionCache.get(cacheKey);
 
     if (cached) {
-      return cached;
+      if (cached.expiresAt > Date.now()) {
+        return cached.permissions;
+      }
+
+      // Cache entry expired.
+      this.permissionCache.delete(cacheKey);
     }
 
     const permissions = await this.resolver.resolvePermissions(
@@ -41,9 +63,12 @@ export class ServerPermissionService {
       channelId,
     );
 
-    this.permissionCache.set(cacheKey, permissions);
+    this.permissionCache.set(cacheKey, {
+      permissions: new Set(permissions),
+      expiresAt: Date.now() + this.CACHE_TTL_MS,
+    });
 
-    return permissions;
+    return new Set(permissions);
   }
 
   async hasPermission(

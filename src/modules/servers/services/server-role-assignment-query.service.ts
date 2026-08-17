@@ -9,4 +9,8 @@ export class ServerRoleAssignmentQueryService {
   async getMemberRoles(memberId: string) {
     return this.repository.findRolesByMember(memberId);
   }
+
+  async getMemberIdsByRole(roleId: string): Promise<string[]> {
+    return this.repository.findMemberIdsByRole(roleId);
+  }
 }

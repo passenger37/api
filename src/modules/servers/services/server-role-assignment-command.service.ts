@@ -40,9 +40,13 @@ export class ServerRoleAssignmentCommandService {
 
     await this.hierarchyService.requireManageRole(serverId, userId, roleId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       return this.repository.assignRole(memberId, roleId, tx);
     });
+
+    this.permissionService.clearUserCache(serverId, memberId);
+
+    return result;
   }
 
   async removeRole(
@@ -63,10 +67,9 @@ export class ServerRoleAssignmentCommandService {
 
     await this.hierarchyService.requireManageRole(serverId, userId, roleId);
 
-    return this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       await this.repository.removeRole(memberId, roleId, tx);
-
-      this.permissionService.clearCache(serverId, memberId);
     });
+    this.permissionService.clearCache(serverId, memberId);
   }
 }

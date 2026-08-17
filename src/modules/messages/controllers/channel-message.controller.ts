@@ -63,16 +63,10 @@ export class ChannelMessageController {
   @Patch('servers/:serverId/messages/:messageId')
   async edit(
     @Param('messageId') messageId: string,
-    @Param('serverId') serverId: string,
     @CurrentUser('id') userId: string,
     @Body() request: UpdateChannelMessageRequest,
   ) {
-    return this.commandService.editMessage(
-      messageId,
-      serverId,
-      userId,
-      request.content,
-    );
+    return this.commandService.editMessage(messageId, userId, request.content);
   }
 
   @Delete('messages/:messageId')

@@ -76,17 +76,31 @@ export class ChannelMessageValidationService {
     serverId: string,
     userId: string,
   ) {
+    // Own message
     if (messageAuthorId === currentMemberId) {
+      const allowed = await this.permissionService.hasPermission(
+        serverId,
+        userId,
+        ServerPermission.MESSAGE_UPDATE,
+      );
+
+      if (!allowed) {
+        throw new ForbiddenException(
+          'You do not have permission to edit messages.',
+        );
+      }
+
       return;
     }
 
-    const hasPermission = await this.permissionService.hasPermission(
+    // Someone else's message
+    const allowed = await this.permissionService.hasPermission(
       serverId,
       userId,
       ServerPermission.MANAGE_MESSAGES,
     );
 
-    if (!hasPermission) {
+    if (!allowed) {
       throw new ForbiddenException('You cannot edit this message.');
     }
   }

@@ -1,8 +1,4 @@
-import {
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ExecutionContext, Injectable } from '@nestjs/common';
 
 import { Reflector } from '@nestjs/core';
 
@@ -38,7 +34,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (sessionId) {
       const session = await this.sessionsService.findBySessionId(sessionId);
 
-      if (session) {
+      if (session && !session.isRevoked && session.expiresAt > new Date()) {
         request.user = {
           id: session.user.id,
           sub: session.user.id,

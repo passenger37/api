@@ -130,7 +130,6 @@ export class ChannelMessageGateway
 
     await this.commandService.editMessage(
       request.messageId,
-      message.serverId,
       userId,
       request.content,
     );

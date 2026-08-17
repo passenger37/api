@@ -33,13 +33,18 @@ export const DEFAULT_ROLE_PERMISSIONS = {
 
   Moderator: [
     ServerPermission.MEMBER_KICK,
-
     ServerPermission.MEMBER_TIMEOUT,
 
     ServerPermission.MESSAGE_DELETE,
-
     ServerPermission.MESSAGE_PIN,
+    ServerPermission.MANAGE_MESSAGES,
   ],
 
-  Member: [ServerPermission.SERVER_VIEW, ServerPermission.INVITE_CREATE],
+  Member: [
+    ServerPermission.SERVER_VIEW,
+    ServerPermission.CHANNEL_VIEW,
+    ServerPermission.MESSAGE_SEND,
+    ServerPermission.MESSAGE_UPDATE,
+    ServerPermission.INVITE_CREATE,
+  ],
 } as const;

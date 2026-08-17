@@ -43,7 +43,7 @@ export class ServerStructureService {
           {
             name: channel.name,
 
-            type: channel.type as ServerChannelType,
+            type: channel.type,
 
             position: channelPosition++,
 

@@ -158,4 +158,17 @@ export class ServerRoleAssignmentRepository {
       },
     });
   }
+
+  async findMemberIdsByRole(roleId: string): Promise<string[]> {
+    const assignments = await this.prisma.serverMemberRole.findMany({
+      where: {
+        roleId,
+      },
+      select: {
+        memberId: true,
+      },
+    });
+
+    return assignments.map((assignment) => assignment.memberId);
+  }
 }
