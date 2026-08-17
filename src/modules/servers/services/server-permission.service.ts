@@ -21,6 +21,8 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
       expiresAt: number;
     }
   >();
+  private readonly cacheGenerations = new Map<string, number>();
+  private readonly inFlight = new Map<string, Promise<Set<ServerPermission>>>();
   constructor(private readonly resolver: ServerPermissionResolverService) {}
 
   onModuleInit(): void {
@@ -47,6 +49,10 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private getGeneration(cacheKey: string): number {
+    return this.cacheGenerations.get(cacheKey) ?? 0;
+  }
+
   private getCacheKey(
     serverId: string,
     userId: string,
@@ -55,8 +61,14 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
     return `${serverId}:${userId}:${channelId ?? 'server'}`;
   }
 
-  clearCache(serverId: string, userId: string, channelId?: string) {
-    this.permissionCache.delete(this.getCacheKey(serverId, userId, channelId));
+  clearCache(serverId: string, userId: string, channelId?: string): void {
+    const cacheKey = this.getCacheKey(serverId, userId, channelId);
+
+    this.permissionCache.delete(cacheKey);
+
+    const currentGeneration = this.getGeneration(cacheKey);
+
+    this.cacheGenerations.set(cacheKey, currentGeneration + 1);
   }
 
   clearUserCache(serverId: string, userId: string) {
@@ -86,7 +98,11 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
       // Cache entry expired.
       this.permissionCache.delete(cacheKey);
     }
+    const existingRequest = this.inFlight.get(cacheKey);
 
+    if (existingRequest) {
+      return existingRequest;
+    }
     const permissions = await this.resolver.resolvePermissions(
       serverId,
       userId,
@@ -97,6 +113,22 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
       permissions: new Set(permissions),
       expiresAt: Date.now() + this.CACHE_TTL_MS,
     });
+    const generation = this.getGeneration(cacheKey);
+    const resolution = this.resolveAndCache(
+      cacheKey,
+      generation,
+      serverId,
+      userId,
+      channelId,
+    );
+
+    this.inFlight.set(cacheKey, resolution);
+
+    try {
+      return await resolution;
+    } finally {
+      this.inFlight.delete(cacheKey);
+    }
 
     return new Set(permissions);
   }
@@ -128,5 +160,30 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
     if (!allowed) {
       throw new ForbiddenException(`Missing permission: ${permission}`);
     }
+  }
+
+  private async resolveAndCache(
+    cacheKey: string,
+    generation: number,
+    serverId: string,
+    userId: string,
+    channelId?: string,
+  ): Promise<Set<ServerPermission>> {
+    const permissions = await this.resolver.resolvePermissions(
+      serverId,
+      userId,
+      channelId,
+    );
+    const currentGeneration = this.getGeneration(cacheKey);
+
+    if (currentGeneration !== generation) {
+      return permissions;
+    }
+    this.permissionCache.set(cacheKey, {
+      permissions,
+      expiresAt: Date.now() + this.CACHE_TTL_MS,
+    });
+
+    return permissions;
   }
 }
