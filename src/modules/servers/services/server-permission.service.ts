@@ -1,13 +1,19 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 
 import { ServerPermission } from '@prisma/client';
 
 import { ServerPermissionResolverService } from './server-permission-resolver.service';
 
 @Injectable()
-export class ServerPermissionService {
+export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
   private readonly CACHE_TTL_MS = 30_000;
-
+  private readonly CACHE_CLEANUP_INTERVAL_MS = 60_000;
+  private cleanupTimer?: NodeJS.Timeout;
   private readonly permissionCache = new Map<
     string,
     {
@@ -16,6 +22,30 @@ export class ServerPermissionService {
     }
   >();
   constructor(private readonly resolver: ServerPermissionResolverService) {}
+
+  onModuleInit(): void {
+    this.cleanupTimer = setInterval(
+      () => this.removeExpiredEntries(),
+      this.CACHE_CLEANUP_INTERVAL_MS,
+    );
+  }
+
+  onModuleDestroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = undefined;
+    }
+  }
+
+  private removeExpiredEntries(): void {
+    const now = Date.now();
+
+    for (const [key, entry] of this.permissionCache.entries()) {
+      if (entry.expiresAt <= now) {
+        this.permissionCache.delete(key);
+      }
+    }
+  }
 
   private getCacheKey(
     serverId: string,
