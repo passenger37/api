@@ -3,14 +3,15 @@ import {
   ForbiddenException,
   OnModuleDestroy,
   OnModuleInit,
+  Logger,
 } from '@nestjs/common';
-
+import { PinoLogger } from 'nestjs-pino';
 import { ServerPermission } from '@prisma/client';
-
 import { ServerPermissionResolverService } from './server-permission-resolver.service';
 
 @Injectable()
 export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
+  // private readonly logger = new Logger(ServerPermissionService.name);
   private readonly CACHE_TTL_MS = 30_000;
   private readonly CACHE_CLEANUP_INTERVAL_MS = 60_000;
   private cleanupTimer?: NodeJS.Timeout;
@@ -23,7 +24,12 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
   >();
   private readonly cacheGenerations = new Map<string, number>();
   private readonly inFlight = new Map<string, Promise<Set<ServerPermission>>>();
-  constructor(private readonly resolver: ServerPermissionResolverService) {}
+  constructor(
+    private readonly resolver: ServerPermissionResolverService,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(ServerPermissionService.name);
+  }
 
   onModuleInit(): void {
     this.cleanupTimer = setInterval(
@@ -64,10 +70,23 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
   clearCache(serverId: string, userId: string, channelId?: string): void {
     const cacheKey = this.getCacheKey(serverId, userId, channelId);
 
-    this.permissionCache.delete(cacheKey);
-
+    const existed = this.permissionCache.delete(cacheKey);
+    this.logger.debug(
+      {
+        event: 'permission_cache_invalidation',
+        serverId,
+        userId,
+        channelId,
+        existed,
+      },
+      'Permission cache invalidated',
+    );
     const currentGeneration = this.getGeneration(cacheKey);
-
+    this.logger.debug({
+      event: 'permission_cache_invalidation',
+      cacheKey,
+      generation: currentGeneration + 1,
+    });
     this.cacheGenerations.set(cacheKey, currentGeneration + 1);
   }
 
@@ -91,16 +110,39 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
     const cached = this.permissionCache.get(cacheKey);
 
     if (cached) {
+      this.logger.debug(
+        {
+          event: 'permission_cache_hit',
+          serverId,
+          userId,
+          channelId,
+        },
+        'Permission cache hit',
+      );
+
       if (cached.expiresAt > Date.now()) {
         return cached.permissions;
       }
-
+      this.logger.debug(
+        {
+          event: 'permission_cache_miss',
+          serverId,
+          userId,
+          channelId,
+        },
+        'Permission cache miss',
+      );
       // Cache entry expired.
       this.permissionCache.delete(cacheKey);
     }
     const existingRequest = this.inFlight.get(cacheKey);
 
     if (existingRequest) {
+      this.logger.debug({
+        event: 'permission_cache_deduplicated',
+        cacheKey,
+      });
+
       return existingRequest;
     }
     const permissions = await this.resolver.resolvePermissions(
@@ -108,11 +150,30 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
       userId,
       channelId,
     );
-
+    this.logger.debug(
+      {
+        event: 'permission_resolution_completed',
+        serverId,
+        userId,
+        channelId,
+        permissionCount: permissions.size,
+      },
+      'Permission resolution completed',
+    );
     this.permissionCache.set(cacheKey, {
       permissions: new Set(permissions),
       expiresAt: Date.now() + this.CACHE_TTL_MS,
     });
+    this.logger.debug(
+      {
+        event: 'permission_cache_store',
+        serverId,
+        userId,
+        channelId,
+        permissionCount: permissions.size,
+      },
+      'Permissions stored in cache',
+    );
     const generation = this.getGeneration(cacheKey);
     const resolution = this.resolveAndCache(
       cacheKey,
@@ -177,6 +238,12 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
     const currentGeneration = this.getGeneration(cacheKey);
 
     if (currentGeneration !== generation) {
+      this.logger.debug({
+        event: 'permission_cache_stale_resolution',
+        cacheKey,
+        capturedGeneration: generation,
+        currentGeneration,
+      });
       return permissions;
     }
     this.permissionCache.set(cacheKey, {
