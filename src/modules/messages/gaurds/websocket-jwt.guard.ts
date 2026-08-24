@@ -9,57 +9,45 @@ import { JwtService } from '@nestjs/jwt';
 
 import { Socket } from 'socket.io';
 
-interface JwtPayload {
-  sub: string;
-}
-
 @Injectable()
 export class WebSocketJwtGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const client = context.switchToWs().getClient<Socket>();
 
     const token = this.extractToken(client);
 
     if (!token) {
-      throw new UnauthorizedException(
-        'WebSocket authentication token is required.',
-      );
+      throw new UnauthorizedException('WebSocket authentication required.');
     }
 
     try {
-      const payload = this.jwtService.verify<JwtPayload>(token);
+      const payload = await this.jwtService.verifyAsync(token);
 
-      if (!payload.sub) {
-        throw new UnauthorizedException('Invalid WebSocket token.');
+      const userId = payload.sub;
+
+      if (!userId) {
+        throw new UnauthorizedException('Invalid authentication token.');
       }
 
-      client.data.userId = payload.sub;
-      client.data.user = payload;
+      client.data.userId = userId;
 
       return true;
     } catch {
-      throw new UnauthorizedException('Invalid or expired WebSocket token.');
+      throw new UnauthorizedException(
+        'Invalid or expired authentication token.',
+      );
     }
   }
 
-  private extractToken(client: Socket): string | null {
+  private extractToken(client: Socket): string | undefined {
     const authToken = client.handshake.auth?.token;
 
     if (typeof authToken === 'string') {
       return authToken;
     }
 
-    const authorization = client.handshake.headers.authorization;
-
-    if (
-      typeof authorization === 'string' &&
-      authorization.startsWith('Bearer ')
-    ) {
-      return authorization.substring(7);
-    }
-
-    return null;
+    return undefined;
   }
 }
