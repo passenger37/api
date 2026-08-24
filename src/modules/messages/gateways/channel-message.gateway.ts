@@ -26,6 +26,7 @@ import { RemoveMessageReactionRequest } from '../dto/request/remove-message-reac
 import { ChannelMessageReactionQueryService } from '../services/channel-message-reaction-query.service';
 import { GetMessageReactionsRequest } from '../dto/request/get-message-reactions.request';
 import { GetReactionCountsRequest } from '../dto/request/get-reaction-counts.request';
+import { WebSocketRateLimitService } from '../../../common/websocket/rate-limit/websocket-rate-limit.service';
 
 @WebSocketGateway({
   namespace: '/messages',
@@ -43,6 +44,7 @@ export class ChannelMessageGateway
   server: Server;
 
   constructor(
+    private readonly rateLimit: WebSocketRateLimitService,
     private readonly messageQueryService: ChannelMessageQueryService,
     private readonly reactionCommandService: ChannelMessageReactionCommandService,
     private readonly validation: ChannelMessageValidationService,
@@ -102,7 +104,11 @@ export class ChannelMessageGateway
     @MessageBody() request: SendChannelMessageRequest,
   ) {
     const userId = client.data.userId;
-
+    await this.rateLimit.consume({
+      key: `ws:send-message:${userId}`,
+      limit: 20,
+      windowSeconds: 10,
+    });
     const message = await this.commandService.createMessage(
       request.channelId,
       userId,

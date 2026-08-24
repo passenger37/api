@@ -14,7 +14,7 @@ import { WebSocketJwtGuard } from './gaurds/websocket-jwt.guard';
 import { ChannelMessageReactionCommandService } from './services/channel-message-reaction-command.service';
 import { ChannelMessageReactionRepository } from './repositories/channel-message-reaction.repository';
 import { ChannelMessageReactionQueryService } from './services/channel-message-reaction-query.service';
-
+import { WebSocketRateLimitService } from '../../common/websocket/rate-limit/websocket-rate-limit.service';
 @Module({
   imports: [PrismaModule, ServersModule, AuthModule],
   controllers: [ChannelMessageController],
@@ -28,6 +28,7 @@ import { ChannelMessageReactionQueryService } from './services/channel-message-r
     ChannelMessageReactionCommandService,
     ChannelMessageReactionRepository,
     ChannelMessageReactionQueryService,
+    WebSocketRateLimitService,
   ],
 
   exports: [

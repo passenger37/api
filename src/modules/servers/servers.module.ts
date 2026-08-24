@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 
 import { PrismaModule } from '../../core/database/prisma.module';
 
@@ -22,6 +22,7 @@ import { ServerRoleAssignmentRepository } from './repositories/server-role-assig
 import { ServerTemplateFactory } from './factories/server-template.factory';
 import { CodingTemplate } from './factories/templates/coding.template';
 import { ClassroomTemplate } from './factories/templates/classroom.template';
+import { CustomTemplate } from './factories/templates/custom.template';
 import { ServerHierarchyService } from './services/server-hierarchy.service';
 import { ServerRoleService } from './services/server-role.service';
 import { InviteCodeService } from './invites/services/invite-code.service';
@@ -55,6 +56,7 @@ import { ServerChannelPermissionOverwriteValidationService } from './services/se
 import { ServerChannelPermissionOverwriteCommandService } from './services/server-channel-permission-overwrite-command.service';
 import { ServerPermissionResolverService } from './services/server-permission-resolver.service';
 import { ServerChannelPermissionOverwriteQueryService } from './services/server-channel-permission-overwrite-query.service';
+import { ServerPermissionCacheMetricsService } from './services/server-permission-cache-metrics.service';
 
 import { ServerRolePermissionController } from './controllers/server-role-permission.controller';
 import { ServerMemberController } from './controllers/server-member.controller';
@@ -92,6 +94,7 @@ import { ServerChannelPermissionOverwriteController } from './controllers/server
     ServerTemplateFactory,
     CodingTemplate,
     ClassroomTemplate,
+    CustomTemplate,
     ServerInviteRepository,
     InviteCodeService,
     ServerInviteValidationService,
@@ -125,6 +128,7 @@ import { ServerChannelPermissionOverwriteController } from './controllers/server
     ServerChannelPermissionOverwriteQueryService,
     ServerPermissionResolverService,
     ServerInviteQueryService,
+    ServerPermissionCacheMetricsService,
   ],
 
   exports: [

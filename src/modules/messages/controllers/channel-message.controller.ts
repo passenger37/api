@@ -87,7 +87,7 @@ export class ChannelMessageController {
     return this.commandService.pinMessage(messageId, serverId, userId);
   }
 
-  @Delete('messages/:messageId/pin')
+  @Delete('messages/:messageId/unpin')
   async unpin(
     @Param('messageId') messageId: string,
     @Query('serverId') serverId: string,

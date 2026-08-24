@@ -3,15 +3,14 @@ import {
   ForbiddenException,
   OnModuleDestroy,
   OnModuleInit,
-  Logger,
 } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { ServerPermission } from '@prisma/client';
 import { ServerPermissionResolverService } from './server-permission-resolver.service';
+import { ServerPermissionCacheMetricsService } from './server-permission-cache-metrics.service';
 
 @Injectable()
 export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
-  // private readonly logger = new Logger(ServerPermissionService.name);
   private readonly CACHE_TTL_MS = 30_000;
   private readonly CACHE_CLEANUP_INTERVAL_MS = 60_000;
   private cleanupTimer?: NodeJS.Timeout;
@@ -24,9 +23,11 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
   >();
   private readonly cacheGenerations = new Map<string, number>();
   private readonly inFlight = new Map<string, Promise<Set<ServerPermission>>>();
+
   constructor(
     private readonly resolver: ServerPermissionResolverService,
     private readonly logger: PinoLogger,
+    private readonly metrics: ServerPermissionCacheMetricsService,
   ) {
     this.logger.setContext(ServerPermissionService.name);
   }
@@ -71,16 +72,19 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
     const cacheKey = this.getCacheKey(serverId, userId, channelId);
 
     const existed = this.permissionCache.delete(cacheKey);
-    this.logger.debug(
-      {
-        event: 'permission_cache_invalidation',
-        serverId,
-        userId,
-        channelId,
-        existed,
-      },
-      'Permission cache invalidated',
-    );
+    if (existed) {
+      this.metrics.recordInvalidation();
+      this.logger.debug(
+        {
+          event: 'permission_cache_invalidation',
+          serverId,
+          userId,
+          channelId,
+          existed,
+        },
+        'Permission cache invalidated',
+      );
+    }
     const currentGeneration = this.getGeneration(cacheKey);
     this.logger.debug({
       event: 'permission_cache_invalidation',
@@ -110,6 +114,7 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
     const cached = this.permissionCache.get(cacheKey);
 
     if (cached) {
+      this.metrics.recordHit();
       this.logger.debug(
         {
           event: 'permission_cache_hit',
@@ -145,6 +150,15 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
 
       return existingRequest;
     }
+    this.metrics.recordMiss();
+
+    this.logger.debug({
+      event: 'permission_cache_miss',
+      serverId,
+      userId,
+      channelId,
+      cacheKey,
+    });
     const permissions = await this.resolver.resolvePermissions(
       serverId,
       userId,
@@ -252,5 +266,9 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
     });
 
     return permissions;
+  }
+
+  getCacheMetrics() {
+    return this.metrics.getMetrics();
   }
 }
