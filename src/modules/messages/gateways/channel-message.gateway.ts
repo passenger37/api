@@ -34,6 +34,7 @@ import { GetMessageReactionsRequest } from '../dto/request/get-message-reactions
 import { GetReactionCountsRequest } from '../dto/request/get-reaction-counts.request';
 import { WebSocketRateLimitService } from '../../../common/websocket/rate-limit/websocket-rate-limit.service';
 import { WebSocketValidationPipe } from '../../../common/websocket/pipes/websocket-validation.pipe';
+import { WebSocketErrorNormalizer } from '../../../common/websocket/error/websocket-error.normalizer';
 
 @WebSocketGateway({
   namespace: '/messages',
@@ -52,6 +53,7 @@ export class ChannelMessageGateway
   server: Server;
 
   constructor(
+    private readonly errorNormalizer: WebSocketErrorNormalizer,
     private readonly rateLimit: WebSocketRateLimitService,
     private readonly messageQueryService: ChannelMessageQueryService,
     private readonly reactionCommandService: ChannelMessageReactionCommandService,
@@ -111,26 +113,31 @@ export class ChannelMessageGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() request: SendChannelMessageRequest,
   ) {
-    const userId = client.data.userId;
-    await this.rateLimit.consume({
-      key: `ws:send-message:${userId}`,
-      limit: 20,
-      windowSeconds: 10,
-    });
-    const message = await this.commandService.createMessage(
-      request.channelId,
-      userId,
-      request.content,
-      request.parentMessageId,
-    );
+    const event = 'send-message';
+    try {
+      const userId = client.data.userId;
+      await this.rateLimit.consume({
+        key: `ws:send-message:${userId}`,
+        limit: 20,
+        windowSeconds: 10,
+      });
+      const message = await this.commandService.createMessage(
+        request.channelId,
+        userId,
+        request.content,
+        request.parentMessageId,
+      );
 
-    this.broadcastMessageCreated(request.channelId, message);
+      this.broadcastMessageCreated(request.channelId, message);
 
-    return {
-      success: true,
-      event: 'send-message',
-      data: message,
-    };
+      return {
+        success: true,
+        event: 'send-message',
+        data: message,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
   }
 
   @SubscribeMessage('edit-message')
@@ -138,25 +145,30 @@ export class ChannelMessageGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() request: EditChannelMessageRequest,
   ) {
-    const userId = client.data.userId;
+    const event = 'edit-message';
+    try {
+      const userId = client.data.userId;
 
-    const message = await this.queryService.getMessage(request.messageId);
+      const message = await this.queryService.getMessage(request.messageId);
 
-    await this.commandService.editMessage(
-      request.messageId,
-      userId,
-      request.content,
-    );
+      await this.commandService.editMessage(
+        request.messageId,
+        userId,
+        request.content,
+      );
 
-    this.server.to(message.channelId).emit('message-updated', {
-      messageId: request.messageId,
-      content: request.content,
-    });
+      this.server.to(message.channelId).emit('message-updated', {
+        messageId: request.messageId,
+        content: request.content,
+      });
 
-    return {
-      success: true,
-      messageId: request.messageId,
-    };
+      return {
+        success: true,
+        messageId: request.messageId,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
   }
 
   @SubscribeMessage('delete-message')
@@ -164,24 +176,29 @@ export class ChannelMessageGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() request: DeleteChannelMessageRequest,
   ) {
-    const userId = client.data.userId;
+    const event = 'delete-message';
+    try {
+      const userId = client.data.userId;
 
-    const message = await this.queryService.getMessage(request.messageId);
+      const message = await this.queryService.getMessage(request.messageId);
 
-    await this.commandService.deleteMessage(
-      request.messageId,
-      message.serverId,
-      userId,
-    );
+      await this.commandService.deleteMessage(
+        request.messageId,
+        message.serverId,
+        userId,
+      );
 
-    this.server.to(message.channelId).emit('message-deleted', {
-      messageId: request.messageId,
-    });
+      this.server.to(message.channelId).emit('message-deleted', {
+        messageId: request.messageId,
+      });
 
-    return {
-      success: true,
-      messageId: request.messageId,
-    };
+      return {
+        success: true,
+        messageId: request.messageId,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
   }
 
   @SubscribeMessage('pin-message')
@@ -189,22 +206,27 @@ export class ChannelMessageGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() request: PinChannelMessageRequest,
   ) {
-    const userId = client.data.userId;
+    const event = 'pin-message';
+    try {
+      const userId = client.data.userId;
 
-    const message = await this.queryService.getMessage(request.messageId);
+      const message = await this.queryService.getMessage(request.messageId);
 
-    const pinnedMessage = await this.commandService.pinMessage(
-      request.messageId,
-      message.serverId,
-      userId,
-    );
+      const pinnedMessage = await this.commandService.pinMessage(
+        request.messageId,
+        message.serverId,
+        userId,
+      );
 
-    this.broadcastMessagePinned(message.channelId, request.messageId);
+      this.broadcastMessagePinned(message.channelId, request.messageId);
 
-    return {
-      success: true,
-      message: pinnedMessage,
-    };
+      return {
+        success: true,
+        message: pinnedMessage,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
   }
 
   @SubscribeMessage('unpin-message')
@@ -212,22 +234,27 @@ export class ChannelMessageGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() request: UnpinChannelMessageRequest,
   ) {
-    const userId = client.data.userId;
+    const event = 'unpin-message';
+    try {
+      const userId = client.data.userId;
 
-    const message = await this.queryService.getMessage(request.messageId);
+      const message = await this.queryService.getMessage(request.messageId);
 
-    const unpinnedMessage = await this.commandService.unpinMessage(
-      request.messageId,
-      message.serverId,
-      userId,
-    );
+      const unpinnedMessage = await this.commandService.unpinMessage(
+        request.messageId,
+        message.serverId,
+        userId,
+      );
 
-    this.broadcastMessageUnpinned(message.channelId, request.messageId);
+      this.broadcastMessageUnpinned(message.channelId, request.messageId);
 
-    return {
-      success: true,
-      message: unpinnedMessage,
-    };
+      return {
+        success: true,
+        message: unpinnedMessage,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
   }
 
   @SubscribeMessage('add-reaction')
@@ -235,24 +262,29 @@ export class ChannelMessageGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() request: AddMessageReactionRequest,
   ) {
-    const userId = client.data.userId;
+    const event = 'add-reaction';
+    try {
+      const userId = client.data.userId;
 
-    const message = await this.messageQueryService.getMessage(
-      request.messageId,
-    );
+      const message = await this.messageQueryService.getMessage(
+        request.messageId,
+      );
 
-    const reaction = await this.reactionCommandService.addReaction(
-      request.messageId,
-      userId,
-      request.emoji,
-    );
+      const reaction = await this.reactionCommandService.addReaction(
+        request.messageId,
+        userId,
+        request.emoji,
+      );
 
-    this.server.to(message.channelId).emit('reaction-added', reaction);
+      this.server.to(message.channelId).emit('reaction-added', reaction);
 
-    return {
-      success: true,
-      reaction,
-    };
+      return {
+        success: true,
+        reaction,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
   }
 
   @SubscribeMessage('remove-reaction')
@@ -260,24 +292,29 @@ export class ChannelMessageGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() request: RemoveMessageReactionRequest,
   ) {
-    const userId = client.data.userId;
+    const event = 'remove-reaction';
+    try {
+      const userId = client.data.userId;
 
-    const message = await this.messageQueryService.getMessage(
-      request.messageId,
-    );
+      const message = await this.messageQueryService.getMessage(
+        request.messageId,
+      );
 
-    const reaction = await this.reactionCommandService.removeReaction(
-      request.messageId,
-      userId,
-      request.emoji,
-    );
+      const reaction = await this.reactionCommandService.removeReaction(
+        request.messageId,
+        userId,
+        request.emoji,
+      );
 
-    this.server.to(message.channelId).emit('reaction-removed', reaction);
+      this.server.to(message.channelId).emit('reaction-removed', reaction);
 
-    return {
-      success: true,
-      reaction,
-    };
+      return {
+        success: true,
+        reaction,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
   }
 
   @SubscribeMessage('get-message-reactions')
@@ -360,5 +397,9 @@ export class ChannelMessageGateway
 
   broadcastReactionRemoved(channelId: string, payload: unknown) {
     this.server.to(channelId).emit('reaction-removed', payload);
+  }
+
+  private normalizeError(exception: unknown, event: string) {
+    return this.errorNormalizer.normalize(exception, event);
   }
 }

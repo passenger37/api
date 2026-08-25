@@ -15,6 +15,7 @@ import { ChannelMessageReactionCommandService } from './services/channel-message
 import { ChannelMessageReactionRepository } from './repositories/channel-message-reaction.repository';
 import { ChannelMessageReactionQueryService } from './services/channel-message-reaction-query.service';
 import { WebSocketRateLimitService } from '../../common/websocket/rate-limit/websocket-rate-limit.service';
+import { WebSocketErrorNormalizer } from '../../common/websocket/error/websocket-error.normalizer';
 @Module({
   imports: [PrismaModule, ServersModule, AuthModule],
   controllers: [ChannelMessageController],
@@ -29,6 +30,7 @@ import { WebSocketRateLimitService } from '../../common/websocket/rate-limit/web
     ChannelMessageReactionRepository,
     ChannelMessageReactionQueryService,
     WebSocketRateLimitService,
+    WebSocketErrorNormalizer,
   ],
 
   exports: [
