@@ -8,7 +8,13 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 
-import { UseGuards, Inject, forwardRef, UseFilters } from '@nestjs/common';
+import {
+  UseGuards,
+  Inject,
+  forwardRef,
+  UseFilters,
+  UsePipes,
+} from '@nestjs/common';
 import { WebSocketExceptionFilter } from '../../../common/filters/websocket-exception.filter';
 import { Server, Socket } from 'socket.io';
 import { DeleteChannelMessageRequest } from '../dto/request/delete-channel-message.request';
@@ -27,6 +33,7 @@ import { ChannelMessageReactionQueryService } from '../services/channel-message-
 import { GetMessageReactionsRequest } from '../dto/request/get-message-reactions.request';
 import { GetReactionCountsRequest } from '../dto/request/get-reaction-counts.request';
 import { WebSocketRateLimitService } from '../../../common/websocket/rate-limit/websocket-rate-limit.service';
+import { WebSocketValidationPipe } from '../../../common/websocket/pipes/websocket-validation.pipe';
 
 @WebSocketGateway({
   namespace: '/messages',
@@ -36,6 +43,7 @@ import { WebSocketRateLimitService } from '../../../common/websocket/rate-limit/
   },
 })
 @UseGuards(WebSocketJwtGuard)
+@UsePipes(new WebSocketValidationPipe())
 @UseFilters(WebSocketExceptionFilter)
 export class ChannelMessageGateway
   implements OnGatewayConnection, OnGatewayDisconnect
