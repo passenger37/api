@@ -149,6 +149,12 @@ export class ChannelMessageGateway
     try {
       const userId = client.data.userId;
 
+      await this.rateLimit.consume({
+        key: `ws:edit-message:${userId}`,
+        limit: 20,
+        windowSeconds: 10,
+      });
+
       const message = await this.queryService.getMessage(request.messageId);
 
       await this.commandService.editMessage(
@@ -180,6 +186,12 @@ export class ChannelMessageGateway
     try {
       const userId = client.data.userId;
 
+      await this.rateLimit.consume({
+        key: `ws:delete-message:${userId}`,
+        limit: 20,
+        windowSeconds: 10,
+      });
+
       const message = await this.queryService.getMessage(request.messageId);
 
       await this.commandService.deleteMessage(
@@ -210,6 +222,12 @@ export class ChannelMessageGateway
     try {
       const userId = client.data.userId;
 
+      await this.rateLimit.consume({
+        key: `ws:pin-message:${userId}`,
+        limit: 20,
+        windowSeconds: 10,
+      });
+
       const message = await this.queryService.getMessage(request.messageId);
 
       const pinnedMessage = await this.commandService.pinMessage(
@@ -238,6 +256,12 @@ export class ChannelMessageGateway
     try {
       const userId = client.data.userId;
 
+      await this.rateLimit.consume({
+        key: `ws:unpin-message:${userId}`,
+        limit: 20,
+        windowSeconds: 10,
+      });
+
       const message = await this.queryService.getMessage(request.messageId);
 
       const unpinnedMessage = await this.commandService.unpinMessage(
@@ -265,6 +289,12 @@ export class ChannelMessageGateway
     const event = 'add-reaction';
     try {
       const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: `ws:add-reaction:${userId}`,
+        limit: 20,
+        windowSeconds: 10,
+      });
 
       const message = await this.messageQueryService.getMessage(
         request.messageId,
@@ -295,6 +325,12 @@ export class ChannelMessageGateway
     const event = 'remove-reaction';
     try {
       const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: `ws:remove-reaction:${userId}`,
+        limit: 20,
+        windowSeconds: 10,
+      });
 
       const message = await this.messageQueryService.getMessage(
         request.messageId,
