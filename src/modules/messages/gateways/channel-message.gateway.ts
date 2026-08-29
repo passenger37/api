@@ -21,6 +21,8 @@ import { DeleteChannelMessageRequest } from '../dto/request/delete-channel-messa
 import { ChannelMessageValidationService } from '../services/channel-message-validation.service';
 import { ChannelMessageCommandService } from '../services/channel-message-command.service';
 import { SendChannelMessageRequest } from '../dto/request/send-channel-message.request';
+import { JoinChannelRequest } from '../dto/request/join-channel.request';
+import { LeaveChannelRequest } from '../dto/request/leave-channel.request';
 import { ChannelMessageQueryService } from '../services/channel-message-query.service';
 import { WebSocketJwtGuard } from '../gaurds/websocket-jwt.guard';
 import { EditChannelMessageRequest } from '../dto/request/edit-channel-message.request';
@@ -79,9 +81,10 @@ export class ChannelMessageGateway
   @SubscribeMessage('join-channel')
   async joinChannel(
     @ConnectedSocket() client: Socket,
-    @MessageBody() channelId: string,
+    @MessageBody() request: JoinChannelRequest,
   ) {
     const userId = client.data.userId;
+    const channelId = request.channelId;
 
     await this.validation.validateChannelAccess(channelId, userId);
 
@@ -97,8 +100,9 @@ export class ChannelMessageGateway
   @SubscribeMessage('leave-channel')
   async leaveChannel(
     @ConnectedSocket() client: Socket,
-    @MessageBody() channelId: string,
+    @MessageBody() request: LeaveChannelRequest,
   ) {
+    const channelId = request.channelId;
     await client.leave(channelId);
 
     return {
