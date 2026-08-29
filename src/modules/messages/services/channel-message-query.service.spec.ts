@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import { ChannelMessageQueryService } from './channel-message-query.service';
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageReactionRepository } from '../repositories/channel-message-reaction.repository';
@@ -15,6 +16,7 @@ describe('ChannelMessageQueryService - pagination', () => {
         {
           provide: ChannelMessageRepository,
           useValue: {
+            findById: jest.fn(),
             findManyByChannelPaginated: jest.fn(),
             findRepliesPaginated: jest.fn(),
             countReplies: jest.fn(),
@@ -168,5 +170,75 @@ describe('ChannelMessageQueryService - pagination', () => {
     );
 
     expect(result.items[0]).toMatchObject({ id: '1', reactionCounts: {} });
+  });
+
+  it('should return parent message with paginated enriched replies', async () => {
+    const parent = { id: 'parent1', createdAt: new Date() };
+    const replies = [
+      { id: 'r3', createdAt: new Date() },
+      { id: 'r2', createdAt: new Date() },
+      { id: 'r1', createdAt: new Date() },
+    ];
+    repository.findById.mockResolvedValue(parent as any);
+    repository.findRepliesPaginated.mockResolvedValue(replies as any);
+    repository.countReplies.mockResolvedValue(3);
+    reactionRepository.countReactionsByMessages.mockResolvedValue(
+      new Map([
+        ['r3', new Map([['👍', 2]])],
+        ['r2', new Map([['❤️', 1]])],
+      ]),
+    );
+
+    const result = await service.getThread('parent1', undefined, 2);
+
+    expect(repository.findById).toHaveBeenCalledWith('parent1');
+    expect(repository.findRepliesPaginated).toHaveBeenCalledWith(
+      'parent1',
+      undefined,
+      3,
+    );
+    expect(repository.countReplies).toHaveBeenCalledWith('parent1');
+    expect(reactionRepository.countReactionsByMessages).toHaveBeenCalledWith([
+      'r3',
+      'r2',
+    ]);
+    expect(result.message).toEqual(parent);
+    expect(result.items).toHaveLength(2);
+    expect(result.items[0]).toMatchObject({
+      id: 'r3',
+      reactionCounts: { '👍': 2 },
+    });
+    expect(result.items[1]).toMatchObject({
+      id: 'r2',
+      reactionCounts: { '❤️': 1 },
+    });
+    expect(result.hasMore).toBe(true);
+    expect(result.nextCursor).toBe('r2');
+    expect(result.replyCount).toBe(3);
+  });
+
+  it('should default thread reply reactionCounts to {}', async () => {
+    const parent = { id: 'parent1', createdAt: new Date() };
+    repository.findById.mockResolvedValue(parent as any);
+    repository.findRepliesPaginated.mockResolvedValue([
+      { id: 'r1', createdAt: new Date() },
+    ] as any);
+    repository.countReplies.mockResolvedValue(1);
+    reactionRepository.countReactionsByMessages.mockResolvedValue(new Map());
+
+    const result = await service.getThread('parent1', undefined, 1);
+
+    expect(result.items[0]).toMatchObject({ id: 'r1', reactionCounts: {} });
+    expect(result.message).toEqual(parent);
+    expect(result.replyCount).toBe(1);
+  });
+
+  it('should throw NotFoundException when the parent message does not exist', async () => {
+    repository.findById.mockResolvedValue(null);
+
+    await expect(service.getThread('missing', undefined, 2)).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(repository.findRepliesPaginated).not.toHaveBeenCalled();
   });
 });

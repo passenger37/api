@@ -82,11 +82,7 @@ export class ChannelMessageController {
       throw new BadRequestException('Limit must be between 1 and 100');
     }
 
-    return this.queryService.getThreadRepliesPaginated(
-      messageId,
-      query.cursor,
-      limit,
-    );
+    return this.queryService.getThread(messageId, query.cursor, limit);
   }
 
   @Patch('servers/:serverId/messages/:messageId')

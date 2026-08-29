@@ -103,6 +103,42 @@ export class ChannelMessageQueryService {
     return { items, nextCursor, hasMore, replyCount };
   }
 
+  async getThread(parentMessageId: string, cursor?: string, limit = 50) {
+    const message = await this.repository.findById(parentMessageId);
+
+    if (!message) {
+      throw new NotFoundException('Message not found.');
+    }
+
+    const replies = await this.repository.findRepliesPaginated(
+      parentMessageId,
+      cursor,
+      limit + 1,
+    );
+    const hasMore = replies.length > limit;
+    const items = hasMore ? replies.slice(0, limit) : replies;
+
+    const reactionCounts =
+      await this.reactionRepository.countReactionsByMessages(
+        items.map((item) => item.id),
+      );
+
+    const replyCount = await this.repository.countReplies(parentMessageId);
+
+    return {
+      message,
+      items: items.map((item) => ({
+        ...item,
+        reactionCounts: Object.fromEntries(
+          reactionCounts.get(item.id) ?? new Map<string, number>(),
+        ),
+      })),
+      nextCursor: hasMore ? items[items.length - 1].id : undefined,
+      hasMore,
+      replyCount,
+    };
+  }
+
   async getChannel(channelId: string) {
     const channel = await this.repository.findById(channelId);
 

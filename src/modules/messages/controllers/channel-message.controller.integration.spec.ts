@@ -18,6 +18,7 @@ describe('ChannelMessageController Integration - Pagination', () => {
           provide: ChannelMessageQueryService,
           useValue: {
             getChannelMessagesPaginated: jest.fn(),
+            getThread: jest.fn(),
           },
         },
         {
@@ -44,7 +45,9 @@ describe('ChannelMessageController Integration - Pagination', () => {
       nextCursor: 'msg2',
       hasMore: true,
     };
-    queryService.getChannelMessagesPaginated.mockResolvedValue(paginated as any);
+    queryService.getChannelMessagesPaginated.mockResolvedValue(
+      paginated as any,
+    );
 
     const result = await controller.getMessages('ch-1', 'user-1', { limit: 2 });
 
@@ -97,7 +100,9 @@ describe('ChannelMessageController Integration - Pagination', () => {
       nextCursor: undefined,
       hasMore: false,
     };
-    queryService.getChannelMessagesPaginated.mockResolvedValue(paginated as any);
+    queryService.getChannelMessagesPaginated.mockResolvedValue(
+      paginated as any,
+    );
 
     await controller.getMessages('ch-1', 'user-1', {
       cursor: 'msg2',
@@ -109,5 +114,44 @@ describe('ChannelMessageController Integration - Pagination', () => {
       'msg2',
       50,
     );
+  });
+
+  it('should return a thread with parent message and enriched replies', async () => {
+    const thread = {
+      message: { id: 'parent1' },
+      items: [{ id: 'r3', reactionCounts: { '👍': 2 } }, { id: 'r2' }],
+      nextCursor: 'r2',
+      hasMore: true,
+      replyCount: 3,
+    };
+    queryService.getThread.mockResolvedValue(thread as any);
+
+    const result = await controller.getReplies(
+      'srv-1',
+      'ch-1',
+      'parent1',
+      'user-1',
+      { cursor: 'r1', limit: 2 },
+    );
+
+    expect(validationService.validateChannelAccess).toHaveBeenCalledWith(
+      'ch-1',
+      'user-1',
+    );
+    expect(queryService.getThread).toHaveBeenCalledWith('parent1', 'r1', 2);
+    expect(result).toEqual(thread);
+  });
+
+  it('should reject invalid limit on the replies route', async () => {
+    await expect(
+      controller.getReplies('srv-1', 'ch-1', 'parent1', 'user-1', {
+        limit: 0,
+      }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      controller.getReplies('srv-1', 'ch-1', 'parent1', 'user-1', {
+        limit: 101,
+      }),
+    ).rejects.toThrow(BadRequestException);
   });
 });
