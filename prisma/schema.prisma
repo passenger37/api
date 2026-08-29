@@ -717,9 +717,9 @@ model ChannelMessage {
 
   reactions ChannelMessageReaction[]
 
-  @@index([channelId, createdAt])
+  @@index([channelId, createdAt, id])
   @@index([authorMemberId])
-  @@index([parentMessageId])
+  @@index([parentMessageId, createdAt, id])
   @@index([serverId])
   @@index([isPinned])
   @@index([isDeleted])

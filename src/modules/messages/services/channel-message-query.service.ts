@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
+import { ChannelMessageReactionRepository } from '../repositories/channel-message-reaction.repository';
 
 @Injectable()
 export class ChannelMessageQueryService {
-  constructor(private readonly repository: ChannelMessageRepository) {}
+  constructor(
+    private readonly repository: ChannelMessageRepository,
+    private readonly reactionRepository: ChannelMessageReactionRepository,
+  ) {}
 
   async getMessage(messageId: string) {
     const message = await this.repository.findById(messageId);
@@ -38,6 +42,36 @@ export class ChannelMessageQueryService {
 
   async countMessages(channelId: string) {
     return this.repository.countChannelMessages(channelId);
+  }
+
+  async getChannelMessagesWithReactionCounts(
+    channelId: string,
+    cursor?: string,
+    limit = 50,
+  ) {
+    const messages = await this.repository.findManyByChannelPaginated(
+      channelId,
+      cursor,
+      limit + 1,
+    );
+    const hasMore = messages.length > limit;
+    const items = hasMore ? messages.slice(0, limit) : messages;
+
+    const reactionCounts =
+      await this.reactionRepository.countReactionsByMessages(
+        items.map((message) => message.id),
+      );
+
+    return {
+      items: items.map((message) => ({
+        ...message,
+        reactionCounts: Object.fromEntries(
+          reactionCounts.get(message.id) ?? new Map<string, number>(),
+        ),
+      })),
+      nextCursor: hasMore ? items[items.length - 1].id : undefined,
+      hasMore,
+    };
   }
 
   async messageExists(messageId: string) {

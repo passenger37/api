@@ -106,4 +106,38 @@ export class ChannelMessageReactionRepository {
       },
     });
   }
+
+  /**
+   * Batch reaction counts grouped by emoji for many messages in one query.
+   * Returns `Map<messageId, Map<emoji, count>>`.
+   */
+  async countReactionsByMessages(
+    messageIds: string[],
+  ): Promise<Map<string, Map<string, number>>> {
+    if (messageIds.length === 0) {
+      return new Map();
+    }
+
+    const groups = await this.prisma.channelMessageReaction.groupBy({
+      by: ['messageId', 'emoji'],
+      where: {
+        messageId: {
+          in: messageIds,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    const counts = new Map<string, Map<string, number>>();
+
+    for (const group of groups) {
+      const byEmoji = counts.get(group.messageId) ?? new Map<string, number>();
+      byEmoji.set(group.emoji, group._count._all);
+      counts.set(group.messageId, byEmoji);
+    }
+
+    return counts;
+  }
 }
