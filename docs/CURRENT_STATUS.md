@@ -22,18 +22,19 @@ with server-based collaboration and a hybrid messaging architecture.
 
 ### Current lecture
 
-**40.34 --- Message Edit History (Completed)**
+**40.35 --- Message Delete Semantics (Completed)**
 
 The immediate continuation point is now:
 
 ``` text
-40.34 Completed → verify → 40.35 Message Delete Semantics
+40.35 Completed → verify → 40.36 Mentions
 ```
 
 The project has completed Messaging WebSocket hardening (40.28–40.30),
 cursor-based message pagination (40.31), the query-optimization pass
-(40.32), the composed thread read model (40.33), and non-destructive edit
-history (40.34) with a passing automated test suite.
+(40.32), the composed thread read model (40.33), non-destructive edit
+history (40.34), and tombstone delete semantics (40.35) with a passing
+automated test suite.
 
 ------------------------------------------------------------------------
 
@@ -96,6 +97,7 @@ Implemented/discussed:
 24. Message Query Optimization (composite indexes + batched reaction counts)
 25. Composed thread read model (parent anchor + enriched bounded replies)
 26. Non-destructive edit history (transactional snapshot trail + history route)
+27. Tombstone delete semantics (deleted content suppressed; thread-parent tombstones)
 
 ------------------------------------------------------------------------
 
@@ -527,56 +529,46 @@ messageId_memberId_emoji
 The latest roadmap position is:
 
 ``` text
-40.34 — Message Edit History (Completed)
+40.35 — Message Delete Semantics (Completed)
 ```
 
-Edits are now non-destructive: each edit writes a snapshot into a
-`ChannelMessageEdit` row within the same transaction as the message
-update.
+Soft-deleted messages now follow a tombstone contract:
 
 ``` text
-ChannelMessageEdit (messageId, previousContent, editedAt, editedByMemberId)
-GET .../messages/:messageId/history
-    → { items, nextCursor, hasMore, totalCount }
+DELETE .../messages/:messageId     → { success: true }
+GET .../messages/:messageId        → 404 (content suppressed)
+GET .../messages/:messageId/replies → message = tombstone
+    { id, channelId, serverId, isDeleted: true, deletedAt, content: null }
 ```
 
-History reads are bounded pages against the `(messageId, editedAt, id)`
-index; edits are recoverable and attributable to the editor's member id.
-Verification: tsc clean, 12 Jest suites / 57 tests green, build ok,
-migration applied.
+Listings already filter `isDeleted: false`; direct reads no longer leak
+deleted content. Verification: tsc clean, 12 Jest suites / 59 tests
+green, build ok.
 
-The next objective is **40.35 --- Message Delete Semantics**.
+The next objective is **40.36 --- Mentions**.
 
 ------------------------------------------------------------------------
 
 # Current Task
 
-## 40.34 --- Message Edit History (Completed)
+## 40.35 --- Message Delete Semantics (Completed)
 
 Implemented:
 
--   schema: `ChannelMessageEdit` model (`messageId`, `previousContent`,
-    `editedAt`, `editedByMemberId`, `@@index([messageId, editedAt, id])`)
-    + back-relations on `ChannelMessage`/`ServerMember`; migration
-    `20260829040524_add_message_edit_history`
--   repository: `ChannelMessageEditRepository` — `create` (transaction
-    aware), `findManyByMessagePaginated` (editedAt DESC, id DESC),
-    `countByMessage`
--   command service: `editMessage` now runs in a `$transaction` —
-    snapshot (previous content, editor member, timestamp) is written
-    before the message update, keeping the trail in lockstep
--   query service: `getEditHistory(messageId, cursor, limit)` —
-    NotFound on missing message; `{ items, nextCursor, hasMore,
-    totalCount }`
--   controller: `GET .../messages/:messageId/history` (channel-access
-    check, limit 1–100 guard) with `GetEditHistoryQuery` DTO
--   specs: edit repository (5), first command-service spec (2), query
-    service (+2), controller integration (+2)
+-   query-service tombstone contract — `getMessage` throws
+    `NotFoundException` when the row is soft-deleted (404; deleted
+    content is not retrievable by id)
+-   `getThread` returns a **tombstone** parent for deleted messages:
+    `{ id, channelId, serverId, isDeleted: true, deletedAt, content:
+    null }` — thread stays coherent, replies still page, no content
+    leaks
+-   shared `toMessageOrTombstone` mapper; listings already filtered
+    `isDeleted: false` (unchanged); broadcast/delete contracts unchanged
 
-Verification: `Found 0 errors` (tsc), 12 Jest suites / 57 tests passing,
+Verification: `Found 0 errors` (tsc), 12 Jest suites / 59 tests passing,
 `nest build` succeeds.
 
-## Next ---- 40.35 Message Delete Semantics
+## Next ---- 40.36 Mentions
 
 ------------------------------------------------------------------------
 
@@ -666,18 +658,17 @@ existence validation.
 
 # Next Lecture
 
-After 40.34 is fully verified:
+After 40.35 is fully verified:
 
-## 40.35 --- Message Delete Semantics
+## 40.36 --- Mentions
 
 Focus on:
 
--   a formal tombstone contract for deleted messages (`deleted`,
-    `deletedAt`) distinct from user-facing removal
--   consistent read filtering: deleted rows excluded from listings but
-    stable for referential integrity (threads/history)
--   author-only vs. permission-based deletion, with a broadcast delete
-    event
+-   `@user`, `@role`, `@everyone` recognized inside message content
+-   authorization and anti-abuse (mentionable members/roles; `@everyone`
+    gated by permission)
+-   notification generation from resolved member ids
+-   indexing for mention lookup
 
 Do not jump directly into unrelated frontend work.
 
@@ -1016,41 +1007,42 @@ claiming completion before testing.
     bounded replies)
 -   **40.34 --- non-destructive edit history** (transactional snapshot
     trail + history route)
+-   **40.35 --- tombstone delete semantics** (deleted content suppressed;
+    thread-parent tombstones)
 
 ## Current task
 
-**40.35 --- Message Delete Semantics** (next lecture)
+**40.36 --- Mentions** (next lecture)
 
 ## Where we paused
 
-After committing 40.34 (edit history — transactional snapshots) with a
-green test suite (12 suites / 57 tests).
+After committing 40.35 (tombstone delete semantics) with a green test
+suite (12 suites / 59 tests).
 
 ## Blockers
 
--   none blocking from the previous lecture; edit-history migration
-    `20260829040524` applied
+-   none blocking from the previous lecture
 -   database-backed end-to-end test coverage is still pending
 
 ## Next task
 
-**40.35 --- Message Delete Semantics.**
+**40.36 --- Mentions.**
 
 ## First next step
 
-Inspect the current delete write path:
+Inspect the create/write path for where mention recognition belongs:
 
 ``` text
 src/modules/messages/services/channel-message-command.service.ts
+src/modules/messages/services/channel-message-validation.service.ts
 src/modules/messages/repositories/channel-message.repository.ts
 ```
 
 and confirm:
 
-1.  `softDelete` sets `isDeleted`/`deletedAt` — deletion is recoverable
-2.  read filtering — deleted rows are excluded from listing queries but
-    kept for thread/history integrity
-3.  delete broadcast and author/permission rules are consistent with the
-    tombstone contract
+1.  where message content is validated and normalized on create
+2.  what member/role models exist to resolve `@user` / `@role` targets
+3.  where {@channel} / notification hooks should attach without breaking
+    the existing WS create broadcast
 
-Only then make the smallest required code change for 40.35.
+Only then make the smallest required code change for 40.36.
