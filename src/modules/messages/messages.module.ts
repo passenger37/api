@@ -5,6 +5,8 @@ import { PrismaModule } from '../../core/database/prisma.module';
 import { ServersModule } from '../servers/servers.module';
 import { ChannelMessageRepository } from './repositories/channel-message.repository';
 import { ChannelMessageEditRepository } from './repositories/channel-message-edit.repository';
+import { ChannelMentionRepository } from './repositories/channel-message-mention.repository';
+import { ChannelMentionResolver } from './services/channel-mention-resolver.service';
 import { AuthModule } from '../auth/auth.module';
 import { ChannelMessageCommandService } from './services/channel-message-command.service';
 import { ChannelMessageQueryService } from './services/channel-message-query.service';
@@ -23,6 +25,8 @@ import { WebSocketErrorNormalizer } from '../../common/websocket/error/websocket
   providers: [
     ChannelMessageRepository,
     ChannelMessageEditRepository,
+    ChannelMentionRepository,
+    ChannelMentionResolver,
     ChannelMessageValidationService,
     ChannelMessageQueryService,
     ChannelMessageCommandService,

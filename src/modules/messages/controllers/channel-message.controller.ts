@@ -104,6 +104,18 @@ export class ChannelMessageController {
     return this.queryService.getEditHistory(messageId, query.cursor, limit);
   }
 
+  @Get('servers/:serverId/channels/:channelId/messages/:messageId/mentions')
+  async getMentions(
+    @Param('serverId') serverId: string,
+    @Param('channelId') channelId: string,
+    @Param('messageId') messageId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    await this.validation.validateChannelAccess(channelId, userId);
+
+    return this.queryService.getMessageMentions(messageId);
+  }
+
   @Patch('servers/:serverId/messages/:messageId')
   async edit(
     @Param('messageId') messageId: string,

@@ -434,6 +434,8 @@ messageReactions ChannelMessageReaction[]
 
   messageEdits ChannelMessageEdit[]
 
+  mentionTargets ChannelMention[]
+
   @@unique([serverId, userId])
   @@index([serverId])
   @@index([userId])
@@ -456,6 +458,8 @@ model ServerRole {
   permissions ServerRolePermission[]
 
   channelPermissionOverwrites ServerChannelPermissionOverwrite[]
+
+  mentionTargets ChannelMention[]
 
   @@index([serverId])
 }
@@ -721,6 +725,8 @@ model ChannelMessage {
 
   edits ChannelMessageEdit[]
 
+  mentions ChannelMention[]
+
   @@index([channelId, createdAt, id])
   @@index([authorMemberId])
   @@index([parentMessageId, createdAt, id])
@@ -761,4 +767,39 @@ model ChannelMessageReaction {
   @@unique([messageId, memberId, emoji])
   @@index([messageId])
   @@index([memberId])
+}
+
+enum MentionType {
+  MEMBER
+  ROLE
+  EVERYONE
+}
+
+model ChannelMention {
+  id String @id @default(cuid())
+
+  messageId String
+
+  serverId String
+
+  channelId String
+
+  mentionType MentionType
+
+  targetMemberId String?
+
+  targetRoleId String?
+
+  createdAt DateTime @default(now())
+
+  message ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  mentionedMember ServerMember? @relation(fields: [targetMemberId], references: [id], onDelete: SetNull)
+
+  mentionedRole ServerRole? @relation(fields: [targetRoleId], references: [id], onDelete: SetNull)
+
+  @@index([messageId])
+  @@index([serverId])
+  @@index([targetMemberId])
+  @@index([targetRoleId])
 }

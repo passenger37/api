@@ -3,6 +3,8 @@ import { PrismaService } from '../../../core/database/prisma.service';
 
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageEditRepository } from '../repositories/channel-message-edit.repository';
+import { ChannelMentionRepository } from '../repositories/channel-message-mention.repository';
+import { ChannelMentionResolver } from './channel-mention-resolver.service';
 import { ChannelMessageValidationService } from './channel-message-validation.service';
 import { ChannelMessageQueryService } from './channel-message-query.service';
 import { ChannelMessageGateway } from '../gateways/channel-message.gateway';
@@ -19,6 +21,10 @@ export class ChannelMessageCommandService {
     private readonly repository: ChannelMessageRepository,
 
     private readonly editRepository: ChannelMessageEditRepository,
+
+    private readonly mentionRepository: ChannelMentionRepository,
+
+    private readonly mentionResolver: ChannelMentionResolver,
 
     private readonly queryService: ChannelMessageQueryService,
 
@@ -49,8 +55,15 @@ export class ChannelMessageCommandService {
       userId,
     );
 
+    const mentions = await this.mentionResolver.resolve(
+      content,
+      serverId,
+      channelId,
+      userId,
+    );
+
     return this.prisma.$transaction(async (tx) => {
-      return this.repository.create(
+      const message = await this.repository.create(
         {
           content,
 
@@ -82,6 +95,16 @@ export class ChannelMessageCommandService {
         },
         tx,
       );
+
+      await this.mentionRepository.createMany(
+        message.id,
+        serverId,
+        channelId,
+        mentions,
+        tx,
+      );
+
+      return message;
     });
   }
 
@@ -104,6 +127,13 @@ export class ChannelMessageCommandService {
 
     const editedAt = new Date();
 
+    const mentions = await this.mentionResolver.resolve(
+      content,
+      serverId,
+      message.channelId,
+      userId,
+    );
+
     return this.prisma.$transaction(async (tx) => {
       await this.editRepository.create(
         {
@@ -123,6 +153,16 @@ export class ChannelMessageCommandService {
             },
           },
         },
+        tx,
+      );
+
+      await this.mentionRepository.deleteManyByMessage(messageId, tx);
+
+      await this.mentionRepository.createMany(
+        messageId,
+        serverId,
+        message.channelId,
+        mentions,
         tx,
       );
 

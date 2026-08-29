@@ -137,7 +137,7 @@ import { ServerChannelPermissionOverwriteController } from './controllers/server
     ServerMemberQueryService,
     ServerChannelQueryService,
     ServerPermissionResolverService,
-    ServerMemberQueryService,
+    ServerRoleQueryService,
   ],
 })
 export class ServersModule {}

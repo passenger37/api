@@ -23,9 +23,11 @@ export class ServerRoleRepository {
   async findByName(
     serverId: string,
     name: string,
-    tx: Prisma.TransactionClient,
+    tx?: Prisma.TransactionClient,
   ) {
-    return tx.serverRole.findFirst({
+    const client = tx ?? this.prisma;
+
+    return client.serverRole.findFirst({
       where: {
         serverId,
         name,

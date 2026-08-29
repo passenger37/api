@@ -24,6 +24,10 @@ export class ServerRoleQueryService {
     return this.roleRepository.exists(roleId);
   }
 
+  async getRoleByName(serverId: string, name: string) {
+    return this.roleRepository.findByName(serverId, name);
+  }
+
   async getRoles(serverId: string) {
     return this.roleRepository.findByServer(serverId);
   }

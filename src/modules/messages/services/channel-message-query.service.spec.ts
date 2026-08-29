@@ -4,12 +4,14 @@ import { ChannelMessageQueryService } from './channel-message-query.service';
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageReactionRepository } from '../repositories/channel-message-reaction.repository';
 import { ChannelMessageEditRepository } from '../repositories/channel-message-edit.repository';
+import { ChannelMentionRepository } from '../repositories/channel-message-mention.repository';
 
 describe('ChannelMessageQueryService - pagination', () => {
   let service: ChannelMessageQueryService;
   let repository: jest.Mocked<ChannelMessageRepository>;
   let reactionRepository: jest.Mocked<ChannelMessageReactionRepository>;
   let editRepository: jest.Mocked<ChannelMessageEditRepository>;
+  let mentionRepository: jest.Mocked<ChannelMentionRepository>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -37,6 +39,13 @@ describe('ChannelMessageQueryService - pagination', () => {
             countByMessage: jest.fn(),
           },
         },
+        {
+          provide: ChannelMentionRepository,
+          useValue: {
+            findByMessage: jest.fn(),
+            countMentionsByMessages: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -46,6 +55,8 @@ describe('ChannelMessageQueryService - pagination', () => {
     repository = module.get(ChannelMessageRepository);
     reactionRepository = module.get(ChannelMessageReactionRepository);
     editRepository = module.get(ChannelMessageEditRepository);
+    mentionRepository = module.get(ChannelMentionRepository);
+    mentionRepository.countMentionsByMessages.mockResolvedValue(new Map());
   });
 
   it('should return items with nextCursor and hasMore when more items exist', async () => {
@@ -328,5 +339,77 @@ describe('ChannelMessageQueryService - pagination', () => {
       service.getEditHistory('missing', undefined, 2),
     ).rejects.toThrow(NotFoundException);
     expect(editRepository.findManyByMessagePaginated).not.toHaveBeenCalled();
+  });
+
+  it('should enrich messages with batched mention counts', async () => {
+    const messages = [
+      { id: '3', createdAt: new Date() },
+      { id: '2', createdAt: new Date() },
+    ];
+    repository.findManyByChannelPaginated.mockResolvedValue(messages as any);
+    reactionRepository.countReactionsByMessages.mockResolvedValue(new Map());
+    mentionRepository.countMentionsByMessages.mockResolvedValue(
+      new Map([
+        ['3', 2],
+        ['2', 0],
+      ]),
+    );
+
+    const result = await service.getChannelMessagesWithReactionCounts(
+      'ch-1',
+      undefined,
+      2,
+    );
+
+    expect(mentionRepository.countMentionsByMessages).toHaveBeenCalledWith([
+      '3',
+      '2',
+    ]);
+    expect(result.items[0]).toMatchObject({ id: '3', mentionCount: 2 });
+    expect(result.items[1]).toMatchObject({ id: '2', mentionCount: 0 });
+  });
+
+  it('should register mentionCount on enriched thread replies', async () => {
+    const parent = { id: 'parent1', createdAt: new Date() };
+    repository.findById.mockResolvedValue(parent as any);
+    repository.findRepliesPaginated.mockResolvedValue([
+      { id: 'r1', createdAt: new Date() },
+    ] as any);
+    repository.countReplies.mockResolvedValue(1);
+    reactionRepository.countReactionsByMessages.mockResolvedValue(new Map());
+    mentionRepository.countMentionsByMessages.mockResolvedValue(
+      new Map([['r1', 5]]),
+    );
+
+    const result = await service.getThread('parent1', undefined, 1);
+
+    expect(result.items[0]).toMatchObject({ id: 'r1', mentionCount: 5 });
+  });
+
+  it('should return the mention records for a message', async () => {
+    repository.findById.mockResolvedValue({ id: 'm1' } as any);
+    const mentions = [
+      { id: 'mention-1', mentionType: 'MEMBER', targetMemberId: 'member-2' },
+    ];
+    mentionRepository.findByMessage.mockResolvedValue(mentions as any);
+
+    const result = await service.getMessageMentions('m1');
+
+    expect(repository.findById).toHaveBeenCalledWith('m1');
+    expect(mentionRepository.findByMessage).toHaveBeenCalledWith('m1');
+    expect(result).toEqual(mentions);
+  });
+
+  it('should throw NotFoundException for mentions of a deleted message', async () => {
+    repository.findById.mockResolvedValue({
+      id: 'm1',
+      isDeleted: true,
+      deletedAt: new Date(),
+    } as any);
+
+    await expect(service.getMessageMentions('m1')).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(mentionRepository.findByMessage).not.toHaveBeenCalled();
   });
 });

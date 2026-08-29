@@ -4,6 +4,7 @@ import { ChannelMessage } from '@prisma/client';
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageReactionRepository } from '../repositories/channel-message-reaction.repository';
 import { ChannelMessageEditRepository } from '../repositories/channel-message-edit.repository';
+import { ChannelMentionRepository } from '../repositories/channel-message-mention.repository';
 
 @Injectable()
 export class ChannelMessageQueryService {
@@ -11,6 +12,7 @@ export class ChannelMessageQueryService {
     private readonly repository: ChannelMessageRepository,
     private readonly reactionRepository: ChannelMessageReactionRepository,
     private readonly editRepository: ChannelMessageEditRepository,
+    private readonly mentionRepository: ChannelMentionRepository,
   ) {}
 
   async getMessage(messageId: string) {
@@ -80,12 +82,17 @@ export class ChannelMessageQueryService {
         items.map((message) => message.id),
       );
 
+    const mentionCounts = await this.mentionRepository.countMentionsByMessages(
+      items.map((message) => message.id),
+    );
+
     return {
       items: items.map((message) => ({
         ...message,
         reactionCounts: Object.fromEntries(
           reactionCounts.get(message.id) ?? new Map<string, number>(),
         ),
+        mentionCount: mentionCounts.get(message.id) ?? 0,
       })),
       nextCursor: hasMore ? items[items.length - 1].id : undefined,
       hasMore,
@@ -141,6 +148,10 @@ export class ChannelMessageQueryService {
         items.map((item) => item.id),
       );
 
+    const mentionCounts = await this.mentionRepository.countMentionsByMessages(
+      items.map((item) => item.id),
+    );
+
     const replyCount = await this.repository.countReplies(parentMessageId);
 
     return {
@@ -150,6 +161,7 @@ export class ChannelMessageQueryService {
         reactionCounts: Object.fromEntries(
           reactionCounts.get(item.id) ?? new Map<string, number>(),
         ),
+        mentionCount: mentionCounts.get(item.id) ?? 0,
       })),
       nextCursor: hasMore ? items[items.length - 1].id : undefined,
       hasMore,
@@ -184,5 +196,11 @@ export class ChannelMessageQueryService {
     }
 
     return channel;
+  }
+
+  async getMessageMentions(messageId: string) {
+    await this.getMessage(messageId);
+
+    return this.mentionRepository.findByMessage(messageId);
   }
 }
