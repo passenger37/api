@@ -13,12 +13,10 @@ export class WebSocketRateLimitService {
   constructor(private readonly redis: RedisService) {}
 
   async consume(options: WebSocketRateLimitOptions): Promise<void> {
-    const client = this.redis.getClient();
-
-    const current = await client.incr(options.key);
+    const current = await this.redis.incr(options.key);
 
     if (current === 1) {
-      await client.expire(options.key, options.windowSeconds);
+      await this.redis.expire(options.key, options.windowSeconds);
     }
 
     if (current > options.limit) {
