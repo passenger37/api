@@ -9,6 +9,8 @@ describe('ChannelMessageGateway Integration', () => {
   let queryService: any;
   let reactionCommandService: any;
   let reactionQueryService: any;
+  let typingService: any;
+  let memberQueryService: any;
 
   const mockServer = {
     to: jest.fn().mockReturnThis(),
@@ -27,7 +29,9 @@ describe('ChannelMessageGateway Integration', () => {
       unpinMessage: jest.fn().mockResolvedValue({ id: 'msg1' }),
     };
     validationService = {
-      validateChannelAccess: jest.fn().mockResolvedValue(undefined),
+      validateChannelAccess: jest
+        .fn()
+        .mockResolvedValue({ channel: { serverId: 'sv1' }, member: {} }),
       validateContent: jest.fn(),
       validateParentMessage: jest.fn(),
     };
@@ -45,6 +49,17 @@ describe('ChannelMessageGateway Integration', () => {
       getMessageReactions: jest.fn(),
       getReactionCounts: jest.fn(),
     };
+    typingService = {
+      startTyping: jest.fn().mockResolvedValue(undefined),
+      stopTyping: jest.fn().mockResolvedValue(undefined),
+    };
+    memberQueryService = {
+      getMemberWithUser: jest.fn().mockResolvedValue({
+        id: 'member-1',
+        nickname: 'alice',
+        user: { id: 'u1', username: 'alice_dev' },
+      }),
+    };
 
     gateway = new ChannelMessageGateway(
       errorNormalizer,
@@ -55,6 +70,8 @@ describe('ChannelMessageGateway Integration', () => {
       reactionQueryService,
       queryService,
       commandService,
+      typingService,
+      memberQueryService,
     );
 
     // @ts-ignore
@@ -112,5 +129,100 @@ describe('ChannelMessageGateway Integration', () => {
 
     expect(client.leave).toHaveBeenCalledWith('ch1');
     expect(result).toEqual({ success: true, channelId: 'ch1', userId: 'u1' });
+  });
+
+  it('should broadcast typing-started with nickname and exclude the sender', async () => {
+    const client = {
+      data: { userId: 'u1' },
+      broadcast: { to: jest.fn().mockReturnThis(), emit: jest.fn() },
+    } as any;
+    const request = { channelId: 'ch1' };
+
+    const result = await gateway.typingStart(client, request);
+
+    expect(rateLimitService.consume).toHaveBeenCalledWith({
+      key: 'ws:typing-start:u1',
+      limit: 10,
+      windowSeconds: 10,
+    });
+    expect(validationService.validateChannelAccess).toHaveBeenCalledWith(
+      'ch1',
+      'u1',
+    );
+    expect(memberQueryService.getMemberWithUser).toHaveBeenCalledWith(
+      'sv1',
+      'u1',
+    );
+    expect(typingService.startTyping).toHaveBeenCalledWith('ch1', 'u1');
+    expect(client.broadcast.to).toHaveBeenCalledWith('ch1');
+    expect(client.broadcast.emit).toHaveBeenCalledWith('typing-started', {
+      channelId: 'ch1',
+      userId: 'u1',
+      username: 'alice',
+    });
+    expect(result).toEqual({ success: true, channelId: 'ch1' });
+  });
+
+  it('should fall back to username when the member has no nickname', async () => {
+    memberQueryService.getMemberWithUser.mockResolvedValue({
+      id: 'member-1',
+      nickname: null,
+      user: { id: 'u1', username: 'alice_dev' },
+    });
+    const client = {
+      data: { userId: 'u1' },
+      broadcast: { to: jest.fn().mockReturnThis(), emit: jest.fn() },
+    } as any;
+    const request = { channelId: 'ch1' };
+
+    await gateway.typingStart(client, request);
+
+    expect(client.broadcast.emit).toHaveBeenCalledWith('typing-started', {
+      channelId: 'ch1',
+      userId: 'u1',
+      username: 'alice_dev',
+    });
+  });
+
+  it('should broadcast typing-stopped and clear presence', async () => {
+    const client = {
+      data: { userId: 'u1' },
+      broadcast: { to: jest.fn().mockReturnThis(), emit: jest.fn() },
+    } as any;
+    const request = { channelId: 'ch1' };
+
+    const result = await gateway.typingStop(client, request);
+
+    expect(rateLimitService.consume).toHaveBeenCalledWith({
+      key: 'ws:typing-stop:u1',
+      limit: 10,
+      windowSeconds: 10,
+    });
+    expect(typingService.stopTyping).toHaveBeenCalledWith('ch1', 'u1');
+    expect(client.broadcast.to).toHaveBeenCalledWith('ch1');
+    expect(client.broadcast.emit).toHaveBeenCalledWith('typing-stopped', {
+      channelId: 'ch1',
+      userId: 'u1',
+    });
+    expect(result).toEqual({ success: true, channelId: 'ch1' });
+  });
+
+  it('should normalize errors on typing-start failure', async () => {
+    rateLimitService.consume.mockRejectedValueOnce(
+      new Error('Too many WebSocket requests.'),
+    );
+    const client = {
+      data: { userId: 'u1' },
+      broadcast: { to: jest.fn().mockReturnThis(), emit: jest.fn() },
+    } as any;
+    const request = { channelId: 'ch1' };
+
+    const result = await gateway.typingStart(client, request);
+
+    expect(errorNormalizer.normalize).toHaveBeenCalledWith(
+      expect.any(Error),
+      'typing-start',
+    );
+    expect(result).toEqual({ error: true });
   });
 });

@@ -37,6 +37,10 @@ import { GetReactionCountsRequest } from '../dto/request/get-reaction-counts.req
 import { WebSocketRateLimitService } from '../../../common/websocket/rate-limit/websocket-rate-limit.service';
 import { WebSocketValidationPipe } from '../../../common/websocket/pipes/websocket-validation.pipe';
 import { WebSocketErrorNormalizer } from '../../../common/websocket/error/websocket-error.normalizer';
+import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
+import { TypingStartRequest } from '../dto/request/typing-start.request';
+import { TypingStopRequest } from '../dto/request/typing-stop.request';
+import { TypingService } from '../services/typing.service';
 
 @WebSocketGateway({
   namespace: '/messages',
@@ -64,6 +68,8 @@ export class ChannelMessageGateway
     private readonly queryService: ChannelMessageQueryService,
     @Inject(forwardRef(() => ChannelMessageCommandService))
     private readonly commandService: ChannelMessageCommandService,
+    private readonly typingService: TypingService,
+    private readonly memberQueryService: ServerMemberQueryService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -403,6 +409,79 @@ export class ChannelMessageGateway
       messageId: request.messageId,
       counts,
     };
+  }
+
+  @SubscribeMessage('typing-start')
+  async typingStart(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: TypingStartRequest,
+  ) {
+    const event = 'typing-start';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: `ws:typing-start:${userId}`,
+        limit: 10,
+        windowSeconds: 10,
+      });
+
+      const { channel } = await this.validation.validateChannelAccess(
+        request.channelId,
+        userId,
+      );
+
+      const member = await this.memberQueryService.getMemberWithUser(
+        channel.serverId,
+        userId,
+      );
+
+      await this.typingService.startTyping(request.channelId, userId);
+
+      client.broadcast.to(request.channelId).emit('typing-started', {
+        channelId: request.channelId,
+        userId,
+        username: member.nickname ?? member.user.username,
+      });
+
+      return {
+        success: true,
+        channelId: request.channelId,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('typing-stop')
+  async typingStop(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: TypingStopRequest,
+  ) {
+    const event = 'typing-stop';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: `ws:typing-stop:${userId}`,
+        limit: 10,
+        windowSeconds: 10,
+      });
+
+      await this.typingService.stopTyping(request.channelId, userId);
+
+      client.broadcast.to(request.channelId).emit('typing-stopped', {
+        channelId: request.channelId,
+        userId,
+      });
+
+      return {
+        success: true,
+        channelId: request.channelId,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
   }
 
   broadcastMessageCreated(channelId: string, payload: unknown) {

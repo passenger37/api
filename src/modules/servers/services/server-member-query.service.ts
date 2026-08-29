@@ -20,6 +20,19 @@ export class ServerMemberQueryService {
     return member;
   }
 
+  async getMemberWithUser(serverId: string, userId: string) {
+    const member = await this.memberRepository.findByServerAndUserWithUser(
+      serverId,
+      userId,
+    );
+
+    if (!member) {
+      throw new NotFoundException('Server member not found.');
+    }
+
+    return member;
+  }
+
   // Optional compatibility method.
   // You can remove it later after updating all callers.
   async getMemberOrThrow(

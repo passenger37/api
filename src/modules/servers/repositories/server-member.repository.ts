@@ -234,6 +234,24 @@ export class ServerMemberRepository {
     });
   }
 
+  async findByServerAndUserWithUser(serverId: string, userId: string) {
+    return this.prisma.serverMember.findFirst({
+      where: {
+        serverId,
+        userId,
+      },
+
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+      },
+    });
+  }
+
   async create(
     data: Prisma.ServerMemberCreateInput,
     prisma: Prisma.TransactionClient | PrismaService = this.prisma,

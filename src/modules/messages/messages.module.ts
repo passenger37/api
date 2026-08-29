@@ -10,6 +10,7 @@ import { ChannelReadStateRepository } from './repositories/channel-read-state.re
 import { ChannelMentionResolver } from './services/channel-mention-resolver.service';
 import { AuthModule } from '../auth/auth.module';
 import { ChannelMessageCommandService } from './services/channel-message-command.service';
+import { TypingService } from './services/typing.service';
 import { ChannelMessageQueryService } from './services/channel-message-query.service';
 import { ChannelMessageValidationService } from './services/channel-message-validation.service';
 import { ChannelMessageGateway } from './gateways/channel-message.gateway';
@@ -30,6 +31,7 @@ import { WebSocketErrorNormalizer } from '../../common/websocket/error/websocket
     ChannelReadStateRepository,
     ChannelMentionResolver,
     ChannelMessageValidationService,
+    TypingService,
     ChannelMessageQueryService,
     ChannelMessageCommandService,
     ChannelMessageGateway,
