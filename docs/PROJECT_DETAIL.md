@@ -96,11 +96,11 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 | **40.40** | Presence Foundation (Redis `user:{id}:presence`, online/idle/offline/dnd/invisible) (completed) | B1 40.27, B2 40.39, B1 concept §43, v1 40.35 |
 | **40.41** | Message/Event Idempotency (`clientMessageId`, per-author unique dedupe, P2002 race recovery, dedupe-suppressed broadcast) (completed) | B1 40.30, B2 40.41, B1 concept §42 |
 | **40.42** | WebSocket Reconnection & Missed-Event Synchronization (`sync-channel` replay with message-id cursor gap detection) (completed) | B1 40.29, B2 40.42 |
-| **40.43** | Event Ordering & Consistency (`eventSeq` monotonic sequence, message `version` for stale-update detection, optimistic-concurrency edits) (completed) | B1 concept §41, B2 40.43 |
-| 40.44 *(current)* | Outbox Pattern / Reliable Event Delivery | B2 40.40 (**CONFLICT with v1 40.40 "Distributed WebSocket Scaling"** — both implemented; scaling moved to §4.4 below since it depends on presence/outbox existing first) |
+| **40.43** | Event Ordering & Consistency (per-channel `messageSeq` + atomic `ServerChannel.lastMessageSeq` counter, message `version` for stale-update detection, optimistic-concurrency edits) (completed) | B1 concept §41, B2 40.43 |
+| **40.44** | Outbox Pattern / Reliable Event Delivery (transactional `OutboxEvent` next to business data, 500ms polling dispatcher, at-least-once publish + client dedupe, max-attempts FAILED) (completed) | B2 40.40 (**CONFLICT with v1 40.40 `Distributed WebSocket Scaling`** — both implemented; scaling moved to §4.4 below since it depends on presence/outbox existing first) |
 
 **Search — split in two (genuine sequencing conflict):** v1/B1 want basic search early (right after threads); B2 defers all search to its Phase 35 (after E2EE and media). Both are implemented, split by scope:
-- **40.45 Message Search — Part 1 (Basic):** Postgres full-text/`ILIKE` search over community-channel (Type A) messages. *(v1 40.33, B1 40.34)*
+- **40.45 Message Search — Part 1 (Basic):** *(current)* Postgres full-text/`ILIKE` search over community-channel (Type A) messages. *(v1 40.33, B1 40.34)*
 - **Message Search — Part 2 (Advanced):** external search engine evaluation, ranking, ships later in §4.6. *(B2 40.64)*
 
 **Attachments — split in two (same kind of conflict):** v1 wants full signed-URL/R2/CDN/AV-scan/thumbnail pipeline early (needed once threads/mentions exist); B2 defers heavy media processing to its Phase 36 background-jobs era. Split:
