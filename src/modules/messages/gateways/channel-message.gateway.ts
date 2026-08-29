@@ -234,11 +234,15 @@ export class ChannelMessageGateway
         request.messageId,
         userId,
         request.content,
+        request.expectedVersion,
       );
 
       this.server.to(message.channelId).emit('message-updated', {
         messageId: request.messageId,
         content: request.content,
+        serverTimestamp: new Date().toISOString(),
+        version: message.version + 1,
+        expectedVersion: request.expectedVersion,
       });
 
       return {

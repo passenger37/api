@@ -713,6 +713,10 @@ model ChannelMessage {
 
   clientMessageId String?
 
+  version Int @default(1)
+
+  eventSeq BigInt @unique @default(autoincrement())
+
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ChannelMessageCommandService } from './channel-message-command.service';
 import { PrismaService } from '../../../core/database/prisma.service';
@@ -264,6 +265,7 @@ describe('ChannelMessageCommandService - mentions', () => {
         serverId: 'srv-1',
         channelId: 'channel-1',
         authorMemberId: 'member-1',
+        version: 1,
       });
       memberQueryService.getMemberOrThrow.mockResolvedValue({
         id: 'member-1',
@@ -271,6 +273,7 @@ describe('ChannelMessageCommandService - mentions', () => {
       repository.update.mockResolvedValue({
         id: 'msg-1',
         content: 'new content',
+        version: 2,
       });
 
       const mentions = [
@@ -327,10 +330,34 @@ describe('ChannelMessageCommandService - mentions', () => {
           content: 'new content',
           isEdited: true,
           editedAt: expect.any(Date),
+          version: { increment: 1 },
         },
         tx,
       );
-      expect(result).toEqual({ id: 'msg-1', content: 'new content' });
+      expect(result).toEqual({
+        id: 'msg-1',
+        content: 'new content',
+        version: 2,
+      });
+    });
+
+    it('should reject a stale edit when expectedVersion does not match', async () => {
+      queryService.getMessage.mockResolvedValue({
+        id: 'msg-1',
+        content: 'newer content',
+        serverId: 'srv-1',
+        channelId: 'channel-1',
+        authorMemberId: 'member-1',
+        version: 2,
+      });
+      memberQueryService.getMemberOrThrow.mockResolvedValue({
+        id: 'member-1',
+      });
+
+      await expect(
+        service.editMessage('msg-1', 'user-1', 'new content', 1),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.update).not.toHaveBeenCalled();
     });
 
     it('should not persist anything if the transaction rolls back', async () => {

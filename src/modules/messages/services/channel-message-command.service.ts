@@ -164,7 +164,12 @@ export class ChannelMessageCommandService {
     );
   }
 
-  async editMessage(messageId: string, userId: string, content: string) {
+  async editMessage(
+    messageId: string,
+    userId: string,
+    content: string,
+    expectedVersion?: number,
+  ) {
     this.validation.validateContent(content);
 
     const message = await this.queryService.getMessage(messageId);
@@ -180,6 +185,12 @@ export class ChannelMessageCommandService {
       serverId,
       userId,
     );
+
+    if (expectedVersion && message.version !== expectedVersion) {
+      throw new BadRequestException(
+        'Message was updated elsewhere; please refresh and retry.',
+      );
+    }
 
     const editedAt = new Date();
 
@@ -230,6 +241,10 @@ export class ChannelMessageCommandService {
           isEdited: true,
 
           editedAt,
+
+          version: {
+            increment: 1,
+          },
         },
         tx,
       );

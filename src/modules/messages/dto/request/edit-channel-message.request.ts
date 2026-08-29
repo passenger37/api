@@ -1,4 +1,12 @@
-import { IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class EditChannelMessageRequest {
   @IsUUID()
@@ -8,4 +16,9 @@ export class EditChannelMessageRequest {
   @MinLength(1)
   @MaxLength(4000)
   content!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  expectedVersion?: number;
 }

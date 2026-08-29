@@ -44,9 +44,11 @@ describe('ChannelMessageGateway Integration', () => {
     };
     errorNormalizer = { normalize: jest.fn().mockReturnValue({ error: true }) };
     queryService = {
-      getMessage: jest
-        .fn()
-        .mockResolvedValue({ channelId: 'ch1', serverId: 'sv1' }),
+      getMessage: jest.fn().mockResolvedValue({
+        channelId: 'ch1',
+        serverId: 'sv1',
+        version: 1,
+      }),
       getMessageById: jest
         .fn()
         .mockResolvedValue({ channelId: 'ch1', serverId: 'sv1' }),
@@ -403,5 +405,32 @@ describe('ChannelMessageGateway Integration', () => {
       'sync-channel',
     );
     expect(result).toEqual({ error: true });
+  });
+
+  it('should edit with optimistic concurrency and broadcast the new version', async () => {
+    const client = { data: { userId: 'u1' } } as any;
+    const request = {
+      messageId: 'msg1',
+      content: 'edited',
+      expectedVersion: 1,
+    };
+
+    const result = await gateway.editMessage(client, request as any);
+
+    expect(commandService.editMessage).toHaveBeenCalledWith(
+      'msg1',
+      'u1',
+      'edited',
+      1,
+    );
+    expect(mockServer.to).toHaveBeenCalledWith('ch1');
+    expect(mockServer.emit).toHaveBeenCalledWith('message-updated', {
+      messageId: 'msg1',
+      content: 'edited',
+      serverTimestamp: expect.any(String),
+      version: 2,
+      expectedVersion: 1,
+    });
+    expect(result).toEqual({ success: true, messageId: 'msg1' });
   });
 });
