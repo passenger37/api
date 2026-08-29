@@ -27,6 +27,12 @@ describe('ChannelMessageGateway Integration', () => {
       deleteMessage: jest.fn().mockResolvedValue(undefined),
       pinMessage: jest.fn().mockResolvedValue({ id: 'msg1' }),
       unpinMessage: jest.fn().mockResolvedValue({ id: 'msg1' }),
+      markChannelRead: jest.fn().mockResolvedValue({
+        channelId: 'ch1',
+        lastReadMessageId: 'msg2',
+        lastReadAt: new Date('2026-01-01T00:00:00.000Z'),
+        unreadCount: 0,
+      }),
     };
     validationService = {
       validateChannelAccess: jest
@@ -118,7 +124,12 @@ describe('ChannelMessageGateway Integration', () => {
       'message-created',
       expect.any(Object),
     );
-    expect(result.success).toBe(true);
+    expect(result).toEqual({
+      success: true,
+      event: 'send-message',
+      deliveryState: 'created',
+      data: { id: 'msg1', content: 'hello' },
+    });
   });
 
   it('should leave channel', async () => {
@@ -222,6 +233,67 @@ describe('ChannelMessageGateway Integration', () => {
     expect(errorNormalizer.normalize).toHaveBeenCalledWith(
       expect.any(Error),
       'typing-start',
+    );
+    expect(result).toEqual({ error: true });
+  });
+
+  it('should broadcast message-read when the read cursor advances', async () => {
+    const client = { data: { userId: 'u1' } } as any;
+    const request = { channelId: 'ch1', lastReadMessageId: 'msg2' };
+
+    const result = await gateway.messageRead(client, request as any);
+
+    expect(rateLimitService.consume).toHaveBeenCalledWith({
+      key: 'ws:message-read:u1',
+      limit: 20,
+      windowSeconds: 10,
+    });
+    expect(commandService.markChannelRead).toHaveBeenCalledWith(
+      'ch1',
+      'u1',
+      'msg2',
+    );
+    expect(mockServer.to).toHaveBeenCalledWith('ch1');
+    expect(mockServer.emit).toHaveBeenCalledWith('message-read', {
+      channelId: 'ch1',
+      userId: 'u1',
+      lastReadMessageId: 'msg2',
+      lastReadAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
+    expect(result).toEqual({
+      success: true,
+      channelId: 'ch1',
+      lastReadMessageId: 'msg2',
+      lastReadAt: new Date('2026-01-01T00:00:00.000Z'),
+      unreadCount: 0,
+    });
+  });
+
+  it('should mark the whole channel read when no cursor message is given', async () => {
+    const client = { data: { userId: 'u1' } } as any;
+    const request = { channelId: 'ch1' };
+
+    await gateway.messageRead(client, request as any);
+
+    expect(commandService.markChannelRead).toHaveBeenCalledWith(
+      'ch1',
+      'u1',
+      undefined,
+    );
+  });
+
+  it('should normalize errors on message-read failure', async () => {
+    commandService.markChannelRead.mockRejectedValueOnce(
+      new Error('Read cursor message belongs to another channel.'),
+    );
+    const client = { data: { userId: 'u1' } } as any;
+    const request = { channelId: 'ch1', lastReadMessageId: 'msg2' };
+
+    const result = await gateway.messageRead(client, request as any);
+
+    expect(errorNormalizer.normalize).toHaveBeenCalledWith(
+      expect.any(Error),
+      'message-read',
     );
     expect(result).toEqual({ error: true });
   });

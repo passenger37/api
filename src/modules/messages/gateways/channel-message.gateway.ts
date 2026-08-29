@@ -40,6 +40,7 @@ import { WebSocketErrorNormalizer } from '../../../common/websocket/error/websoc
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
 import { TypingStartRequest } from '../dto/request/typing-start.request';
 import { TypingStopRequest } from '../dto/request/typing-stop.request';
+import { MessageReadRequest } from '../dto/request/message-read.request';
 import { TypingService } from '../services/typing.service';
 
 @WebSocketGateway({
@@ -143,6 +144,7 @@ export class ChannelMessageGateway
       return {
         success: true,
         event: 'send-message',
+        deliveryState: 'created',
         data: message,
       };
     } catch (exception) {
@@ -478,6 +480,43 @@ export class ChannelMessageGateway
       return {
         success: true,
         channelId: request.channelId,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('message-read')
+  async messageRead(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: MessageReadRequest,
+  ) {
+    const event = 'message-read';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: `ws:message-read:${userId}`,
+        limit: 20,
+        windowSeconds: 10,
+      });
+
+      const state = await this.commandService.markChannelRead(
+        request.channelId,
+        userId,
+        request.lastReadMessageId,
+      );
+
+      this.server.to(request.channelId).emit('message-read', {
+        channelId: state.channelId,
+        userId,
+        lastReadMessageId: state.lastReadMessageId,
+        lastReadAt: state.lastReadAt,
+      });
+
+      return {
+        success: true,
+        ...state,
       };
     } catch (exception) {
       return this.normalizeError(exception, event);
