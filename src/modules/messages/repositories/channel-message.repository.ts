@@ -56,6 +56,27 @@ export class ChannelMessageRepository {
     });
   }
 
+  // Cursor pagination ordered by createdAt DESC, id DESC
+  // Recommended composite index: (channelId, createdAt DESC, id DESC) for optimal performance
+  async findManyByChannelPaginated(
+    channelId: string,
+    cursor?: string,
+    limit = 50,
+  ): Promise<ChannelMessage[]> {
+    return this.prisma.channelMessage.findMany({
+      where: {
+        channelId,
+        isDeleted: false,
+      },
+
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+
+      cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0,
+      take: limit,
+    });
+  }
+
   async update(
     id: string,
     data: Prisma.ChannelMessageUpdateInput,
@@ -158,6 +179,34 @@ export class ChannelMessageRepository {
 
       orderBy: {
         createdAt: 'asc',
+      },
+    });
+  }
+
+  async findRepliesPaginated(
+    parentMessageId: string,
+    cursor?: string,
+    limit = 50,
+  ): Promise<ChannelMessage[]> {
+    return this.prisma.channelMessage.findMany({
+      where: {
+        parentMessageId,
+        isDeleted: false,
+      },
+
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+
+      cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0,
+      take: limit,
+    });
+  }
+
+  async countReplies(parentMessageId: string): Promise<number> {
+    return this.prisma.channelMessage.count({
+      where: {
+        parentMessageId,
+        isDeleted: false,
       },
     });
   }

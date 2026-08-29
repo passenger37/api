@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -16,6 +17,8 @@ import { ChannelMessageQueryService } from '../services/channel-message-query.se
 
 import { CreateChannelMessageRequest } from '../dto/request/create-channel-message.request';
 import { UpdateChannelMessageRequest } from '../dto/request/update-channel-message.request';
+import { GetChannelMessagesQuery } from '../dto/query/get-channel-messages.query';
+import { GetRepliesQuery } from '../dto/query/get-replies.query';
 
 @Controller()
 export class ChannelMessageController {
@@ -43,21 +46,47 @@ export class ChannelMessageController {
   async getMessages(
     @Param('channelId') channelId: string,
     @CurrentUser('id') userId: string,
-    @Query('skip') skip?: number,
-    @Query('take') take?: number,
+    @Query() query: GetChannelMessagesQuery,
   ) {
     await this.validation.validateChannelAccess(channelId, userId);
 
-    return this.queryService.getChannelMessages(
+    const limit = query.limit ?? 50;
+    if (limit <= 0 || limit > 100) {
+      throw new BadRequestException('Limit must be between 1 and 100');
+    }
+
+    return this.queryService.getChannelMessagesPaginated(
       channelId,
-      Number(skip ?? 0),
-      Number(take ?? 50),
+      query.cursor,
+      limit,
     );
   }
 
   @Get('messages/:messageId')
   async getMessage(@Param('messageId') messageId: string) {
     return this.queryService.getMessage(messageId);
+  }
+
+  @Get('servers/:serverId/channels/:channelId/messages/:messageId/replies')
+  async getReplies(
+    @Param('serverId') serverId: string,
+    @Param('channelId') channelId: string,
+    @Param('messageId') messageId: string,
+    @CurrentUser('id') userId: string,
+    @Query() query: GetRepliesQuery,
+  ) {
+    await this.validation.validateChannelAccess(channelId, userId);
+
+    const limit = query.limit ?? 50;
+    if (limit <= 0 || limit > 100) {
+      throw new BadRequestException('Limit must be between 1 and 100');
+    }
+
+    return this.queryService.getThreadRepliesPaginated(
+      messageId,
+      query.cursor,
+      limit,
+    );
   }
 
   @Patch('servers/:serverId/messages/:messageId')
