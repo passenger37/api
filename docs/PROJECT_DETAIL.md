@@ -100,11 +100,11 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 | **40.44** | Outbox Pattern / Reliable Event Delivery (transactional `OutboxEvent` next to business data, 500ms polling dispatcher, at-least-once publish + client dedupe, max-attempts FAILED) (completed) | B2 40.40 (**CONFLICT with v1 40.40 `Distributed WebSocket Scaling`** — both implemented; scaling moved to §4.4 below since it depends on presence/outbox existing first) |
 
 **Search — split in two (genuine sequencing conflict):** v1/B1 want basic search early (right after threads); B2 defers all search to its Phase 35 (after E2EE and media). Both are implemented, split by scope:
-- **40.45 Message Search — Part 1 (Basic):** *(current)* Postgres full-text/`ILIKE` search over community-channel (Type A) messages. *(v1 40.33, B1 40.34)*
+- **40.45 Message Search — Part 1 (Basic):** Postgres full-text/search vector (generated `tsvector` + GIN) over community-channel messages, server-scoped with per-channel view filtering, author/date filters, keyset cursor (completed) *(v1 40.33, B1 40.34)*
 - **Message Search — Part 2 (Advanced):** external search engine evaluation, ranking, ships later in §4.6. *(B2 40.64)*
 
 **Attachments — split in two (same kind of conflict):** v1 wants full signed-URL/R2/CDN/AV-scan/thumbnail pipeline early (needed once threads/mentions exist); B2 defers heavy media processing to its Phase 36 background-jobs era. Split:
-- **40.46 Messaging Media/Attachment Backend — Part 1 (Basic upload path):** signed URLs, Cloudflare R2, CDN, MIME validation, size limits. *(v1 40.37, B1 concept §49)*
+- **40.46 Messaging Media/Attachment Backend — Part 1 (Basic upload path):** *(current)* signed URLs, Cloudflare R2, CDN, MIME validation, size limits. *(v1 40.37, B1 concept §49)*
 - **Media Pipeline — Part 2 (Advanced processing):** antivirus scan, thumbnail generation, transcoding, all via BullMQ. Moved to §4.6 with Background Jobs. *(B2 40.65, v1 40.37's AV/transcode detail)*
 
 | # | Lecture | Originally numbered as |
