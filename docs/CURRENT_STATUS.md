@@ -22,19 +22,20 @@ with server-based collaboration and a hybrid messaging architecture.
 
 ### Current lecture
 
-**40.36 --- Mentions (Completed)**
+**40.37 --- Read / Unread State (Completed)**
 
 The immediate continuation point is now:
 
 ``` text
-40.36 Completed → verify → 40.37 Read / Unread State
+40.37 Completed → verify → 40.38 Typing Indicators
 ```
 
 The project has completed Messaging WebSocket hardening (40.28–40.30),
 cursor-based message pagination (40.31), the query-optimization pass
 (40.32), the composed thread read model (40.33), non-destructive edit
-history (40.34), tombstone delete semantics (40.35), and mention
-parsing/authorization with indexed mention records (40.36) with a
+history (40.34), tombstone delete semantics (40.35), mention
+parsing/authorization with indexed mention records (40.36), and
+per-channel read state with a derived unread count (40.37) with a
 passing automated test suite.
 
 ------------------------------------------------------------------------
@@ -546,44 +547,42 @@ Listings already filter `isDeleted: false`; direct reads no longer leak
 deleted content. Verification: tsc clean, 12 Jest suites / 59 tests
 green, build ok.
 
-The next objective is **40.37 --- Read / Unread State**.
+The next objective is **40.38 --- Typing Indicators**.
 
 ------------------------------------------------------------------------
 
 # Current Task
 
-## 40.36 --- Mentions (Completed)
+## 40.37 --- Read / Unread State (Completed)
 
 Implemented:
 
--   pure `parseMentions` util — recognizes `@everyone` (case-insensitive),
-    `@role:<name>`, and `@<name>` tokens; strips trailing punctuation;
-    extra `@`-free / email-like runs are extracted as member candidates
--   `ChannelMentionResolver` — `@everyone` gated behind
-    `MANAGE_MESSAGES` (Forbidden otherwise); role names resolved via
-    `ServerRoleQueryService.getRoleByName`; member tokens resolved by
-    exact nickname/username match; hard cap of 50 mention tokens per
-    message (BadRequest above that); deduplicated targets; unknown
-    targets silently ignored
--   `ChannelMention` model + migration `20260829043013_add_message_mentions`
-    (mentionType MEMBER/ROLE/EVERYONE, `targetMemberId?`,
-    `targetRoleId?`, indexes on message/server/targets; cascade on
-    message, set-null on member/role)
--   `ChannelMentionRepository` — tx-aware `createMany`,
-    `deleteManyByMessage`, `findByMessage`, batched
-    `countMentionsByMessages` (groupBy)
--   write path — `createMessage` resolves + persists mentions inside the
-    create transaction; `editMessage` replaces mention rows inside the
-    edit transaction (alongside the history snapshot); broadcast
-    unchanged
--   read path — `getMessageMentions(messageId)` (404 on deleted) + new
-    `GET .../messages/:messageId/mentions` route; `mentionCount` added
-    additively to enriched history and thread replies via batch counts
+-   `ChannelReadState` model + migration
+    `20260829044205_add_channel_read_state` — a moving cursor per
+    (channel, member): `lastReadMessageId?` (SetNull on message delete)
+    + `lastReadAt?` mirroring the anchor message's `createdAt`;
+    `@@unique([channelId, memberId])`; indexed by member and cursor
+-   `ChannelReadStateRepository` — `findByChannelAndMember`, tx-aware
+    `upsert`, `countUnreadAfter` (counts visible messages created after
+    the anchor; all messages when no cursor), `findLatestMessage`
+-   write path — `markChannelRead(channelId, userId, lastReadMessageId?)`
+    through `validateChannelAccess` (404/403): cross-channel cursor
+    message rejected (`BadRequest`), unknown cursor message rejected,
+    **forward-only** monotonic cursor (older candidate is an idempotent
+    no-op, never a regression), no `lastReadMessageId` = mark-all-read
+    pinned to the newest visible message (empty channel → null cursor,
+    `lastReadAt = now`)
+-   read path — `getChannelReadState(serverId, channelId, userId)` returns
+    `{ channelId, lastReadMessageId, lastReadAt, unreadCount }` with
+    `unreadCount` always derived, never stored
+-   surface — `GET` + `POST servers/:serverId/channels/:channelId/read-state`
+    (`UpdateChannelReadStateRequest` with optional `lastReadMessageId`);
+    uses the existing `(channelId, createdAt, id)` index — no Redis
 
-Verification: `Found 0 errors` (tsc), 15 Jest suites / 89 tests passing,
-`nest build` succeeds, app boots with the mentions route mapped.
+Verification: `Found 0 errors` (tsc), 16 Jest suites / 103 tests passing,
+`nest build` succeeds, app boots with both read-state routes mapped.
 
-## Next ---- 40.37 Read / Unread State
+## Next ---- 40.38 Typing Indicators
 
 ------------------------------------------------------------------------
 
@@ -673,19 +672,18 @@ existence validation.
 
 # Next Lecture
 
-After 40.36 is fully verified:
+After 40.37 is fully verified:
 
-## 40.37 --- Read / Unread State
+## 40.38 --- Typing Indicators
 
 Focus on:
 
--   a `lastReadMessageId` / `lastReadAt` / `unreadCount` model per
-    (member, channel) — a cursor, not per-message read rows
--   unread count derived from messages newer than the cursor
--   do **not** front-load Redis; evaluate it only after measuring
-    workload
--   notify-driven invalidation of the read cursor stays out of scope for
-    the notifications domain (40.44 / 40.45)
+-   ephemeral typing presence per channel: Redis/Socket.IO, debounced and
+    throttled — **no DB writes**
+-   scope preserved from B2's absence in its plan: this is inserted from
+    B1 40.26 / concept §44 at the merged position 40.38
+-   keep it distinct from presence (40.40) and message delivery state
+    (40.39)
 
 Do not jump directly into unrelated frontend work.
 
@@ -1029,15 +1027,17 @@ claiming completion before testing.
 -   **40.36 --- mentions** (parsing, authorization, anti-abuse cap,
     indexed mention records; write-path persistence + read-path
     enrichment)
+-   **40.37 --- read / unread state** (per-channel moving cursor with
+    forward-only semantics; derived unread count; no Redis)
 
 ## Current task
 
-**40.37 --- Read / Unread State** (next lecture)
+**40.38 --- Typing Indicators** (next lecture)
 
 ## Where we paused
 
-After committing 40.36 (mentions) with a green test suite (15 suites /
-89 tests).
+After committing 40.37 (read / unread state) with a green test suite (16
+suites / 103 tests).
 
 ## Blockers
 
@@ -1046,24 +1046,21 @@ After committing 40.36 (mentions) with a green test suite (15 suites /
 
 ## Next task
 
-**40.37 --- Read / Unread State.**
+**40.38 --- Typing Indicators.**
 
 ## First next step
 
-Inspect where a per-member message-read cursor belongs:
+Inspect where ephemeral, debounced typing state belongs:
 
 ``` text
-src/modules/messages/services/channel-message-query.service.ts
-src/modules/messages/repositories/channel-message.repository.ts
-prisma/schema.prisma
+src/modules/messages/gateways/channel-message.gateway.ts
+src/common/websocket/rate-limit/websocket-rate-limit.service.ts
 ```
 
 and confirm:
 
-1.  what model designs exist today for per-user per-channel read state
-2.  where `lastReadMessageId` / `unreadCount` should be fetched when a
-    channel is opened
-3.  how the read cursor invalidates/updates without per-message rows or
-    premature Redis usage
+1.  which existing WS event contract (join/leave/send) typing fits beside
+2.  how Redis availability is currently gated/optional in the gateway path
+3.  where the debounce/throttle window belongs without DB writes
 
-Only then make the smallest required code change for 40.37.
+Only then make the smallest required code change for 40.38.
