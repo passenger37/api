@@ -22,17 +22,18 @@ with server-based collaboration and a hybrid messaging architecture.
 
 ### Current lecture
 
-**40.32 --- Message Query Optimization (Completed)**
+**40.33 --- Message Thread / Reply Queries (Completed)**
 
 The immediate continuation point is now:
 
 ``` text
-40.32 Completed → verify → 40.33 Message Thread / Reply Queries
+40.33 Completed → verify → 40.34 Message Edit History
 ```
 
 The project has completed Messaging WebSocket hardening (40.28–40.30),
-cursor-based message pagination (40.31), and the query-optimization pass
-(40.32) with a passing automated test suite.
+cursor-based message pagination (40.31), the query-optimization pass
+(40.32), and the composed thread read model (40.33) with a passing
+automated test suite.
 
 ------------------------------------------------------------------------
 
@@ -93,6 +94,7 @@ Implemented/discussed:
 22. Messaging unit + integration/security test scaffolding
 23. Cursor-based message pagination (channel history + replies)
 24. Message Query Optimization (composite indexes + batched reaction counts)
+25. Composed thread read model (parent anchor + enriched bounded replies)
 
 ------------------------------------------------------------------------
 
@@ -524,48 +526,47 @@ messageId_memberId_emoji
 The latest roadmap position is:
 
 ``` text
-40.32 — Message Query Optimization (Completed)
+40.33 — Message Thread / Reply Queries (Completed)
 ```
 
-Composite indexes now match the pagination orderings:
+The reply read side is now a composed thread read model:
 
 ``` text
-ChannelMessage (channelId, createdAt, id)
-ChannelMessage (parentMessageId, createdAt, id)
+GET .../messages/:messageId/replies
+    → { message, items, nextCursor, hasMore, replyCount }
 ```
 
-Reaction counts are batched per page via a single `groupBy` query
-(`countReactionsByMessages`), and the query service exposes
-`getChannelMessagesWithReactionCounts`. Verification: tsc clean, 10 Jest
-suites / 41 tests green, build ok, migration applied.
+`items` are bounded pages against the `(parentMessageId, createdAt, id)`
+index, enriched per page with batched reaction counts
+(`countReactionsByMessages`); the parent is the thread anchor
+(`NotFoundException` when missing). Verification: tsc clean, 10 Jest
+suites / 46 tests green, build ok.
 
-The next objective is **40.33 --- Message Thread / Reply Queries**.
+The next objective is **40.34 --- Message Edit History**.
 
 ------------------------------------------------------------------------
 
 # Current Task
 
-## 40.32 --- Message Query Optimization (Completed)
+## 40.33 --- Message Thread / Reply Queries (Completed)
 
 Implemented:
 
--   schema composite indexes `(channelId, createdAt, id)` and
-    `(parentMessageId, createdAt, id)`; dropped the now-redundant
-    single-column `(channelId, createdAt)` and `(parentMessageId)`
--   migration `20260829034609_add_message_pagination_composite_indexes`
-    (created + applied)
--   repository `countReactionsByMessages(messageIds[])` — one batched
-    `groupBy(messageId, emoji)` query instead of per-message counting
--   query-service `getChannelMessagesWithReactionCounts(...)` — paginated
-    history enriched with reaction counts (same `{ items, nextCursor,
-    hasMore }` envelope)
--   repository + query-service specs (empty-id short-circuit, grouping
-    shape, enrichment, count default)
+-   query-service `getThread(parentMessageId, cursor, limit)` —
+    composed read model: parent anchor (`NotFoundException` when the
+    parent is missing) + bounded replies page + batched reaction counts
+    (`{ message, items, nextCursor, hasMore, replyCount }`)
+-   controller: the `GET .../messages/:messageId/replies` route now
+    returns the thread aggregate (`message` + per-item `reactionCounts`
+    are additive; existing fields unchanged)
+-   query-service specs (parent loaded, enrichment + count default,
+    NotFound short-circuit) and controller integration specs (thread
+    shape, invalid-limit guard on the replies route)
 
-Verification: `Found 0 errors` (tsc), 10 Jest suites / 41 tests passing,
+Verification: `Found 0 errors` (tsc), 10 Jest suites / 46 tests passing,
 `nest build` succeeds.
 
-## Next ---- 40.33 Message Thread / Reply Queries
+## Next ---- 40.34 Message Edit History
 
 ------------------------------------------------------------------------
 
@@ -655,16 +656,17 @@ existence validation.
 
 # Next Lecture
 
-After 40.32 is fully verified:
+After 40.33 is fully verified:
 
-## 40.33 --- Message Thread / Reply Queries
+## 40.34 --- Message Edit History
 
 Focus on:
 
--   a composed thread read model (parent + bounded reply page)
--   reply count, reaction summaries, author/member info
--   reuse of the `(parentMessageId, createdAt, id)` index
--   no unbounded reply-tree loads or per-reply N+1
+-   an edit-history model keyed to the message (timestamp, previous
+    content, editor)
+-   non-destructive edits: every edit appends a recoverable snapshot
+-   a `GET .../messages/:messageId/history` read route with bounded
+    pagination (established repository/query-service shape)
 
 Do not jump directly into unrelated frontend work.
 
@@ -997,42 +999,47 @@ claiming completion before testing.
 -   WebSocket error normalization and contract
 -   messaging unit + integration test scaffolding
 -   **40.31 --- cursor-based message pagination**
+-   **40.32 --- message query optimization** (composite indexes + batched
+    reaction counts)
+-   **40.33 --- composed thread read model** (parent anchor + enriched
+    bounded replies)
 
 ## Current task
 
-**40.32 --- Message Query Optimization** (next lecture)
+**40.34 --- Message Edit History** (next lecture)
 
 ## Where we paused
 
-After committing 40.32 (message query optimization — composite indexes
-and batched reaction counts) with a green test suite (10 suites / 41
-tests).
+After committing 40.33 (composed thread read model — `getThread`) with a
+green test suite (10 suites / 46 tests).
 
 ## Blockers
 
--   none blocking from the previous lecture; composite indexes are
-    applied via migration `20260829034609`
+-   none blocking from the previous lecture; thread replies reuse the
+    applied `(parentMessageId, createdAt, id)` index
 -   database-backed end-to-end test coverage is still pending
 
 ## Next task
 
-**40.33 --- Message Thread / Reply Queries.**
+**40.34 --- Message Edit History.**
 
 ## First next step
 
-Inspect the current reply read path:
+Inspect the current edit write path:
 
 ``` text
+src/modules/messages/services/channel-message-command.service.ts
 src/modules/messages/repositories/channel-message.repository.ts
-src/modules/messages/services/channel-message-query.service.ts
+src/modules/messages/controllers/channel-message.controller.ts
 ```
 
 and confirm:
 
-1.  thread replies load in bounded pages against the
-    `(parentMessageId, createdAt, id)` index
-2.  reply count and reaction/author data are added without per-reply
-    queries
-3.  an unlimited reply tree is never loaded in one query
+1.  edits are non-destructive — current content is preserved before any
+    update
+2.  a history model can be appended with timestamp, previous content,
+    and editor
+3.  a `GET .../messages/:messageId/history` route can read it with
+    bounded pagination
 
-Only then make the smallest required code change for 40.33.
+Only then make the smallest required code change for 40.34.

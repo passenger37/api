@@ -7,12 +7,13 @@
 > remaining backend work in implementation order.
 >
 > **Current position:** Messaging WebSocket gateway validation hardening
-> (40.28–40.30), **40.31 (Message History + Cursor Pagination)** and
-> **40.32 (Message Query Optimization)** are **completed**.
+> (40.28–40.30), **40.31 (Message History + Cursor Pagination)**,
+> **40.32 (Message Query Optimization)**, and **40.33 (Message Thread /
+> Reply Queries)** are **completed**.
 >
 > **Next lecture (merged numbering, authoritative per `PROJECT_DETAIL.md`
-> §4):** 40.33 — Message Thread / Reply Queries. (This document's legacy
-> numbering labels that phase "40.32 Reply/Thread Queries".)
+> §4):** 40.34 — Message Edit History. (This document's legacy numbering
+> labels Reply/Thread Queries "40.32".)
 >
 > **Important:** This roadmap preserves the architecture and decisions
 > already established for Nexus. It is intended to be usable without the
@@ -444,7 +445,7 @@ channel. — **DONE** (tsc clean, 9 suites / 37 tests green, build ok).
 
 ------------------------------------------------------------------------
 
-# 10. Phase 40.32 --- Reply / Thread Queries — NEXT (merged numbering: 40.33)
+# 10. Phase 40.32 --- Reply / Thread Queries — DONE (merged numbering: 40.33)
 
 ## Objective
 
@@ -1288,7 +1289,10 @@ Message History + Cursor Pagination — DONE
 Message Query Optimization — DONE (merged numbering)
         ↓
 40.33
-Reply/Thread Queries — NEXT (merged numbering)
+Reply/Thread Queries — DONE (merged numbering)
+        ↓
+40.34
+Message Edit History — NEXT (merged numbering)
         ↓
 40.33
 Message Search
