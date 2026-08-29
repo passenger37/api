@@ -22,12 +22,12 @@ with server-based collaboration and a hybrid messaging architecture.
 
 ### Current lecture
 
-**40.38 --- Typing Indicators (Completed)**
+**40.39 --- Message Delivery State (Completed)**
 
 The immediate continuation point is now:
 
 ``` text
-40.38 Completed → verify → 40.39 Message Delivery State
+40.39 Completed → verify → 40.40 Presence Foundation
 ```
 
 The project has completed Messaging WebSocket hardening (40.28–40.30),
@@ -35,8 +35,9 @@ cursor-based message pagination (40.31), the query-optimization pass
 (40.32), the composed thread read model (40.33), non-destructive edit
 history (40.34), tombstone delete semantics (40.35), mention
 parsing/authorization with indexed mention records (40.36), per-channel
-read state with a derived unread count (40.37), and ephemeral typing
-indicators (40.38) with a passing automated test suite.
+read state with a derived unread count (40.37), ephemeral typing
+indicators (40.38), and message delivery state with a created ack and
+realtime read fan-out (40.39) with a passing automated test suite.
 
 ------------------------------------------------------------------------
 
@@ -547,39 +548,41 @@ Listings already filter `isDeleted: false`; direct reads no longer leak
 deleted content. Verification: tsc clean, 12 Jest suites / 59 tests
 green, build ok.
 
-The next objective is **40.39 --- Message Delivery State**.
+The next objective is **40.40 --- Presence Foundation**.
 
 ------------------------------------------------------------------------
 
 # Current Task
 
-## 40.38 --- Typing Indicators (Completed)
+## 40.39 --- Message Delivery State (Completed)
 
 Implemented:
 
--   `typing-start` / `typing-stop` WebSocket events on
-    `ChannelMessageGateway` (namespace `/messages`, guarded +
-    validated + filtered as the rest of the gateway)
--   `TypingService` — ephemeral presence in Redis as
-    `typing:{channelId}:{userId}` with a 10 s TTL (repeated `typing-start`
-    refreshes it; disconnect/stop self-corrects via TTL) — **no DB
-    writes, no schema change**
--   throttling — `WebSocketRateLimitService` keyed
-    `ws:typing-start:{userId}` / `ws:typing-stop:{userId}` (10 / 10 s) to
-    bound event volume
--   authorization — both events require a valid channel access check
-    (`validateChannelAccess`) before touching presence; stop is torn
-    down best-effort under the same throttle budget
--   broadcast — `typing-started` { channelId, userId, username } emitted
-    to the channel room **excluding the sender** (`client.broadcast.to`);
-    `username` = member `nickname ?? user.username` resolved via new
-    `ServerMemberQueryService.getMemberWithUser` /
-    `ServerMemberRepository.findByServerAndUserWithUser`
+-   explicit **created ack contract** — `send-message` response now
+    carries `deliveryState: 'created'` alongside the existing
+    `success`/`event`/`data`; the WS ack is the authoritative
+    "server accepted" signal, distinct from delivery and read
+-   `message-read` realtime fan-out — new `message-read` WebSocket event
+    `{ channelId, lastReadMessageId? }` (validated, throttled
+    `ws:message-read:{userId}` 20 / 10 s) that routes through the same
+    `markChannelRead` command as the REST read-state route — access
+    check, cross-channel rejection, unknown-cursor rejection, and
+    **forward-only** semantics are all preserved — then broadcasts
+    `message-read` `{ channelId, userId, lastReadMessageId, lastReadAt }`
+    to the channel room so open clients move read markers live
+-   `delivered` boundary — the channel broadcast is the delivery
+    emission and is never conflated with read; read receipts are
+    answered by the existing 40.37 cursor (`getChannelReadState`), not
+    by per-message rows
+-   out of scope (documented, not built) — single-tick per-recipient
+    delivered marks (write amplification, defer until workload
+    justifies, see 40.55), reconnect/missed-event sync, send
+    idempotency/duplicate dedupe
 
-Verification: `Found 0 errors` (tsc), 17 Jest suites / 109 tests passing,
-`nest build` succeeds, app boots with both typing events subscribed.
+Verification: `Found 0 errors` (tsc), 17 Jest suites / 112 tests passing,
+`nest build` succeeds, app boots with the `message-read` event subscribed.
 
-## Next ---- 40.39 Message Delivery State
+## Next ---- 40.40 Presence Foundation
 
 ------------------------------------------------------------------------
 
@@ -1029,15 +1032,18 @@ claiming completion before testing.
 -   **40.38 --- typing indicators** (ephemeral Redis presence with expiry,
     throttled `typing-start`/`typing-stop`, per-channel broadcast
     excluding the sender)
+-   **40.39 --- message delivery state** (explicit `created` ack contract;
+    `message-read` fan-out via the 40.37 cursor; broadcast never treated
+    as read)
 
 ## Current task
 
-**40.39 --- Message Delivery State** (next lecture)
+**40.40 --- Presence Foundation** (next lecture)
 
 ## Where we paused
 
-After committing 40.38 (typing indicators) with a green test suite (17
-suites / 109 tests).
+After committing 40.39 (message delivery state) with a green test suite
+(17 suites / 112 tests).
 
 ## Blockers
 
@@ -1046,24 +1052,25 @@ suites / 109 tests).
 
 ## Next task
 
-**40.39 --- Message Delivery State.**
+**40.40 --- Presence Foundation.**
 
 ## First next step
 
-Inspect where delivery state (created → delivered → read) belongs:
+Inspect where presence (online / idle / offline / dnd / last seen)
+belongs:
 
 ``` text
 src/modules/messages/gateways/channel-message.gateway.ts
-src/modules/messages/services/channel-message-command.service.ts
-src/modules/messages/services/channel-message-query.service.ts
+src/core/redis/redis.service.ts
+src/modules/servers/services/server-member-query.service.ts
 ```
 
 and confirm:
 
-1.  which existing message/lifecycle events delivery state extends
-2.  how the 40.37 read cursor and the delivery-state acks compose without
-    per-message read rows being invented
-3.  what the WS ack contract (`ack` / `message-delivered` / `message-read`)
-    should be
+1.  which WS lifecycle hook presence state should be driven from
+2.  how Redis presence keys (`user:{id}:presence`) compose with the
+    typing presence keys and the existing rate-limit Redis usage
+3.  what the presence query/broadcast contract should be without touching
+    PostgreSQL on every heartbeat
 
-Only then make the smallest required code change for 40.39.
+Only then make the smallest required code change for 40.40.

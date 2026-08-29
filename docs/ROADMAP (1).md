@@ -11,11 +11,11 @@
 > **40.32 (Message Query Optimization)**, **40.33 (Message Thread /
 > Reply Queries)**, **40.34 (Message Edit History)**, **40.35
 > (Message Delete Semantics)**, **40.36 (Mentions)**, **40.37
-> (Read / Unread State)**, and **40.38 (Typing Indicators)** are
-> **completed**.
+> (Read / Unread State)**, **40.38 (Typing Indicators)**, and **40.39
+> (Message Delivery State)** are **completed**.
 >
 > **Next lecture (merged numbering, authoritative per `PROJECT_DETAIL.md`
-> §4):** 40.39 — Message Delivery State.
+> §4):** 40.40 — Presence Foundation.
 >
 > **Important:** This roadmap preserves the architecture and decisions
 > already established for Nexus. It is intended to be usable without the
@@ -1309,17 +1309,22 @@ Read / Unread State — DONE (merged numbering)
 Typing Indicators — DONE (merged numbering)
         ↓
 40.39
-Message Delivery State — NEXT (merged numbering)
+Message Delivery State — DONE (merged numbering)
+        ↓
+40.40
+Presence Foundation — NEXT (merged numbering)
+        ↓
+40.41
+Message/Event Idempotency
+        ↓
+40.42
+WebSocket Reconnection & Missed-Event Sync
+        ↓
+40.43
+Event Ordering & Consistency
         ↓
 40.33
 Message Search
-        ↓
-40.34
-Read/Delivery State
-        ↓
-40.35
-Presence
-        ↓
 40.36
 Notifications
         ↓
