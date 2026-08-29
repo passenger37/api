@@ -3,11 +3,13 @@ import { NotFoundException } from '@nestjs/common';
 import { ChannelMessageQueryService } from './channel-message-query.service';
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageReactionRepository } from '../repositories/channel-message-reaction.repository';
+import { ChannelMessageEditRepository } from '../repositories/channel-message-edit.repository';
 
 describe('ChannelMessageQueryService - pagination', () => {
   let service: ChannelMessageQueryService;
   let repository: jest.Mocked<ChannelMessageRepository>;
   let reactionRepository: jest.Mocked<ChannelMessageReactionRepository>;
+  let editRepository: jest.Mocked<ChannelMessageEditRepository>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -28,6 +30,13 @@ describe('ChannelMessageQueryService - pagination', () => {
             countReactionsByMessages: jest.fn(),
           },
         },
+        {
+          provide: ChannelMessageEditRepository,
+          useValue: {
+            findManyByMessagePaginated: jest.fn(),
+            countByMessage: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -36,6 +45,7 @@ describe('ChannelMessageQueryService - pagination', () => {
     );
     repository = module.get(ChannelMessageRepository);
     reactionRepository = module.get(ChannelMessageReactionRepository);
+    editRepository = module.get(ChannelMessageEditRepository);
   });
 
   it('should return items with nextCursor and hasMore when more items exist', async () => {
@@ -240,5 +250,43 @@ describe('ChannelMessageQueryService - pagination', () => {
       NotFoundException,
     );
     expect(repository.findRepliesPaginated).not.toHaveBeenCalled();
+  });
+
+  it('should return an edit history page with totalCount', async () => {
+    const edits = [
+      { id: 'e3', editedAt: new Date(), previousContent: 'second' },
+      { id: 'e2', editedAt: new Date(), previousContent: 'first' },
+      { id: 'e1', editedAt: new Date(), previousContent: 'original' },
+    ];
+    repository.findById.mockResolvedValue({ id: 'm1' } as any);
+    editRepository.findManyByMessagePaginated.mockResolvedValue(edits as any);
+    editRepository.countByMessage.mockResolvedValue(3);
+
+    const result = await service.getEditHistory('m1', undefined, 2);
+
+    expect(repository.findById).toHaveBeenCalledWith('m1');
+    expect(editRepository.findManyByMessagePaginated).toHaveBeenCalledWith(
+      'm1',
+      undefined,
+      3,
+    );
+    expect(editRepository.countByMessage).toHaveBeenCalledWith('m1');
+    expect(result.items).toHaveLength(2);
+    expect(result.items[0]).toMatchObject({
+      id: 'e3',
+      previousContent: 'second',
+    });
+    expect(result.hasMore).toBe(true);
+    expect(result.nextCursor).toBe('e2');
+    expect(result.totalCount).toBe(3);
+  });
+
+  it('should throw NotFoundException for edit history of a missing message', async () => {
+    repository.findById.mockResolvedValue(null);
+
+    await expect(
+      service.getEditHistory('missing', undefined, 2),
+    ).rejects.toThrow(NotFoundException);
+    expect(editRepository.findManyByMessagePaginated).not.toHaveBeenCalled();
   });
 });

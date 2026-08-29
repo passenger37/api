@@ -2,6 +2,7 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
 
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
+import { ChannelMessageEditRepository } from '../repositories/channel-message-edit.repository';
 import { ChannelMessageValidationService } from './channel-message-validation.service';
 import { ChannelMessageQueryService } from './channel-message-query.service';
 import { ChannelMessageGateway } from '../gateways/channel-message.gateway';
@@ -16,6 +17,8 @@ export class ChannelMessageCommandService {
     private readonly gateway: ChannelMessageGateway,
 
     private readonly repository: ChannelMessageRepository,
+
+    private readonly editRepository: ChannelMessageEditRepository,
 
     private readonly queryService: ChannelMessageQueryService,
 
@@ -99,15 +102,42 @@ export class ChannelMessageCommandService {
       userId,
     );
 
-    const updated = await this.repository.update(messageId, {
-      content,
+    const editedAt = new Date();
 
-      isEdited: true,
+    return this.prisma.$transaction(async (tx) => {
+      await this.editRepository.create(
+        {
+          message: {
+            connect: {
+              id: messageId,
+            },
+          },
 
-      editedAt: new Date(),
+          previousContent: message.content,
+
+          editedAt,
+
+          editedBy: {
+            connect: {
+              id: member.id,
+            },
+          },
+        },
+        tx,
+      );
+
+      return this.repository.update(
+        messageId,
+        {
+          content,
+
+          isEdited: true,
+
+          editedAt,
+        },
+        tx,
+      );
     });
-
-    return updated;
   }
 
   async deleteMessage(messageId: string, serverId: string, userId: string) {

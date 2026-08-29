@@ -19,6 +19,7 @@ describe('ChannelMessageController Integration - Pagination', () => {
           useValue: {
             getChannelMessagesPaginated: jest.fn(),
             getThread: jest.fn(),
+            getEditHistory: jest.fn(),
           },
         },
         {
@@ -150,6 +151,48 @@ describe('ChannelMessageController Integration - Pagination', () => {
     ).rejects.toThrow(BadRequestException);
     await expect(
       controller.getReplies('srv-1', 'ch-1', 'parent1', 'user-1', {
+        limit: 101,
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should return edit history for a message', async () => {
+    const history = {
+      items: [{ id: 'e2', previousContent: 'old content' }],
+      nextCursor: undefined,
+      hasMore: false,
+      totalCount: 1,
+    };
+    queryService.getEditHistory.mockResolvedValue(history as any);
+
+    const result = await controller.getEditHistory(
+      'srv-1',
+      'ch-1',
+      'm1',
+      'user-1',
+      { limit: 2 },
+    );
+
+    expect(validationService.validateChannelAccess).toHaveBeenCalledWith(
+      'ch-1',
+      'user-1',
+    );
+    expect(queryService.getEditHistory).toHaveBeenCalledWith(
+      'm1',
+      undefined,
+      2,
+    );
+    expect(result).toEqual(history);
+  });
+
+  it('should reject invalid limit on the edit history route', async () => {
+    await expect(
+      controller.getEditHistory('srv-1', 'ch-1', 'm1', 'user-1', {
+        limit: 0,
+      }),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      controller.getEditHistory('srv-1', 'ch-1', 'm1', 'user-1', {
         limit: 101,
       }),
     ).rejects.toThrow(BadRequestException);

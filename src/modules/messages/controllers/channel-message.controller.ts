@@ -19,6 +19,7 @@ import { CreateChannelMessageRequest } from '../dto/request/create-channel-messa
 import { UpdateChannelMessageRequest } from '../dto/request/update-channel-message.request';
 import { GetChannelMessagesQuery } from '../dto/query/get-channel-messages.query';
 import { GetRepliesQuery } from '../dto/query/get-replies.query';
+import { GetEditHistoryQuery } from '../dto/query/get-edit-history.query';
 
 @Controller()
 export class ChannelMessageController {
@@ -83,6 +84,24 @@ export class ChannelMessageController {
     }
 
     return this.queryService.getThread(messageId, query.cursor, limit);
+  }
+
+  @Get('servers/:serverId/channels/:channelId/messages/:messageId/history')
+  async getEditHistory(
+    @Param('serverId') serverId: string,
+    @Param('channelId') channelId: string,
+    @Param('messageId') messageId: string,
+    @CurrentUser('id') userId: string,
+    @Query() query: GetEditHistoryQuery,
+  ) {
+    await this.validation.validateChannelAccess(channelId, userId);
+
+    const limit = query.limit ?? 50;
+    if (limit <= 0 || limit > 100) {
+      throw new BadRequestException('Limit must be between 1 and 100');
+    }
+
+    return this.queryService.getEditHistory(messageId, query.cursor, limit);
   }
 
   @Patch('servers/:serverId/messages/:messageId')

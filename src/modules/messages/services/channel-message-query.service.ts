@@ -2,12 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageReactionRepository } from '../repositories/channel-message-reaction.repository';
+import { ChannelMessageEditRepository } from '../repositories/channel-message-edit.repository';
 
 @Injectable()
 export class ChannelMessageQueryService {
   constructor(
     private readonly repository: ChannelMessageRepository,
     private readonly reactionRepository: ChannelMessageReactionRepository,
+    private readonly editRepository: ChannelMessageEditRepository,
   ) {}
 
   async getMessage(messageId: string) {
@@ -137,6 +139,25 @@ export class ChannelMessageQueryService {
       hasMore,
       replyCount,
     };
+  }
+
+  async getEditHistory(messageId: string, cursor?: string, limit = 50) {
+    const message = await this.repository.findById(messageId);
+
+    if (!message) {
+      throw new NotFoundException('Message not found.');
+    }
+
+    const edits = await this.editRepository.findManyByMessagePaginated(
+      messageId,
+      cursor,
+      limit + 1,
+    );
+    const hasMore = edits.length > limit;
+    const items = hasMore ? edits.slice(0, limit) : edits;
+    const nextCursor = hasMore ? items[items.length - 1].id : undefined;
+    const totalCount = await this.editRepository.countByMessage(messageId);
+    return { items, nextCursor, hasMore, totalCount };
   }
 
   async getChannel(channelId: string) {
