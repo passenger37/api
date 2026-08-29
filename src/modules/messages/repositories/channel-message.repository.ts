@@ -26,6 +26,15 @@ export class ChannelMessageRepository {
     });
   }
 
+  async findByClientMessageId(clientMessageId: string, authorMemberId: string) {
+    return this.prisma.channelMessage.findFirst({
+      where: {
+        clientMessageId,
+        authorMemberId,
+      },
+    });
+  }
+
   async exists(id: string): Promise<boolean> {
     const count = await this.prisma.channelMessage.count({
       where: {

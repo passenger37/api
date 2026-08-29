@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
@@ -46,6 +47,7 @@ export class ChannelMessageCommandService {
     userId: string,
     content: string,
     parentMessageId?: string,
+    clientMessageId?: string,
   ) {
     const channel = await this.validation.validateSendPermission(
       channelId,
@@ -63,6 +65,20 @@ export class ChannelMessageCommandService {
       userId,
     );
 
+    if (clientMessageId) {
+      const existing = await this.repository.findByClientMessageId(
+        clientMessageId,
+        member.id,
+      );
+
+      if (existing) {
+        return {
+          message: existing,
+          deduplicated: true,
+        };
+      }
+    }
+
     const mentions = await this.mentionResolver.resolve(
       content,
       serverId,
@@ -70,50 +86,82 @@ export class ChannelMessageCommandService {
       userId,
     );
 
-    return this.prisma.$transaction(async (tx) => {
-      const message = await this.repository.create(
-        {
-          content,
+    try {
+      const message = await this.prisma.$transaction(async (tx) => {
+        const created = await this.repository.create(
+          {
+            content,
 
-          server: {
-            connect: {
-              id: serverId,
-            },
-          },
-
-          channel: {
-            connect: {
-              id: channelId,
-            },
-          },
-
-          author: {
-            connect: {
-              id: member.id,
-            },
-          },
-
-          ...(parentMessageId && {
-            parentMessage: {
+            server: {
               connect: {
-                id: parentMessageId,
+                id: serverId,
               },
             },
-          }),
-        },
-        tx,
-      );
 
-      await this.mentionRepository.createMany(
-        message.id,
-        serverId,
-        channelId,
-        mentions,
-        tx,
-      );
+            channel: {
+              connect: {
+                id: channelId,
+              },
+            },
 
-      return message;
-    });
+            author: {
+              connect: {
+                id: member.id,
+              },
+            },
+
+            ...(clientMessageId && { clientMessageId }),
+
+            ...(parentMessageId && {
+              parentMessage: {
+                connect: {
+                  id: parentMessageId,
+                },
+              },
+            }),
+          },
+          tx,
+        );
+
+        await this.mentionRepository.createMany(
+          created.id,
+          serverId,
+          channelId,
+          mentions,
+          tx,
+        );
+
+        return created;
+      });
+
+      return {
+        message,
+        deduplicated: false,
+      };
+    } catch (error) {
+      if (clientMessageId && this.isUniqueViolation(error)) {
+        const existing = await this.repository.findByClientMessageId(
+          clientMessageId,
+          member.id,
+        );
+
+        if (existing) {
+          return {
+            message: existing,
+            deduplicated: true,
+          };
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  private isUniqueViolation(error: unknown): boolean {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    );
   }
 
   async editMessage(messageId: string, userId: string, content: string) {

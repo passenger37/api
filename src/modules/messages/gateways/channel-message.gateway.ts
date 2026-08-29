@@ -137,15 +137,19 @@ export class ChannelMessageGateway
         userId,
         request.content,
         request.parentMessageId,
+        request.clientMessageId,
       );
 
-      this.broadcastMessageCreated(request.channelId, message);
+      if (!message.deduplicated) {
+        this.broadcastMessageCreated(request.channelId, message.message);
+      }
 
       return {
         success: true,
         event: 'send-message',
         deliveryState: 'created',
-        data: message,
+        data: message.message,
+        deduplicated: message.deduplicated,
       };
     } catch (exception) {
       return this.normalizeError(exception, event);

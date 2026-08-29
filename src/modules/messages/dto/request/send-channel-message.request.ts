@@ -18,4 +18,9 @@ export class SendChannelMessageRequest {
   @IsOptional()
   @IsUUID()
   parentMessageId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  clientMessageId?: string;
 }

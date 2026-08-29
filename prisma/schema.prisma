@@ -711,6 +711,8 @@ model ChannelMessage {
 
   pinnedAt DateTime?
 
+  clientMessageId String?
+
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
@@ -739,6 +741,7 @@ model ChannelMessage {
   @@index([serverId])
   @@index([isPinned])
   @@index([isDeleted])
+  @@unique([clientMessageId, authorMemberId])
 }
 
 model ChannelMessageEdit {

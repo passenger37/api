@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Prisma } from '@prisma/client';
 import { ChannelMessageCommandService } from './channel-message-command.service';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
@@ -14,7 +15,12 @@ import { ServerMemberQueryService } from '../../servers/services/server-member-q
 describe('ChannelMessageCommandService - mentions', () => {
   let service: ChannelMessageCommandService;
   let prisma: { $transaction: jest.Mock };
-  let repository: { create: jest.Mock; update: jest.Mock; findById: jest.Mock };
+  let repository: {
+    create: jest.Mock;
+    update: jest.Mock;
+    findById: jest.Mock;
+    findByClientMessageId: jest.Mock;
+  };
   let editRepository: { create: jest.Mock };
   let mentionRepository: {
     createMany: jest.Mock;
@@ -40,7 +46,12 @@ describe('ChannelMessageCommandService - mentions', () => {
   beforeEach(async () => {
     const tx = {};
     prisma = { $transaction: jest.fn(async (callback) => callback(tx)) };
-    repository = { create: jest.fn(), update: jest.fn(), findById: jest.fn() };
+    repository = {
+      create: jest.fn(),
+      update: jest.fn(),
+      findById: jest.fn(),
+      findByClientMessageId: jest.fn(),
+    };
     editRepository = { create: jest.fn() };
     mentionRepository = {
       createMany: jest.fn(),
@@ -129,7 +140,7 @@ describe('ChannelMessageCommandService - mentions', () => {
         mentions,
         tx,
       );
-      expect(result).toEqual({ id: 'msg-1' });
+      expect(result).toEqual({ message: { id: 'msg-1' }, deduplicated: false });
     });
 
     it('should call createMany with no mention rows when none are resolved', async () => {
@@ -151,6 +162,97 @@ describe('ChannelMessageCommandService - mentions', () => {
         [],
         expect.anything(),
       );
+    });
+
+    it('should return the existing message without re-creating on retry', async () => {
+      validation.validateSendPermission.mockResolvedValue({
+        id: 'channel-1',
+        serverId: 'srv-1',
+      });
+      memberQueryService.getMemberOrThrow.mockResolvedValue({
+        id: 'member-1',
+      });
+      repository.findByClientMessageId.mockResolvedValue({
+        id: 'msg-1',
+        content: 'hello',
+      });
+
+      const result = await service.createMessage(
+        'channel-1',
+        'user-1',
+        'hello',
+        undefined,
+        'client-1',
+      );
+
+      expect(repository.findByClientMessageId).toHaveBeenCalledWith(
+        'client-1',
+        'member-1',
+      );
+      expect(repository.create).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        message: { id: 'msg-1', content: 'hello' },
+        deduplicated: true,
+      });
+    });
+
+    it('should persist clientMessageId with the new message', async () => {
+      validation.validateSendPermission.mockResolvedValue({
+        id: 'channel-1',
+        serverId: 'srv-1',
+      });
+      memberQueryService.getMemberOrThrow.mockResolvedValue({
+        id: 'member-1',
+      });
+      repository.create.mockResolvedValue({ id: 'msg-1' });
+      const tx = {};
+
+      prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+
+      await service.createMessage(
+        'channel-1',
+        'user-1',
+        'hello',
+        undefined,
+        'client-1',
+      );
+
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ clientMessageId: 'client-1' }),
+        tx,
+      );
+    });
+
+    it('should recover from a unique violation by returning the existing message', async () => {
+      validation.validateSendPermission.mockResolvedValue({
+        id: 'channel-1',
+        serverId: 'srv-1',
+      });
+      memberQueryService.getMemberOrThrow.mockResolvedValue({
+        id: 'member-1',
+      });
+      repository.findByClientMessageId.mockResolvedValue({
+        id: 'msg-1',
+      });
+      prisma.$transaction.mockImplementation(async () => {
+        throw new Prisma.PrismaClientKnownRequestError(
+          'Unique constraint failed',
+          { code: 'P2002', clientVersion: '6.16.3' },
+        );
+      });
+
+      const result = await service.createMessage(
+        'channel-1',
+        'user-1',
+        'hello',
+        undefined,
+        'client-1',
+      );
+
+      expect(result).toEqual({
+        message: { id: 'msg-1' },
+        deduplicated: true,
+      });
     });
   });
 

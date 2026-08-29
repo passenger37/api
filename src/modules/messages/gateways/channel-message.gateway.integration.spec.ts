@@ -20,9 +20,10 @@ describe('ChannelMessageGateway Integration', () => {
   beforeEach(() => {
     rateLimitService = { consume: jest.fn().mockResolvedValue(undefined) };
     commandService = {
-      createMessage: jest
-        .fn()
-        .mockResolvedValue({ id: 'msg1', content: 'hello' }),
+      createMessage: jest.fn().mockResolvedValue({
+        message: { id: 'msg1', content: 'hello' },
+        deduplicated: false,
+      }),
       editMessage: jest.fn().mockResolvedValue(undefined),
       deleteMessage: jest.fn().mockResolvedValue(undefined),
       pinMessage: jest.fn().mockResolvedValue({ id: 'msg1' }),
@@ -104,6 +105,7 @@ describe('ChannelMessageGateway Integration', () => {
       channelId: 'ch1',
       content: 'hi',
       parentMessageId: undefined,
+      clientMessageId: 'client-1',
     };
 
     const result = await gateway.sendMessage(client, request as any);
@@ -118,6 +120,7 @@ describe('ChannelMessageGateway Integration', () => {
       'u1',
       'hi',
       undefined,
+      'client-1',
     );
     expect(mockServer.to).toHaveBeenCalledWith('ch1');
     expect(mockServer.emit).toHaveBeenCalledWith(
@@ -129,7 +132,37 @@ describe('ChannelMessageGateway Integration', () => {
       event: 'send-message',
       deliveryState: 'created',
       data: { id: 'msg1', content: 'hello' },
+      deduplicated: false,
     });
+  });
+
+  it('should suppress the broadcast and echo the original on a deduplicated retry', async () => {
+    mockServer.to.mockClear();
+    mockServer.emit.mockClear();
+    commandService.createMessage.mockResolvedValue({
+      message: { id: 'msg1', content: 'hello' },
+      deduplicated: true,
+    });
+    const client = { data: { userId: 'u1' } } as any;
+    const request = {
+      channelId: 'ch1',
+      content: 'hello',
+      parentMessageId: undefined,
+      clientMessageId: 'client-1',
+    };
+
+    const result = await gateway.sendMessage(client, request as any);
+
+    expect(commandService.createMessage).toHaveBeenCalledWith(
+      'ch1',
+      'u1',
+      'hello',
+      undefined,
+      'client-1',
+    );
+    expect(mockServer.to).not.toHaveBeenCalled();
+    expect(mockServer.emit).not.toHaveBeenCalled();
+    expect((result as any).deduplicated).toBe(true);
   });
 
   it('should leave channel', async () => {
