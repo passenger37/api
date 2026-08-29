@@ -252,6 +252,46 @@ describe('ChannelMessageQueryService - pagination', () => {
     expect(repository.findRepliesPaginated).not.toHaveBeenCalled();
   });
 
+  it('should throw NotFoundException when the message has been deleted', async () => {
+    repository.findById.mockResolvedValue({
+      id: 'm1',
+      isDeleted: true,
+      deletedAt: new Date(),
+    } as any);
+
+    await expect(service.getMessage('m1')).rejects.toThrow(NotFoundException);
+  });
+
+  it('should return a tombstone for a deleted thread parent', async () => {
+    const deletedAt = new Date();
+    repository.findById.mockResolvedValue({
+      id: 'parent1',
+      channelId: 'ch-1',
+      serverId: 'srv-1',
+      isDeleted: true,
+      deletedAt,
+      content: 'should not leak',
+    } as any);
+    repository.findRepliesPaginated.mockResolvedValue([
+      { id: 'r1', createdAt: new Date() },
+    ] as any);
+    repository.countReplies.mockResolvedValue(1);
+    reactionRepository.countReactionsByMessages.mockResolvedValue(new Map());
+
+    const result = await service.getThread('parent1', undefined, 1);
+
+    expect(result.message).toEqual({
+      id: 'parent1',
+      channelId: 'ch-1',
+      serverId: 'srv-1',
+      isDeleted: true,
+      deletedAt,
+      content: null,
+    });
+    expect(result.items).toHaveLength(1);
+    expect(result.replyCount).toBe(1);
+  });
+
   it('should return an edit history page with totalCount', async () => {
     const edits = [
       { id: 'e3', editedAt: new Date(), previousContent: 'second' },

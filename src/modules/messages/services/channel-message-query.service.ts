@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ChannelMessage } from '@prisma/client';
 
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageReactionRepository } from '../repositories/channel-message-reaction.repository';
@@ -15,11 +16,26 @@ export class ChannelMessageQueryService {
   async getMessage(messageId: string) {
     const message = await this.repository.findById(messageId);
 
-    if (!message) {
+    if (!message || message.isDeleted) {
       throw new NotFoundException('Message not found.');
     }
 
     return message;
+  }
+
+  private toMessageOrTombstone(message: ChannelMessage) {
+    if (!message.isDeleted) {
+      return message;
+    }
+
+    return {
+      id: message.id,
+      channelId: message.channelId,
+      serverId: message.serverId,
+      isDeleted: true,
+      deletedAt: message.deletedAt,
+      content: null,
+    };
   }
 
   async getChannelMessages(channelId: string, skip = 0, take = 50) {
@@ -128,7 +144,7 @@ export class ChannelMessageQueryService {
     const replyCount = await this.repository.countReplies(parentMessageId);
 
     return {
-      message,
+      message: this.toMessageOrTombstone(message),
       items: items.map((item) => ({
         ...item,
         reactionCounts: Object.fromEntries(
