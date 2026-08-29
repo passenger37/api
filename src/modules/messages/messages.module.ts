@@ -11,6 +11,8 @@ import { ChannelMentionResolver } from './services/channel-mention-resolver.serv
 import { AuthModule } from '../auth/auth.module';
 import { ChannelMessageCommandService } from './services/channel-message-command.service';
 import { TypingService } from './services/typing.service';
+import { PresenceService } from './services/presence.service';
+import { PresenceGateway } from './gateways/presence.gateway';
 import { ChannelMessageQueryService } from './services/channel-message-query.service';
 import { ChannelMessageValidationService } from './services/channel-message-validation.service';
 import { ChannelMessageGateway } from './gateways/channel-message.gateway';
@@ -36,6 +38,8 @@ import { WebSocketErrorNormalizer } from '../../common/websocket/error/websocket
     ChannelMessageCommandService,
     ChannelMessageGateway,
     WebSocketJwtGuard,
+    PresenceService,
+    PresenceGateway,
     ChannelMessageReactionCommandService,
     ChannelMessageReactionRepository,
     ChannelMessageReactionQueryService,
