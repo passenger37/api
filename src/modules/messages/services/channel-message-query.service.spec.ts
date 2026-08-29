@@ -5,6 +5,8 @@ import { ChannelMessageRepository } from '../repositories/channel-message.reposi
 import { ChannelMessageReactionRepository } from '../repositories/channel-message-reaction.repository';
 import { ChannelMessageEditRepository } from '../repositories/channel-message-edit.repository';
 import { ChannelMentionRepository } from '../repositories/channel-message-mention.repository';
+import { ChannelReadStateRepository } from '../repositories/channel-read-state.repository';
+import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
 
 describe('ChannelMessageQueryService - pagination', () => {
   let service: ChannelMessageQueryService;
@@ -12,6 +14,8 @@ describe('ChannelMessageQueryService - pagination', () => {
   let reactionRepository: jest.Mocked<ChannelMessageReactionRepository>;
   let editRepository: jest.Mocked<ChannelMessageEditRepository>;
   let mentionRepository: jest.Mocked<ChannelMentionRepository>;
+  let readStateRepository: jest.Mocked<ChannelReadStateRepository>;
+  let memberQueryService: { getMemberOrThrow: jest.Mock };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -46,6 +50,19 @@ describe('ChannelMessageQueryService - pagination', () => {
             countMentionsByMessages: jest.fn(),
           },
         },
+        {
+          provide: ChannelReadStateRepository,
+          useValue: {
+            findByChannelAndMember: jest.fn(),
+            countUnreadAfter: jest.fn(),
+          },
+        },
+        {
+          provide: ServerMemberQueryService,
+          useValue: {
+            getMemberOrThrow: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -56,7 +73,10 @@ describe('ChannelMessageQueryService - pagination', () => {
     reactionRepository = module.get(ChannelMessageReactionRepository);
     editRepository = module.get(ChannelMessageEditRepository);
     mentionRepository = module.get(ChannelMentionRepository);
+    readStateRepository = module.get(ChannelReadStateRepository);
+    memberQueryService = module.get(ServerMemberQueryService);
     mentionRepository.countMentionsByMessages.mockResolvedValue(new Map());
+    readStateRepository.countUnreadAfter.mockResolvedValue(0);
   });
 
   it('should return items with nextCursor and hasMore when more items exist', async () => {
@@ -411,5 +431,59 @@ describe('ChannelMessageQueryService - pagination', () => {
       NotFoundException,
     );
     expect(mentionRepository.findByMessage).not.toHaveBeenCalled();
+  });
+
+  it('should return the read state with a derived unread count', async () => {
+    const lastReadAt = new Date('2026-08-29T00:00:00Z');
+    memberQueryService.getMemberOrThrow.mockResolvedValue({
+      id: 'member-1',
+    });
+    readStateRepository.findByChannelAndMember.mockResolvedValue({
+      lastReadMessageId: 'msg-5',
+      lastReadAt,
+    } as any);
+    readStateRepository.countUnreadAfter.mockResolvedValue(7);
+
+    const result = await service.getChannelReadState('srv-1', 'ch-1', 'user-1');
+
+    expect(memberQueryService.getMemberOrThrow).toHaveBeenCalledWith(
+      'srv-1',
+      'user-1',
+    );
+    expect(readStateRepository.findByChannelAndMember).toHaveBeenCalledWith(
+      'ch-1',
+      'member-1',
+    );
+    expect(readStateRepository.countUnreadAfter).toHaveBeenCalledWith(
+      'ch-1',
+      lastReadAt,
+    );
+    expect(result).toEqual({
+      channelId: 'ch-1',
+      lastReadMessageId: 'msg-5',
+      lastReadAt,
+      unreadCount: 7,
+    });
+  });
+
+  it('should default to counting all messages when no read cursor exists', async () => {
+    memberQueryService.getMemberOrThrow.mockResolvedValue({
+      id: 'member-1',
+    });
+    readStateRepository.findByChannelAndMember.mockResolvedValue(null);
+    readStateRepository.countUnreadAfter.mockResolvedValue(14);
+
+    const result = await service.getChannelReadState('srv-1', 'ch-1', 'user-1');
+
+    expect(readStateRepository.countUnreadAfter).toHaveBeenCalledWith(
+      'ch-1',
+      null,
+    );
+    expect(result).toEqual({
+      channelId: 'ch-1',
+      lastReadMessageId: null,
+      lastReadAt: null,
+      unreadCount: 14,
+    });
   });
 });

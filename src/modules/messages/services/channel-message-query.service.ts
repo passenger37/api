@@ -5,6 +5,8 @@ import { ChannelMessageRepository } from '../repositories/channel-message.reposi
 import { ChannelMessageReactionRepository } from '../repositories/channel-message-reaction.repository';
 import { ChannelMessageEditRepository } from '../repositories/channel-message-edit.repository';
 import { ChannelMentionRepository } from '../repositories/channel-message-mention.repository';
+import { ChannelReadStateRepository } from '../repositories/channel-read-state.repository';
+import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
 
 @Injectable()
 export class ChannelMessageQueryService {
@@ -13,6 +15,8 @@ export class ChannelMessageQueryService {
     private readonly reactionRepository: ChannelMessageReactionRepository,
     private readonly editRepository: ChannelMessageEditRepository,
     private readonly mentionRepository: ChannelMentionRepository,
+    private readonly readStateRepository: ChannelReadStateRepository,
+    private readonly memberQueryService: ServerMemberQueryService,
   ) {}
 
   async getMessage(messageId: string) {
@@ -202,5 +206,33 @@ export class ChannelMessageQueryService {
     await this.getMessage(messageId);
 
     return this.mentionRepository.findByMessage(messageId);
+  }
+
+  async getChannelReadState(
+    serverId: string,
+    channelId: string,
+    userId: string,
+  ) {
+    const member = await this.memberQueryService.getMemberOrThrow(
+      serverId,
+      userId,
+    );
+
+    const state = await this.readStateRepository.findByChannelAndMember(
+      channelId,
+      member.id,
+    );
+
+    const unreadCount = await this.readStateRepository.countUnreadAfter(
+      channelId,
+      state?.lastReadAt ?? null,
+    );
+
+    return {
+      channelId,
+      lastReadMessageId: state?.lastReadMessageId ?? null,
+      lastReadAt: state?.lastReadAt ?? null,
+      unreadCount,
+    };
   }
 }

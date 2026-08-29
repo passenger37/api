@@ -1,9 +1,15 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
 
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageEditRepository } from '../repositories/channel-message-edit.repository';
 import { ChannelMentionRepository } from '../repositories/channel-message-mention.repository';
+import { ChannelReadStateRepository } from '../repositories/channel-read-state.repository';
 import { ChannelMentionResolver } from './channel-mention-resolver.service';
 import { ChannelMessageValidationService } from './channel-message-validation.service';
 import { ChannelMessageQueryService } from './channel-message-query.service';
@@ -25,6 +31,8 @@ export class ChannelMessageCommandService {
     private readonly mentionRepository: ChannelMentionRepository,
 
     private readonly mentionResolver: ChannelMentionResolver,
+
+    private readonly readStateRepository: ChannelReadStateRepository,
 
     private readonly queryService: ChannelMessageQueryService,
 
@@ -216,5 +224,66 @@ export class ChannelMessageCommandService {
     const unpinned = await this.repository.unpin(messageId);
 
     return unpinned;
+  }
+
+  async markChannelRead(
+    channelId: string,
+    userId: string,
+    lastReadMessageId?: string,
+  ) {
+    const { member } = await this.validation.validateChannelAccess(
+      channelId,
+      userId,
+    );
+
+    const existing = await this.readStateRepository.findByChannelAndMember(
+      channelId,
+      member.id,
+    );
+
+    const candidate = lastReadMessageId
+      ? await this.repository.findById(lastReadMessageId)
+      : await this.readStateRepository.findLatestMessage(channelId);
+
+    if (lastReadMessageId && !candidate) {
+      throw new BadRequestException(
+        'Read cursor references an unknown message.',
+      );
+    }
+
+    if (candidate && candidate.channelId !== channelId) {
+      throw new BadRequestException(
+        'Read cursor message belongs to another channel.',
+      );
+    }
+
+    const cursor = candidate
+      ? {
+          lastReadMessageId: candidate.id,
+          lastReadAt: candidate.createdAt,
+        }
+      : {
+          lastReadMessageId: null,
+          lastReadAt: new Date(),
+        };
+
+    const canAdvance =
+      !existing?.lastReadAt || cursor.lastReadAt > existing.lastReadAt;
+
+    const state = canAdvance
+      ? await this.readStateRepository.upsert(channelId, member.id, cursor)
+      : existing;
+
+    const unreadCount = await this.readStateRepository.countUnreadAfter(
+      channelId,
+      state.lastReadAt,
+    );
+
+    return {
+      channelId,
+      lastReadMessageId: state.lastReadMessageId,
+      lastReadAt: state.lastReadAt,
+      unreadCount,
+    };
   }
 }

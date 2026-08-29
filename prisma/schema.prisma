@@ -436,6 +436,8 @@ messageReactions ChannelMessageReaction[]
 
   mentionTargets ChannelMention[]
 
+  channelReadStates ChannelReadState[]
+
   @@unique([serverId, userId])
   @@index([serverId])
   @@index([userId])
@@ -647,6 +649,8 @@ model ServerChannel {
   permissionOverwrites ServerChannelPermissionOverwrite[]
   ChannelMessage       ChannelMessage[]
 
+  readStates ChannelReadState[]
+
   @@unique([serverId, name])
   @@unique([serverId, position])
   @@index([serverId])
@@ -727,6 +731,8 @@ model ChannelMessage {
 
   mentions ChannelMention[]
 
+  readCursors ChannelReadState[] @relation("ChannelReadCursor")
+
   @@index([channelId, createdAt, id])
   @@index([authorMemberId])
   @@index([parentMessageId, createdAt, id])
@@ -802,4 +808,30 @@ model ChannelMention {
   @@index([serverId])
   @@index([targetMemberId])
   @@index([targetRoleId])
+}
+
+model ChannelReadState {
+  id String @id @default(cuid())
+
+  channelId String
+
+  memberId String
+
+  lastReadMessageId String?
+
+  lastReadAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  channel ServerChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  member ServerMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  lastReadMessage ChannelMessage? @relation("ChannelReadCursor", fields: [lastReadMessageId], references: [id], onDelete: SetNull)
+
+  @@unique([channelId, memberId])
+  @@index([memberId])
+  @@index([lastReadMessageId])
 }

@@ -16,6 +16,7 @@ import { ChannelMessageCommandService } from '../services/channel-message-comman
 import { ChannelMessageQueryService } from '../services/channel-message-query.service';
 
 import { CreateChannelMessageRequest } from '../dto/request/create-channel-message.request';
+import { UpdateChannelReadStateRequest } from '../dto/request/update-channel-read-state.request';
 import { UpdateChannelMessageRequest } from '../dto/request/update-channel-message.request';
 import { GetChannelMessagesQuery } from '../dto/query/get-channel-messages.query';
 import { GetRepliesQuery } from '../dto/query/get-replies.query';
@@ -114,6 +115,30 @@ export class ChannelMessageController {
     await this.validation.validateChannelAccess(channelId, userId);
 
     return this.queryService.getMessageMentions(messageId);
+  }
+
+  @Get('servers/:serverId/channels/:channelId/read-state')
+  async getReadState(
+    @Param('serverId') serverId: string,
+    @Param('channelId') channelId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    await this.validation.validateChannelAccess(channelId, userId);
+
+    return this.queryService.getChannelReadState(serverId, channelId, userId);
+  }
+
+  @Post('servers/:serverId/channels/:channelId/read-state')
+  async updateReadState(
+    @Param('channelId') channelId: string,
+    @CurrentUser('id') userId: string,
+    @Body() request: UpdateChannelReadStateRequest,
+  ) {
+    return this.commandService.markChannelRead(
+      channelId,
+      userId,
+      request.lastReadMessageId,
+    );
   }
 
   @Patch('servers/:serverId/messages/:messageId')

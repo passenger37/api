@@ -4,6 +4,7 @@ import { PrismaService } from '../../../core/database/prisma.service';
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageEditRepository } from '../repositories/channel-message-edit.repository';
 import { ChannelMentionRepository } from '../repositories/channel-message-mention.repository';
+import { ChannelReadStateRepository } from '../repositories/channel-read-state.repository';
 import { ChannelMentionResolver } from './channel-mention-resolver.service';
 import { ChannelMessageValidationService } from './channel-message-validation.service';
 import { ChannelMessageQueryService } from './channel-message-query.service';
@@ -13,13 +14,19 @@ import { ServerMemberQueryService } from '../../servers/services/server-member-q
 describe('ChannelMessageCommandService - mentions', () => {
   let service: ChannelMessageCommandService;
   let prisma: { $transaction: jest.Mock };
-  let repository: { create: jest.Mock; update: jest.Mock };
+  let repository: { create: jest.Mock; update: jest.Mock; findById: jest.Mock };
   let editRepository: { create: jest.Mock };
   let mentionRepository: {
     createMany: jest.Mock;
     deleteManyByMessage: jest.Mock;
   };
   let mentionResolver: { resolve: jest.Mock };
+  let readStateRepository: {
+    findByChannelAndMember: jest.Mock;
+    upsert: jest.Mock;
+    countUnreadAfter: jest.Mock;
+    findLatestMessage: jest.Mock;
+  };
   let queryService: { getMessage: jest.Mock };
   let memberQueryService: { getMemberOrThrow: jest.Mock };
   let validation: {
@@ -27,18 +34,25 @@ describe('ChannelMessageCommandService - mentions', () => {
     validateSendPermission: jest.Mock;
     validateParentMessage: jest.Mock;
     validateEditPermission: jest.Mock;
+    validateChannelAccess: jest.Mock;
   };
 
   beforeEach(async () => {
     const tx = {};
     prisma = { $transaction: jest.fn(async (callback) => callback(tx)) };
-    repository = { create: jest.fn(), update: jest.fn() };
+    repository = { create: jest.fn(), update: jest.fn(), findById: jest.fn() };
     editRepository = { create: jest.fn() };
     mentionRepository = {
       createMany: jest.fn(),
       deleteManyByMessage: jest.fn(),
     };
     mentionResolver = { resolve: jest.fn(async () => []) };
+    readStateRepository = {
+      findByChannelAndMember: jest.fn(),
+      upsert: jest.fn(),
+      countUnreadAfter: jest.fn(),
+      findLatestMessage: jest.fn(),
+    };
     queryService = { getMessage: jest.fn() };
     memberQueryService = { getMemberOrThrow: jest.fn() };
     validation = {
@@ -46,6 +60,7 @@ describe('ChannelMessageCommandService - mentions', () => {
       validateSendPermission: jest.fn(),
       validateParentMessage: jest.fn(),
       validateEditPermission: jest.fn(),
+      validateChannelAccess: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -55,6 +70,7 @@ describe('ChannelMessageCommandService - mentions', () => {
         { provide: ChannelMessageRepository, useValue: repository },
         { provide: ChannelMessageEditRepository, useValue: editRepository },
         { provide: ChannelMentionRepository, useValue: mentionRepository },
+        { provide: ChannelReadStateRepository, useValue: readStateRepository },
         { provide: ChannelMentionResolver, useValue: mentionResolver },
         { provide: ChannelMessageValidationService, useValue: validation },
         { provide: ChannelMessageQueryService, useValue: queryService },
@@ -234,6 +250,150 @@ describe('ChannelMessageCommandService - mentions', () => {
       await expect(
         service.editMessage('msg-1', 'user-1', 'new content'),
       ).rejects.toThrow('rollback');
+    });
+  });
+
+  describe('markChannelRead', () => {
+    beforeEach(() => {
+      validation.validateChannelAccess.mockResolvedValue({
+        channel: { id: 'channel-1', serverId: 'srv-1' },
+        member: { id: 'member-1' },
+      });
+      readStateRepository.countUnreadAfter.mockResolvedValue(3);
+      readStateRepository.findByChannelAndMember.mockResolvedValue(null);
+    });
+
+    it('should advance the cursor to an in-channel message', async () => {
+      const createdAt = new Date('2026-08-29T00:00:00Z');
+      repository.findById.mockResolvedValue({
+        id: 'msg-5',
+        channelId: 'channel-1',
+        createdAt,
+      });
+      readStateRepository.upsert.mockResolvedValue({
+        lastReadMessageId: 'msg-5',
+        lastReadAt: createdAt,
+      });
+
+      const result = await service.markChannelRead(
+        'channel-1',
+        'user-1',
+        'msg-5',
+      );
+
+      expect(validation.validateChannelAccess).toHaveBeenCalledWith(
+        'channel-1',
+        'user-1',
+      );
+      expect(repository.findById).toHaveBeenCalledWith('msg-5');
+      expect(readStateRepository.upsert).toHaveBeenCalledWith(
+        'channel-1',
+        'member-1',
+        {
+          lastReadMessageId: 'msg-5',
+          lastReadAt: createdAt,
+        },
+      );
+      expect(result).toEqual({
+        channelId: 'channel-1',
+        lastReadMessageId: 'msg-5',
+        lastReadAt: createdAt,
+        unreadCount: 3,
+      });
+    });
+
+    it('should reject a read cursor for a message in another channel', async () => {
+      repository.findById.mockResolvedValue({
+        id: 'msg-5',
+        channelId: 'other-channel',
+        createdAt: new Date(),
+      });
+
+      await expect(
+        service.markChannelRead('channel-1', 'user-1', 'msg-5'),
+      ).rejects.toThrow('belongs to another channel');
+    });
+
+    it('should reject an unknown read cursor message', async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(
+        service.markChannelRead('channel-1', 'user-1', 'ghost'),
+      ).rejects.toThrow('unknown message');
+    });
+
+    it('should not regress an existing forward cursor', async () => {
+      const older = new Date('2026-08-29T00:00:00Z');
+      repository.findById.mockResolvedValue({
+        id: 'msg-2',
+        channelId: 'channel-1',
+        createdAt: older,
+      });
+      readStateRepository.findByChannelAndMember.mockResolvedValue({
+        lastReadMessageId: 'msg-9',
+        lastReadAt: new Date('2026-08-29T01:00:00Z'),
+      });
+
+      const result = await service.markChannelRead(
+        'channel-1',
+        'user-1',
+        'msg-2',
+      );
+
+      expect(readStateRepository.upsert).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        channelId: 'channel-1',
+        lastReadMessageId: 'msg-9',
+        lastReadAt: new Date('2026-08-29T01:00:00Z'),
+        unreadCount: 3,
+      });
+    });
+
+    it('should mark the channel as fully read when no cursor message is given', async () => {
+      const latest = new Date('2026-08-29T02:00:00Z');
+      readStateRepository.findLatestMessage.mockResolvedValue({
+        id: 'msg-latest',
+        channelId: 'channel-1',
+        createdAt: latest,
+      });
+      readStateRepository.upsert.mockResolvedValue({
+        lastReadMessageId: 'msg-latest',
+        lastReadAt: latest,
+      });
+
+      await service.markChannelRead('channel-1', 'user-1');
+
+      expect(readStateRepository.findLatestMessage).toHaveBeenCalledWith(
+        'channel-1',
+      );
+      expect(readStateRepository.upsert).toHaveBeenCalledWith(
+        'channel-1',
+        'member-1',
+        {
+          lastReadMessageId: 'msg-latest',
+          lastReadAt: latest,
+        },
+      );
+    });
+
+    it('should record an empty null cursor for an empty channel', async () => {
+      readStateRepository.findLatestMessage.mockResolvedValue(null);
+      readStateRepository.upsert.mockResolvedValue({
+        lastReadMessageId: null,
+        lastReadAt: expect.any(Date),
+      });
+
+      const result = await service.markChannelRead('channel-1', 'user-1');
+
+      expect(readStateRepository.upsert).toHaveBeenCalledWith(
+        'channel-1',
+        'member-1',
+        {
+          lastReadMessageId: null,
+          lastReadAt: expect.any(Date),
+        },
+      );
+      expect(result.lastReadMessageId).toBeNull();
     });
   });
 });

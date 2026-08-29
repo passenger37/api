@@ -6,6 +6,7 @@ import { ServersModule } from '../servers/servers.module';
 import { ChannelMessageRepository } from './repositories/channel-message.repository';
 import { ChannelMessageEditRepository } from './repositories/channel-message-edit.repository';
 import { ChannelMentionRepository } from './repositories/channel-message-mention.repository';
+import { ChannelReadStateRepository } from './repositories/channel-read-state.repository';
 import { ChannelMentionResolver } from './services/channel-mention-resolver.service';
 import { AuthModule } from '../auth/auth.module';
 import { ChannelMessageCommandService } from './services/channel-message-command.service';
@@ -26,6 +27,7 @@ import { WebSocketErrorNormalizer } from '../../common/websocket/error/websocket
     ChannelMessageRepository,
     ChannelMessageEditRepository,
     ChannelMentionRepository,
+    ChannelReadStateRepository,
     ChannelMentionResolver,
     ChannelMessageValidationService,
     ChannelMessageQueryService,
