@@ -93,10 +93,10 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 | **40.37** | Read / Unread State — `lastReadMessageId` cursor per (channel, member), derived `unreadCount`, forward-only updates, no Redis (completed) | B1 40.25, B2 40.37, B1 concept §45 |
 | **40.38** | Typing Indicators — ephemeral Redis presence + throttled `typing-start`/`typing-stop`, per-channel broadcast excluding sender, **no DB writes** (completed) | B1 40.26, B1 concept §44 — **not present in B2 at all; inserted here** |
 | **40.39** | Message Delivery State (sent/delivered/read lifecycle with WS acks — `created` ack contract + `message-read` fan-out via the read cursor; broadcast never treated as persistence) (completed) | B1 40.28, B2 40.38 |
-| **40.40** *(current)* | Presence Foundation (Redis `user:{id}:presence`, online/idle/offline/dnd/invisible) | B1 40.27, B2 40.39, B1 concept §43, v1 40.35 |
-| 40.41 | Message/Event Idempotency (`clientMessageId`, dedupe on retry) | B1 40.30, B2 40.41, B1 concept §42 |
-| 40.42 | WebSocket Reconnection & Missed-Event Synchronization | B1 40.29, B2 40.42 |
-| 40.43 | Event Ordering & Consistency (`eventId`, `sequence/version`, stale-update detection) | B1 concept §41, B2 40.43 |
+| **40.40** | Presence Foundation (Redis `user:{id}:presence`, online/idle/offline/dnd/invisible) (completed) | B1 40.27, B2 40.39, B1 concept §43, v1 40.35 |
+| **40.41** | Message/Event Idempotency (`clientMessageId`, per-author unique dedupe, P2002 race recovery, dedupe-suppressed broadcast) (completed) | B1 40.30, B2 40.41, B1 concept §42 |
+| **40.42** | WebSocket Reconnection & Missed-Event Synchronization (`sync-channel` replay with message-id cursor gap detection) (completed) | B1 40.29, B2 40.42 |
+| 40.43 *(current)* | Event Ordering & Consistency (`eventId`, `sequence/version`, stale-update detection) | B1 concept §41, B2 40.43 |
 | 40.44 | Outbox Pattern / Reliable Event Delivery | B2 40.40 (**CONFLICT with v1 40.40 "Distributed WebSocket Scaling"** — both implemented; scaling moved to §4.4 below since it depends on presence/outbox existing first) |
 
 **Search — split in two (genuine sequencing conflict):** v1/B1 want basic search early (right after threads); B2 defers all search to its Phase 35 (after E2EE and media). Both are implemented, split by scope:
