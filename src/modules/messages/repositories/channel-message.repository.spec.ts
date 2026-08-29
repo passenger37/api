@@ -1,13 +1,14 @@
 import { ChannelMessageRepository } from './channel-message.repository';
 import { PrismaService } from '../../../core/database/prisma.service';
 
-describe('ChannelMessageRepository - Pagination', () => {
+describe('ChannelMessageRepository', () => {
   let repository: ChannelMessageRepository;
   let prisma: {
     channelMessage: {
       findMany: jest.Mock;
       count: jest.Mock;
     };
+    $queryRaw: jest.Mock;
   };
 
   beforeEach(() => {
@@ -16,8 +17,35 @@ describe('ChannelMessageRepository - Pagination', () => {
         findMany: jest.fn(),
         count: jest.fn(),
       },
+      $queryRaw: jest.fn(),
     };
     repository = new ChannelMessageRepository(prisma as any);
+  });
+
+  it('should run the search query with the given cursor and take', async () => {
+    prisma.$queryRaw.mockResolvedValue([{ id: 'm1', content: 'hello' }]);
+
+    const rows = await repository.searchMessages({
+      channelIds: ['ch1', 'ch2'],
+      query: 'hello world',
+      authorMemberId: 'member-1',
+      after: new Date('2026-01-01T00:00:00.000Z'),
+      cursor: { createdAt: new Date('2026-01-02T00:00:00.000Z'), id: 'm9' },
+      take: 26,
+    });
+
+    expect(rows).toEqual([{ id: 'm1', content: 'hello' }]);
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    const sql = prisma.$queryRaw.mock.calls[0][0] as {
+      text: string;
+      values: unknown[];
+    };
+    expect(sql.text).toContain('FROM "ChannelMessage" m');
+    expect(sql.text).toContain('m."searchVector" @@ plainto_tsquery');
+    expect(sql.text).toContain('ORDER BY m."createdAt" DESC, m.id DESC');
+    expect(sql.text).toContain('m."channelId" IN');
+    expect(sql.text).toContain('m."authorMemberId" = ');
+    expect(sql.text).toContain('(m."createdAt", m.id) <');
   });
 
   it('should filter out deleted messages and order by createdAt DESC, id DESC', async () => {

@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { ChannelMessage, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
+import {
+  MessageSearchParams,
+  MessageSearchQueryBuilder,
+} from '../queries/message-search.query';
 
 @Injectable()
 export class ChannelMessageRepository {
@@ -239,5 +243,11 @@ export class ChannelMessageRepository {
         isDeleted: false,
       },
     });
+  }
+
+  async searchMessages(params: MessageSearchParams): Promise<ChannelMessage[]> {
+    return this.prisma.$queryRaw<ChannelMessage[]>(
+      MessageSearchQueryBuilder.build(params),
+    );
   }
 }

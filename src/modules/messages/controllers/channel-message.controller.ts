@@ -14,6 +14,7 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { ChannelMessageValidationService } from '../services/channel-message-validation.service';
 import { ChannelMessageCommandService } from '../services/channel-message-command.service';
 import { ChannelMessageQueryService } from '../services/channel-message-query.service';
+import { ChannelMessageSearchService } from '../services/channel-message-search.service';
 
 import { CreateChannelMessageRequest } from '../dto/request/create-channel-message.request';
 import { UpdateChannelReadStateRequest } from '../dto/request/update-channel-read-state.request';
@@ -21,6 +22,7 @@ import { UpdateChannelMessageRequest } from '../dto/request/update-channel-messa
 import { GetChannelMessagesQuery } from '../dto/query/get-channel-messages.query';
 import { GetRepliesQuery } from '../dto/query/get-replies.query';
 import { GetEditHistoryQuery } from '../dto/query/get-edit-history.query';
+import { MessageSearchQuery } from '../dto/query/message-search.query';
 
 @Controller()
 export class ChannelMessageController {
@@ -28,6 +30,7 @@ export class ChannelMessageController {
     private readonly commandService: ChannelMessageCommandService,
     private readonly queryService: ChannelMessageQueryService,
     private readonly validation: ChannelMessageValidationService,
+    private readonly searchService: ChannelMessageSearchService,
   ) {}
 
   @Post('servers/:serverId/channels/:channelId/messages')
@@ -67,6 +70,15 @@ export class ChannelMessageController {
   @Get('messages/:messageId')
   async getMessage(@Param('messageId') messageId: string) {
     return this.queryService.getMessage(messageId);
+  }
+
+  @Get('servers/:serverId/messages/search')
+  async searchMessages(
+    @Param('serverId') serverId: string,
+    @CurrentUser('id') userId: string,
+    @Query() query: MessageSearchQuery,
+  ) {
+    return this.searchService.search(serverId, userId, query);
   }
 
   @Get('servers/:serverId/channels/:channelId/messages/:messageId/replies')

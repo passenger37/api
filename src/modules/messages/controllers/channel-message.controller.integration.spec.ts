@@ -4,11 +4,13 @@ import { ChannelMessageController } from './channel-message.controller';
 import { ChannelMessageQueryService } from '../services/channel-message-query.service';
 import { ChannelMessageValidationService } from '../services/channel-message-validation.service';
 import { ChannelMessageCommandService } from '../services/channel-message-command.service';
+import { ChannelMessageSearchService } from '../services/channel-message-search.service';
 
 describe('ChannelMessageController Integration - Pagination', () => {
   let controller: ChannelMessageController;
   let queryService: jest.Mocked<ChannelMessageQueryService>;
   let validationService: jest.Mocked<ChannelMessageValidationService>;
+  let searchService: jest.Mocked<ChannelMessageSearchService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -32,12 +34,19 @@ describe('ChannelMessageController Integration - Pagination', () => {
           provide: ChannelMessageCommandService,
           useValue: {},
         },
+        {
+          provide: ChannelMessageSearchService,
+          useValue: {
+            search: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get<ChannelMessageController>(ChannelMessageController);
     queryService = module.get(ChannelMessageQueryService);
     validationService = module.get(ChannelMessageValidationService);
+    searchService = module.get(ChannelMessageSearchService);
   });
 
   it('should return paginated messages with nextCursor when more items exist', async () => {
@@ -196,5 +205,33 @@ describe('ChannelMessageController Integration - Pagination', () => {
         limit: 101,
       }),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should delegate message search to the search service', async () => {
+    const result = {
+      items: [{ id: 'm1', content: 'hello' }],
+      nextCursor: undefined,
+      hasMore: false,
+    };
+    searchService.search.mockResolvedValue(result as any);
+
+    const response = await controller.searchMessages('srv-1', 'user-1', {
+      q: 'hello',
+      limit: 10,
+    } as any);
+
+    expect(searchService.search).toHaveBeenCalledWith('srv-1', 'user-1', {
+      q: 'hello',
+      limit: 10,
+    });
+    expect(response).toEqual(result);
+  });
+
+  it('should propagate search errors', async () => {
+    searchService.search.mockRejectedValue(new Error('Forbidden'));
+
+    await expect(
+      controller.searchMessages('srv-1', 'user-1', { q: 'x' } as any),
+    ).rejects.toThrow('Forbidden');
   });
 });
