@@ -14,6 +14,7 @@ import {
   forwardRef,
   UseFilters,
   UsePipes,
+  BadRequestException,
 } from '@nestjs/common';
 import { WebSocketExceptionFilter } from '../../../common/filters/websocket-exception.filter';
 import { Server, Socket } from 'socket.io';
@@ -42,6 +43,7 @@ import { TypingStartRequest } from '../dto/request/typing-start.request';
 import { TypingStopRequest } from '../dto/request/typing-stop.request';
 import { MessageReadRequest } from '../dto/request/message-read.request';
 import { TypingService } from '../services/typing.service';
+import { SyncChannelRequest } from '../dto/request/sync-channel.request';
 
 @WebSocketGateway({
   namespace: '/messages',
@@ -117,6 +119,61 @@ export class ChannelMessageGateway
       channelId,
       userId: client.data.userId,
     };
+  }
+
+  @SubscribeMessage('sync-channel')
+  async syncChannel(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: SyncChannelRequest,
+  ) {
+    const event = 'sync-channel';
+    try {
+      const userId = client.data.userId;
+      await this.rateLimit.consume({
+        key: `ws:sync-channel:${userId}`,
+        limit: 10,
+        windowSeconds: 10,
+      });
+
+      const { channel } = await this.validation.validateChannelAccess(
+        request.channelId,
+        userId,
+      );
+
+      const anchor = await this.queryService.getMessageById(
+        request.lastKnownMessageId,
+      );
+
+      if (anchor.channelId !== request.channelId) {
+        throw new BadRequestException(
+          'Last known message does not belong to this channel.',
+        );
+      }
+
+      const messages = await this.queryService.getMessagesAfterInChannel(
+        request.channelId,
+        request.lastKnownMessageId,
+      );
+
+      const readState = await this.queryService.getChannelReadState(
+        channel.serverId,
+        request.channelId,
+        userId,
+      );
+
+      return {
+        success: true,
+        event,
+        channelId: request.channelId,
+        sync: {
+          anchorMessageId: request.lastKnownMessageId,
+          messages,
+          unreadCount: readState.unreadCount,
+        },
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
   }
 
   @SubscribeMessage('send-message')

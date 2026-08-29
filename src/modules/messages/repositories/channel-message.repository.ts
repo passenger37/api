@@ -35,6 +35,27 @@ export class ChannelMessageRepository {
     });
   }
 
+  async findMessagesAfterCursor(
+    channelId: string,
+    afterMessageId: string,
+    take = 50,
+  ): Promise<ChannelMessage[]> {
+    return this.prisma.channelMessage.findMany({
+      where: {
+        channelId,
+      },
+
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+
+      cursor: {
+        id: afterMessageId,
+      },
+
+      skip: 1,
+      take,
+    });
+  }
+
   async exists(id: string): Promise<boolean> {
     const count = await this.prisma.channelMessage.count({
       where: {

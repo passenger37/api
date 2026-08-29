@@ -28,6 +28,8 @@ describe('ChannelMessageQueryService - pagination', () => {
             findManyByChannelPaginated: jest.fn(),
             findRepliesPaginated: jest.fn(),
             countReplies: jest.fn(),
+            findMessagesAfterCursor: jest.fn(),
+            exists: jest.fn(),
           },
         },
         {
@@ -485,5 +487,131 @@ describe('ChannelMessageQueryService - pagination', () => {
       lastReadAt: null,
       unreadCount: 14,
     });
+  });
+});
+
+describe('ChannelMessageQueryService - reconnect sync', () => {
+  let service: ChannelMessageQueryService;
+  let repository: jest.Mocked<ChannelMessageRepository>;
+  let reactionRepository: jest.Mocked<ChannelMessageReactionRepository>;
+  let mentionRepository: jest.Mocked<ChannelMentionRepository>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ChannelMessageQueryService,
+        {
+          provide: ChannelMessageRepository,
+          useValue: {
+            findById: jest.fn(),
+            findMessagesAfterCursor: jest.fn(),
+          },
+        },
+        {
+          provide: ChannelMessageReactionRepository,
+          useValue: {
+            countReactionsByMessages: jest.fn(),
+          },
+        },
+        {
+          provide: ChannelMessageEditRepository,
+          useValue: {
+            findManyByMessagePaginated: jest.fn(),
+            countByMessage: jest.fn(),
+          },
+        },
+        {
+          provide: ChannelMentionRepository,
+          useValue: {
+            countMentionsByMessages: jest.fn(),
+          },
+        },
+        {
+          provide: ChannelReadStateRepository,
+          useValue: {
+            findByChannelAndMember: jest.fn(),
+            countUnreadAfter: jest.fn(),
+          },
+        },
+        {
+          provide: ServerMemberQueryService,
+          useValue: {
+            getMemberOrThrow: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<ChannelMessageQueryService>(
+      ChannelMessageQueryService,
+    );
+    repository = module.get(ChannelMessageRepository);
+    reactionRepository = module.get(ChannelMessageReactionRepository);
+    mentionRepository = module.get(ChannelMentionRepository);
+  });
+
+  it('should throw NotFound when the anchor message is missing', async () => {
+    repository.findById.mockResolvedValue(null);
+
+    await expect(service.getMessageById('missing')).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(repository.findById).toHaveBeenCalledWith('missing');
+  });
+
+  it('should return the anchor message when it exists', async () => {
+    repository.findById.mockResolvedValue({
+      id: 'anchor-1',
+      channelId: 'ch-1',
+    } as any);
+
+    const result = await service.getMessageById('anchor-1');
+
+    expect(result).toEqual({ id: 'anchor-1', channelId: 'ch-1' });
+  });
+
+  it('should fetch the gap, enrich it and keep ascending order', async () => {
+    repository.findMessagesAfterCursor.mockResolvedValue([
+      { id: 'm2', channelId: 'ch-1' },
+      { id: 'm3', channelId: 'ch-1' },
+    ] as any);
+    reactionRepository.countReactionsByMessages.mockResolvedValue(
+      new Map([
+        ['m2', new Map([['wow', 1]])],
+        ['m3', new Map()],
+      ]),
+    );
+    mentionRepository.countMentionsByMessages.mockResolvedValue(
+      new Map([
+        ['m2', 1],
+        ['m3', 0],
+      ]),
+    );
+
+    const result = await service.getMessagesAfterInChannel('ch-1', 'm1', 50);
+
+    expect(repository.findMessagesAfterCursor).toHaveBeenCalledWith(
+      'ch-1',
+      'm1',
+      50,
+    );
+    expect(reactionRepository.countReactionsByMessages).toHaveBeenCalledWith([
+      'm2',
+      'm3',
+    ]);
+    expect(result).toEqual([
+      {
+        id: 'm2',
+        channelId: 'ch-1',
+        reactionCounts: { wow: 1 },
+        mentionCount: 1,
+      },
+      {
+        id: 'm3',
+        channelId: 'ch-1',
+        reactionCounts: {},
+        mentionCount: 0,
+      },
+    ]);
   });
 });

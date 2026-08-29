@@ -47,6 +47,13 @@ describe('ChannelMessageGateway Integration', () => {
       getMessage: jest
         .fn()
         .mockResolvedValue({ channelId: 'ch1', serverId: 'sv1' }),
+      getMessageById: jest
+        .fn()
+        .mockResolvedValue({ channelId: 'ch1', serverId: 'sv1' }),
+      getMessagesAfterInChannel: jest
+        .fn()
+        .mockResolvedValue([{ id: 'msg2', content: 'next' }]),
+      getChannelReadState: jest.fn().mockResolvedValue({ unreadCount: 3 }),
     };
     reactionCommandService = {
       addReaction: jest.fn(),
@@ -327,6 +334,73 @@ describe('ChannelMessageGateway Integration', () => {
     expect(errorNormalizer.normalize).toHaveBeenCalledWith(
       expect.any(Error),
       'message-read',
+    );
+    expect(result).toEqual({ error: true });
+  });
+
+  it('should replay missed messages for a reconnecting client', async () => {
+    const client = { data: { userId: 'u1' } } as any;
+    const request = { channelId: 'ch1', lastKnownMessageId: 'msg1' };
+
+    const result = await gateway.syncChannel(client, request as any);
+
+    expect(rateLimitService.consume).toHaveBeenCalledWith({
+      key: 'ws:sync-channel:u1',
+      limit: 10,
+      windowSeconds: 10,
+    });
+    expect(validationService.validateChannelAccess).toHaveBeenCalledWith(
+      'ch1',
+      'u1',
+    );
+    expect(queryService.getMessageById).toHaveBeenCalledWith('msg1');
+    expect(queryService.getMessagesAfterInChannel).toHaveBeenCalledWith(
+      'ch1',
+      'msg1',
+    );
+    expect(queryService.getChannelReadState).toHaveBeenCalledWith(
+      'sv1',
+      'ch1',
+      'u1',
+    );
+    expect(result).toEqual({
+      success: true,
+      event: 'sync-channel',
+      channelId: 'ch1',
+      sync: {
+        anchorMessageId: 'msg1',
+        messages: [{ id: 'msg2', content: 'next' }],
+        unreadCount: 3,
+      },
+    });
+  });
+
+  it('should reject a sync across channels', async () => {
+    queryService.getMessageById.mockResolvedValue({
+      channelId: 'other',
+      serverId: 'sv1',
+    });
+    const client = { data: { userId: 'u1' } } as any;
+    const request = { channelId: 'ch1', lastKnownMessageId: 'msg1' };
+
+    const result = await gateway.syncChannel(client, request as any);
+
+    expect(queryService.getMessagesAfterInChannel).not.toHaveBeenCalled();
+    expect(errorNormalizer.normalize).toHaveBeenCalled();
+  });
+
+  it('should normalize errors on sync-channel failure', async () => {
+    queryService.getMessageById.mockRejectedValueOnce(
+      new Error('Message not found.'),
+    );
+    const client = { data: { userId: 'u1' } } as any;
+    const request = { channelId: 'ch1', lastKnownMessageId: 'missing' };
+
+    const result = await gateway.syncChannel(client, request as any);
+
+    expect(errorNormalizer.normalize).toHaveBeenCalledWith(
+      expect.any(Error),
+      'sync-channel',
     );
     expect(result).toEqual({ error: true });
   });

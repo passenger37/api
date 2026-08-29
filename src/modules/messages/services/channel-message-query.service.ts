@@ -107,6 +107,45 @@ export class ChannelMessageQueryService {
     return this.repository.exists(messageId);
   }
 
+  async getMessageById(messageId: string) {
+    const message = await this.repository.findById(messageId);
+
+    if (!message) {
+      throw new NotFoundException('Message not found.');
+    }
+
+    return message;
+  }
+
+  async getMessagesAfterInChannel(
+    channelId: string,
+    afterMessageId: string,
+    take = 50,
+  ) {
+    const messages = await this.repository.findMessagesAfterCursor(
+      channelId,
+      afterMessageId,
+      take,
+    );
+
+    const reactionCounts =
+      await this.reactionRepository.countReactionsByMessages(
+        messages.map((message) => message.id),
+      );
+
+    const mentionCounts = await this.mentionRepository.countMentionsByMessages(
+      messages.map((message) => message.id),
+    );
+
+    return messages.map((message) => ({
+      ...message,
+      reactionCounts: Object.fromEntries(
+        reactionCounts.get(message.id) ?? new Map<string, number>(),
+      ),
+      mentionCount: mentionCounts.get(message.id) ?? 0,
+    }));
+  }
+
   async getPinnedMessages(channelId: string) {
     return this.repository.findPinnedMessages(channelId);
   }

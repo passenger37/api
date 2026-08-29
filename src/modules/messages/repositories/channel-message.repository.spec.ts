@@ -75,4 +75,18 @@ describe('ChannelMessageRepository - Pagination', () => {
     });
     expect(count).toBe(5);
   });
+
+  it('should fetch the gap after a cursor in ascending order', async () => {
+    prisma.channelMessage.findMany.mockResolvedValue([]);
+
+    await repository.findMessagesAfterCursor('ch1', 'anchor-1', 50);
+
+    expect(prisma.channelMessage.findMany).toHaveBeenCalledWith({
+      where: { channelId: 'ch1' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      cursor: { id: 'anchor-1' },
+      skip: 1,
+      take: 50,
+    });
+  });
 });
