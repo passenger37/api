@@ -22,18 +22,18 @@ with server-based collaboration and a hybrid messaging architecture.
 
 ### Current lecture
 
-**40.33 --- Message Thread / Reply Queries (Completed)**
+**40.34 --- Message Edit History (Completed)**
 
 The immediate continuation point is now:
 
 ``` text
-40.33 Completed → verify → 40.34 Message Edit History
+40.34 Completed → verify → 40.35 Message Delete Semantics
 ```
 
 The project has completed Messaging WebSocket hardening (40.28–40.30),
 cursor-based message pagination (40.31), the query-optimization pass
-(40.32), and the composed thread read model (40.33) with a passing
-automated test suite.
+(40.32), the composed thread read model (40.33), and non-destructive edit
+history (40.34) with a passing automated test suite.
 
 ------------------------------------------------------------------------
 
@@ -95,6 +95,7 @@ Implemented/discussed:
 23. Cursor-based message pagination (channel history + replies)
 24. Message Query Optimization (composite indexes + batched reaction counts)
 25. Composed thread read model (parent anchor + enriched bounded replies)
+26. Non-destructive edit history (transactional snapshot trail + history route)
 
 ------------------------------------------------------------------------
 
@@ -526,47 +527,56 @@ messageId_memberId_emoji
 The latest roadmap position is:
 
 ``` text
-40.33 — Message Thread / Reply Queries (Completed)
+40.34 — Message Edit History (Completed)
 ```
 
-The reply read side is now a composed thread read model:
+Edits are now non-destructive: each edit writes a snapshot into a
+`ChannelMessageEdit` row within the same transaction as the message
+update.
 
 ``` text
-GET .../messages/:messageId/replies
-    → { message, items, nextCursor, hasMore, replyCount }
+ChannelMessageEdit (messageId, previousContent, editedAt, editedByMemberId)
+GET .../messages/:messageId/history
+    → { items, nextCursor, hasMore, totalCount }
 ```
 
-`items` are bounded pages against the `(parentMessageId, createdAt, id)`
-index, enriched per page with batched reaction counts
-(`countReactionsByMessages`); the parent is the thread anchor
-(`NotFoundException` when missing). Verification: tsc clean, 10 Jest
-suites / 46 tests green, build ok.
+History reads are bounded pages against the `(messageId, editedAt, id)`
+index; edits are recoverable and attributable to the editor's member id.
+Verification: tsc clean, 12 Jest suites / 57 tests green, build ok,
+migration applied.
 
-The next objective is **40.34 --- Message Edit History**.
+The next objective is **40.35 --- Message Delete Semantics**.
 
 ------------------------------------------------------------------------
 
 # Current Task
 
-## 40.33 --- Message Thread / Reply Queries (Completed)
+## 40.34 --- Message Edit History (Completed)
 
 Implemented:
 
--   query-service `getThread(parentMessageId, cursor, limit)` —
-    composed read model: parent anchor (`NotFoundException` when the
-    parent is missing) + bounded replies page + batched reaction counts
-    (`{ message, items, nextCursor, hasMore, replyCount }`)
--   controller: the `GET .../messages/:messageId/replies` route now
-    returns the thread aggregate (`message` + per-item `reactionCounts`
-    are additive; existing fields unchanged)
--   query-service specs (parent loaded, enrichment + count default,
-    NotFound short-circuit) and controller integration specs (thread
-    shape, invalid-limit guard on the replies route)
+-   schema: `ChannelMessageEdit` model (`messageId`, `previousContent`,
+    `editedAt`, `editedByMemberId`, `@@index([messageId, editedAt, id])`)
+    + back-relations on `ChannelMessage`/`ServerMember`; migration
+    `20260829040524_add_message_edit_history`
+-   repository: `ChannelMessageEditRepository` — `create` (transaction
+    aware), `findManyByMessagePaginated` (editedAt DESC, id DESC),
+    `countByMessage`
+-   command service: `editMessage` now runs in a `$transaction` —
+    snapshot (previous content, editor member, timestamp) is written
+    before the message update, keeping the trail in lockstep
+-   query service: `getEditHistory(messageId, cursor, limit)` —
+    NotFound on missing message; `{ items, nextCursor, hasMore,
+    totalCount }`
+-   controller: `GET .../messages/:messageId/history` (channel-access
+    check, limit 1–100 guard) with `GetEditHistoryQuery` DTO
+-   specs: edit repository (5), first command-service spec (2), query
+    service (+2), controller integration (+2)
 
-Verification: `Found 0 errors` (tsc), 10 Jest suites / 46 tests passing,
+Verification: `Found 0 errors` (tsc), 12 Jest suites / 57 tests passing,
 `nest build` succeeds.
 
-## Next ---- 40.34 Message Edit History
+## Next ---- 40.35 Message Delete Semantics
 
 ------------------------------------------------------------------------
 
@@ -656,17 +666,18 @@ existence validation.
 
 # Next Lecture
 
-After 40.33 is fully verified:
+After 40.34 is fully verified:
 
-## 40.34 --- Message Edit History
+## 40.35 --- Message Delete Semantics
 
 Focus on:
 
--   an edit-history model keyed to the message (timestamp, previous
-    content, editor)
--   non-destructive edits: every edit appends a recoverable snapshot
--   a `GET .../messages/:messageId/history` read route with bounded
-    pagination (established repository/query-service shape)
+-   a formal tombstone contract for deleted messages (`deleted`,
+    `deletedAt`) distinct from user-facing removal
+-   consistent read filtering: deleted rows excluded from listings but
+    stable for referential integrity (threads/history)
+-   author-only vs. permission-based deletion, with a broadcast delete
+    event
 
 Do not jump directly into unrelated frontend work.
 
@@ -1003,43 +1014,43 @@ claiming completion before testing.
     reaction counts)
 -   **40.33 --- composed thread read model** (parent anchor + enriched
     bounded replies)
+-   **40.34 --- non-destructive edit history** (transactional snapshot
+    trail + history route)
 
 ## Current task
 
-**40.34 --- Message Edit History** (next lecture)
+**40.35 --- Message Delete Semantics** (next lecture)
 
 ## Where we paused
 
-After committing 40.33 (composed thread read model — `getThread`) with a
-green test suite (10 suites / 46 tests).
+After committing 40.34 (edit history — transactional snapshots) with a
+green test suite (12 suites / 57 tests).
 
 ## Blockers
 
--   none blocking from the previous lecture; thread replies reuse the
-    applied `(parentMessageId, createdAt, id)` index
+-   none blocking from the previous lecture; edit-history migration
+    `20260829040524` applied
 -   database-backed end-to-end test coverage is still pending
 
 ## Next task
 
-**40.34 --- Message Edit History.**
+**40.35 --- Message Delete Semantics.**
 
 ## First next step
 
-Inspect the current edit write path:
+Inspect the current delete write path:
 
 ``` text
 src/modules/messages/services/channel-message-command.service.ts
 src/modules/messages/repositories/channel-message.repository.ts
-src/modules/messages/controllers/channel-message.controller.ts
 ```
 
 and confirm:
 
-1.  edits are non-destructive — current content is preserved before any
-    update
-2.  a history model can be appended with timestamp, previous content,
-    and editor
-3.  a `GET .../messages/:messageId/history` route can read it with
-    bounded pagination
+1.  `softDelete` sets `isDeleted`/`deletedAt` — deletion is recoverable
+2.  read filtering — deleted rows are excluded from listing queries but
+    kept for thread/history integrity
+3.  delete broadcast and author/permission rules are consistent with the
+    tombstone contract
 
-Only then make the smallest required code change for 40.34.
+Only then make the smallest required code change for 40.35.

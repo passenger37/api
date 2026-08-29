@@ -8,12 +8,13 @@
 >
 > **Current position:** Messaging WebSocket gateway validation hardening
 > (40.28–40.30), **40.31 (Message History + Cursor Pagination)**,
-> **40.32 (Message Query Optimization)**, and **40.33 (Message Thread /
-> Reply Queries)** are **completed**.
+> **40.32 (Message Query Optimization)**, **40.33 (Message Thread /
+> Reply Queries)**, and **40.34 (Message Edit History)** are
+> **completed**.
 >
 > **Next lecture (merged numbering, authoritative per `PROJECT_DETAIL.md`
-> §4):** 40.34 — Message Edit History. (This document's legacy numbering
-> labels Reply/Thread Queries "40.32".)
+> §4):** 40.35 — Message Delete Semantics. (This document's legacy
+> numbering labels Reply/Thread Queries "40.32".)
 >
 > **Important:** This roadmap preserves the architecture and decisions
 > already established for Nexus. It is intended to be usable without the
@@ -1292,7 +1293,10 @@ Message Query Optimization — DONE (merged numbering)
 Reply/Thread Queries — DONE (merged numbering)
         ↓
 40.34
-Message Edit History — NEXT (merged numbering)
+Message Edit History — DONE (merged numbering)
+        ↓
+40.35
+Message Delete Semantics — NEXT (merged numbering)
         ↓
 40.33
 Message Search

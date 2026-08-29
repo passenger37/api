@@ -9,8 +9,8 @@
 
 **Merge rule (unchanged):** Implement every feature from all sources. Where a lecture number is claimed by more than one source with **different** content, both intents are implemented — as either a combined lecture or two sequential lectures — scheduled at the point that makes technical sense, not necessarily at the original number. Where sources describe the **same** feature under different numbers, they are treated as one lecture and deduplicated. Every renumbering is cross-referenced back to its original source/number below so nothing is silently dropped.
 
-**Current backend position:** Lecture 40.34 — Message Edit History (next)
-**Completed:** 40.9–40.27 (foundational messaging/gateway lectures, see §3), 40.28 (WebSocket security hardening), 40.29 (WebSocket security/error-contract completion), 40.30 (Messaging Integration Test Boundary + WebSocket Connection Lifecycle), 40.31 (Cursor-Based Message Pagination), 40.32 (Message Query Optimization — composite indexes + batched reaction counts), 40.33 (Message Thread / Reply Queries — composed thread read model)
+**Current backend position:** Lecture 40.35 — Message Delete Semantics (next)
+**Completed:** 40.9–40.27 (foundational messaging/gateway lectures, see §3), 40.28 (WebSocket security hardening), 40.29 (WebSocket security/error-contract completion), 40.30 (Messaging Integration Test Boundary + WebSocket Connection Lifecycle), 40.31 (Cursor-Based Message Pagination), 40.32 (Message Query Optimization — composite indexes + batched reaction counts), 40.33 (Message Thread / Reply Queries — composed thread read model), 40.34 (Message Edit History — non-destructive snapshot trail)
 
 ---
 
@@ -87,8 +87,8 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 | 40.31 | Cursor-Based Message Pagination — Prisma cursor on `(createdAt, id)`, stable ordering, pagination metadata | B1 40.23/40.24, B2 40.31, v1 40.31 |
 | 40.32 | Message Query Optimization — indexing, avoiding N+1 on reactions/attachments joins | B2 40.32 (**new vs v1**, inserted here as a direct follow-on to pagination) |
 | 40.33 | Message Thread / Reply Queries — composed read model: parent anchor + bounded enriched replies | B1 40.32, B2 40.33, v1 40.32 |
-| **40.34** *(current)* | Message Edit History | B1 "editing history" (§39), B2 40.34 |
-| 40.35 | Message Delete Semantics (soft delete / tombstones) | B1 "deleted-message behavior" (§39), B2 40.35 |
+| 40.34 | Message Edit History — snapshot trail written on every edit; bounded history read route | B1 "editing history" (§39), B2 40.34 |
+| **40.35** *(current)* | Message Delete Semantics (soft delete / tombstones) | B1 "deleted-message behavior" (§39), B2 40.35 |
 | 40.36 | Mentions | B1 40.33, B2 40.36 |
 | 40.37 | Read / Unread State (`lastReadMessageId` cursor, not per-message rows) | B1 40.25, B2 40.37, B1 concept §45 |
 | 40.38 | Typing Indicators (Redis/Socket.IO, ephemeral, debounced — **no DB writes**) | B1 40.26, B1 concept §44 — **not present in B2 at all; inserted here** |
@@ -257,10 +257,11 @@ PHASE 17 React Native (Mobile)
 1. **40.31** Cursor-Based Message Pagination — completed.
 2. **40.32** Message Query Optimization — completed (composite indexes `(channelId, createdAt, id)` + `(parentMessageId, createdAt, id)`, batched `countReactionsByMessages` groupBy, enriched history read model).
 3. **40.33** Message Thread / Reply Queries — completed (`getThread` aggregate: parent anchor + bounded replies enriched with reaction counts, wired into the replies route).
-4. **40.34** Message Edit History — current.
-5. Continue sequentially through **§4.1–§4.8** as tabulated above.
-6. Satisfy the Backend Completion Gate (§4, end).
-7. Open frontend start gate → Phase F0 onward.
+4. **40.34** Message Edit History — completed (`ChannelMessageEdit` model + migration, transactional snapshot write in `editMessage`, `getEditHistory` + history route).
+5. **40.35** Message Delete Semantics — current.
+6. Continue sequentially through **§4.1–§4.8** as tabulated above.
+7. Satisfy the Backend Completion Gate (§4, end).
+8. Open frontend start gate → Phase F0 onward.
 
 For each lecture: briefing before coding (why, how, drawbacks, fit, alternatives) → implement common feature + any conflicting/additional intent noted in the "Originally numbered as" column → update ROADMAP.md and CURRENT_STATUS.md.
 
@@ -282,11 +283,11 @@ For each lecture: briefing before coding (why, how, drawbacks, fit, alternatives
 
 ## 9. Next Immediate Action
 
-**Lecture 40.34 — Message Edit History.**
+**Lecture 40.35 — Message Delete Semantics (soft delete / tombstones).**
 
 Briefing required before implementation:
-- **Why:** messages can be edited (40.7), but edits are destructive — there is no history of prior content. The roadmap's "editing history" intent (B1 §39, B2 40.34) wants a recoverable audit trail.
-- **How:** a `MessageEdit` (or `MessageEditHistory`) model keyed to the message — editing timestamp, previous content, editor — written on each edit, with a `GET .../messages/:messageId/history` read route and bounded pagination following the established repository/query-service shape.
-- **Drawbacks/Alternatives:** store full snapshots per edit (simple, unbounded growth) vs. diff/ops-based history (compact, complex to reconstruct) vs. no history (simplest, but edits are unrecoverable and auditors lose the trail).
+- **Why:** `deleteMessage` already soft-deletes (`isDeleted`), but deletion is permanent from the user's perspective — there is no tombstone, no un-delete, and editors/broadcast delivery still see deleted rows. The roadmap's "deleted-message behavior" intent (B1 §39, B2 40.35) wants explicit tombstone semantics.
+- **How:** formalize soft-delete as a tombstone contract — deleted messages return a stable `{ deleted: true, deletedAt }` shape from reads, are excluded from user-facing listings, and broadcast a delete event; decide author-only vs. permission-based deletion.
+- **Drawbacks/Alternatives:** hard delete (simple, but destroys history/threads — rejected) vs. soft-delete tombstone (keeps referential integrity + recoverability, needs consistent read filtering) vs. purge-after-TTL (bounded storage, needs a cleanup job).
 
-Proceed after briefing approval. **Next lecture after this: 40.35 — Message Delete Semantics.**
+Proceed after briefing approval. **Next lecture after this: 40.36 — Mentions.**
