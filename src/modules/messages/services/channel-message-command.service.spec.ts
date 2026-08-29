@@ -12,6 +12,7 @@ import { ChannelMessageValidationService } from './channel-message-validation.se
 import { ChannelMessageQueryService } from './channel-message-query.service';
 import { ChannelMessageGateway } from '../gateways/channel-message.gateway';
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
+import { OutboxEventRepository } from '../repositories/outbox-event.repository';
 
 describe('ChannelMessageCommandService - mentions', () => {
   let service: ChannelMessageCommandService;
@@ -43,9 +44,34 @@ describe('ChannelMessageCommandService - mentions', () => {
     validateEditPermission: jest.Mock;
     validateChannelAccess: jest.Mock;
   };
+  let outboxEventRepository: { create: jest.Mock };
+
+  const fullMessage = {
+    id: 'msg-1',
+    content: 'hello',
+    serverId: 'srv-1',
+    channelId: 'channel-1',
+    authorMemberId: 'member-1',
+    parentMessageId: null,
+    isEdited: false,
+    editedAt: null,
+    isDeleted: false,
+    deletedAt: null,
+    isPinned: false,
+    pinnedAt: null,
+    clientMessageId: null,
+    version: 1,
+    messageSeq: 42,
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  };
 
   beforeEach(async () => {
-    const tx = {};
+    const tx = {
+      serverChannel: {
+        update: jest.fn().mockResolvedValue({ lastMessageSeq: 42 }),
+      },
+    };
     prisma = { $transaction: jest.fn(async (callback) => callback(tx)) };
     repository = {
       create: jest.fn(),
@@ -74,6 +100,7 @@ describe('ChannelMessageCommandService - mentions', () => {
       validateEditPermission: jest.fn(),
       validateChannelAccess: jest.fn(),
     };
+    outboxEventRepository = { create: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -88,6 +115,7 @@ describe('ChannelMessageCommandService - mentions', () => {
         { provide: ChannelMessageQueryService, useValue: queryService },
         { provide: ChannelMessageGateway, useValue: {} },
         { provide: ServerMemberQueryService, useValue: memberQueryService },
+        { provide: OutboxEventRepository, useValue: outboxEventRepository },
       ],
     }).compile();
 
@@ -116,8 +144,12 @@ describe('ChannelMessageCommandService - mentions', () => {
 
       mentionResolver.resolve.mockResolvedValue(mentions);
 
-      repository.create.mockResolvedValue({ id: 'msg-1' });
-      const tx = {};
+      repository.create.mockResolvedValue(fullMessage);
+      const tx = {
+        serverChannel: {
+          update: jest.fn().mockResolvedValue({ lastMessageSeq: 42 }),
+        },
+      };
 
       prisma.$transaction.mockImplementation(async (callback) => callback(tx));
 
@@ -134,6 +166,10 @@ describe('ChannelMessageCommandService - mentions', () => {
         'user-1',
       );
       expect(repository.create).toHaveBeenCalledTimes(1);
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ messageSeq: 42 }),
+        tx,
+      );
       expect(mentionRepository.createMany).toHaveBeenCalledWith(
         'msg-1',
         'srv-1',
@@ -141,7 +177,21 @@ describe('ChannelMessageCommandService - mentions', () => {
         mentions,
         tx,
       );
-      expect(result).toEqual({ message: { id: 'msg-1' }, deduplicated: false });
+      expect(outboxEventRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: 'message-created',
+          channelId: 'channel-1',
+          payload: expect.objectContaining({
+            id: 'msg-1',
+            messageSeq: 42,
+          }),
+        }),
+        tx,
+      );
+      expect(result).toEqual({
+        message: expect.objectContaining(fullMessage),
+        deduplicated: false,
+      });
     });
 
     it('should call createMany with no mention rows when none are resolved', async () => {
@@ -152,7 +202,7 @@ describe('ChannelMessageCommandService - mentions', () => {
       memberQueryService.getMemberOrThrow.mockResolvedValue({
         id: 'member-1',
       });
-      repository.create.mockResolvedValue({ id: 'msg-1' });
+      repository.create.mockResolvedValue(fullMessage);
 
       await service.createMessage('channel-1', 'user-1', 'plain text');
 
@@ -205,8 +255,12 @@ describe('ChannelMessageCommandService - mentions', () => {
       memberQueryService.getMemberOrThrow.mockResolvedValue({
         id: 'member-1',
       });
-      repository.create.mockResolvedValue({ id: 'msg-1' });
-      const tx = {};
+      repository.create.mockResolvedValue(fullMessage);
+      const tx = {
+        serverChannel: {
+          update: jest.fn().mockResolvedValue({ lastMessageSeq: 42 }),
+        },
+      };
 
       prisma.$transaction.mockImplementation(async (callback) => callback(tx));
 
@@ -219,7 +273,10 @@ describe('ChannelMessageCommandService - mentions', () => {
       );
 
       expect(repository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ clientMessageId: 'client-1' }),
+        expect.objectContaining({
+          clientMessageId: 'client-1',
+          messageSeq: 42,
+        }),
         tx,
       );
     });
@@ -334,6 +391,18 @@ describe('ChannelMessageCommandService - mentions', () => {
         },
         tx,
       );
+      expect(outboxEventRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: 'message-updated',
+          channelId: 'channel-1',
+          payload: expect.objectContaining({
+            messageId: 'msg-1',
+            content: 'new content',
+            version: 2,
+          }),
+        }),
+        tx,
+      );
       expect(result).toEqual({
         id: 'msg-1',
         content: 'new content',
@@ -367,9 +436,15 @@ describe('ChannelMessageCommandService - mentions', () => {
         serverId: 'srv-1',
         channelId: 'channel-1',
         authorMemberId: 'member-1',
+        version: 1,
       });
       memberQueryService.getMemberOrThrow.mockResolvedValue({
         id: 'member-1',
+      });
+      repository.update.mockResolvedValue({
+        id: 'msg-1',
+        content: 'new content',
+        version: 2,
       });
       prisma.$transaction.mockImplementation(async (callback) => {
         await callback({});

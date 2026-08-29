@@ -23,6 +23,8 @@ import { ChannelMessageReactionRepository } from './repositories/channel-message
 import { ChannelMessageReactionQueryService } from './services/channel-message-reaction-query.service';
 import { WebSocketRateLimitService } from '../../common/websocket/rate-limit/websocket-rate-limit.service';
 import { WebSocketErrorNormalizer } from '../../common/websocket/error/websocket-error.normalizer';
+import { OutboxEventRepository } from './repositories/outbox-event.repository';
+import { OutboxPublisherService } from './services/outbox-publisher.service';
 @Module({
   imports: [PrismaModule, ServersModule, AuthModule],
   controllers: [ChannelMessageController],
@@ -45,6 +47,8 @@ import { WebSocketErrorNormalizer } from '../../common/websocket/error/websocket
     ChannelMessageReactionQueryService,
     WebSocketRateLimitService,
     WebSocketErrorNormalizer,
+    OutboxEventRepository,
+    OutboxPublisherService,
   ],
 
   exports: [

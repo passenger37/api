@@ -189,7 +189,7 @@ export class ChannelMessageGateway
         limit: 20,
         windowSeconds: 10,
       });
-      const message = await this.commandService.createMessage(
+      const result = await this.commandService.createMessage(
         request.channelId,
         userId,
         request.content,
@@ -197,16 +197,12 @@ export class ChannelMessageGateway
         request.clientMessageId,
       );
 
-      if (!message.deduplicated) {
-        this.broadcastMessageCreated(request.channelId, message.message);
-      }
-
       return {
         success: true,
         event: 'send-message',
         deliveryState: 'created',
-        data: message.message,
-        deduplicated: message.deduplicated,
+        data: result.message,
+        deduplicated: result.deduplicated,
       };
     } catch (exception) {
       return this.normalizeError(exception, event);
@@ -222,13 +218,11 @@ export class ChannelMessageGateway
     try {
       const userId = client.data.userId;
 
-      await this.rateLimit.consume({
+await this.rateLimit.consume({
         key: `ws:edit-message:${userId}`,
         limit: 20,
         windowSeconds: 10,
       });
-
-      const message = await this.queryService.getMessage(request.messageId);
 
       await this.commandService.editMessage(
         request.messageId,
@@ -236,14 +230,6 @@ export class ChannelMessageGateway
         request.content,
         request.expectedVersion,
       );
-
-      this.server.to(message.channelId).emit('message-updated', {
-        messageId: request.messageId,
-        content: request.content,
-        serverTimestamp: new Date().toISOString(),
-        version: message.version + 1,
-        expectedVersion: request.expectedVersion,
-      });
 
       return {
         success: true,

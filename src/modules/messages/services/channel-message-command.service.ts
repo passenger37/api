@@ -16,6 +16,7 @@ import { ChannelMessageValidationService } from './channel-message-validation.se
 import { ChannelMessageQueryService } from './channel-message-query.service';
 import { ChannelMessageGateway } from '../gateways/channel-message.gateway';
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
+import { OutboxEventRepository } from '../repositories/outbox-event.repository';
 
 @Injectable()
 export class ChannelMessageCommandService {
@@ -40,6 +41,8 @@ export class ChannelMessageCommandService {
     private readonly validation: ChannelMessageValidationService,
 
     private readonly memberQueryService: ServerMemberQueryService,
+
+    private readonly outboxRepository: OutboxEventRepository,
   ) {}
 
   async createMessage(
@@ -88,9 +91,23 @@ export class ChannelMessageCommandService {
 
     try {
       const message = await this.prisma.$transaction(async (tx) => {
+        const counter = await tx.serverChannel.update({
+          where: {
+            id: channelId,
+          },
+
+          data: {
+            lastMessageSeq: {
+              increment: 1,
+            },
+          },
+        });
+
         const created = await this.repository.create(
           {
             content,
+
+            messageSeq: counter.lastMessageSeq,
 
             server: {
               connect: {
@@ -128,6 +145,15 @@ export class ChannelMessageCommandService {
           serverId,
           channelId,
           mentions,
+          tx,
+        );
+
+        await this.outboxRepository.create(
+          {
+            eventType: 'message-created',
+            channelId,
+            payload: this.toTransportMessage(created),
+          },
           tx,
         );
 
@@ -233,7 +259,7 @@ export class ChannelMessageCommandService {
         tx,
       );
 
-      return this.repository.update(
+      const edited = await this.repository.update(
         messageId,
         {
           content,
@@ -248,7 +274,64 @@ export class ChannelMessageCommandService {
         },
         tx,
       );
+
+      await this.outboxRepository.create(
+        {
+          eventType: 'message-updated',
+          channelId: message.channelId,
+          payload: {
+            messageId,
+            content: edited.content,
+            serverTimestamp: editedAt.toISOString(),
+            version: edited.version,
+            expectedVersion: expectedVersion ?? null,
+          },
+        },
+        tx,
+      );
+
+      return edited;
     });
+  }
+
+  private toTransportMessage(message: {
+    id: string;
+    content: string;
+    serverId: string;
+    channelId: string;
+    authorMemberId: string;
+    parentMessageId: string | null;
+    isEdited: boolean;
+    editedAt: Date | null;
+    isDeleted: boolean;
+    deletedAt: Date | null;
+    isPinned: boolean;
+    pinnedAt: Date | null;
+    clientMessageId: string | null;
+    version: number;
+    messageSeq: number;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
+    return {
+      id: message.id,
+      content: message.content,
+      serverId: message.serverId,
+      channelId: message.channelId,
+      authorMemberId: message.authorMemberId,
+      parentMessageId: message.parentMessageId,
+      isEdited: message.isEdited,
+      editedAt: message.editedAt?.toISOString() ?? null,
+      isDeleted: message.isDeleted,
+      deletedAt: message.deletedAt?.toISOString() ?? null,
+      isPinned: message.isPinned,
+      pinnedAt: message.pinnedAt?.toISOString() ?? null,
+      clientMessageId: message.clientMessageId,
+      version: message.version,
+      messageSeq: message.messageSeq,
+      createdAt: message.createdAt.toISOString(),
+      updatedAt: message.updatedAt.toISOString(),
+    };
   }
 
   async deleteMessage(messageId: string, serverId: string, userId: string) {

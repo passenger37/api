@@ -450,11 +450,12 @@ model ServerRole {
   server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
 
   name     String
+
   position Int
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
+  updatedAt DateTime @updatedAt
   members ServerMemberRole[]
 
   permissions ServerRolePermission[]
@@ -632,6 +633,8 @@ model ServerChannel {
 
   position Int
 
+  lastMessageSeq Int @default(0)
+
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
@@ -715,7 +718,7 @@ model ChannelMessage {
 
   version Int @default(1)
 
-  eventSeq BigInt @unique @default(autoincrement())
+  messageSeq Int
 
   createdAt DateTime @default(now())
 
@@ -740,6 +743,7 @@ model ChannelMessage {
   readCursors ChannelReadState[] @relation("ChannelReadCursor")
 
   @@index([channelId, createdAt, id])
+  @@index([channelId, messageSeq])
   @@index([authorMemberId])
   @@index([parentMessageId, createdAt, id])
   @@index([serverId])
@@ -841,4 +845,28 @@ model ChannelReadState {
   @@unique([channelId, memberId])
   @@index([memberId])
   @@index([lastReadMessageId])
+}
+
+model OutboxEvent {
+  id String @id @default(cuid())
+
+  eventType String
+
+  channelId String?
+
+  payload Json
+
+  status String @default("PENDING")
+
+  attempts Int @default(0)
+
+  lastError String?
+
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
 }
