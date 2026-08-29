@@ -10,11 +10,12 @@
 > (40.28–40.30), **40.31 (Message History + Cursor Pagination)**,
 > **40.32 (Message Query Optimization)**, **40.33 (Message Thread /
 > Reply Queries)**, **40.34 (Message Edit History)**, **40.35
-> (Message Delete Semantics)**, **40.36 (Mentions)**, and **40.37
-> (Read / Unread State)** are **completed**.
+> (Message Delete Semantics)**, **40.36 (Mentions)**, **40.37
+> (Read / Unread State)**, and **40.38 (Typing Indicators)** are
+> **completed**.
 >
 > **Next lecture (merged numbering, authoritative per `PROJECT_DETAIL.md`
-> §4):** 40.38 — Typing Indicators.
+> §4):** 40.39 — Message Delivery State.
 >
 > **Important:** This roadmap preserves the architecture and decisions
 > already established for Nexus. It is intended to be usable without the
@@ -1305,7 +1306,10 @@ Mentions — DONE (merged numbering)
 Read / Unread State — DONE (merged numbering)
         ↓
 40.38
-Typing Indicators — NEXT (merged numbering)
+Typing Indicators — DONE (merged numbering)
+        ↓
+40.39
+Message Delivery State — NEXT (merged numbering)
         ↓
 40.33
 Message Search

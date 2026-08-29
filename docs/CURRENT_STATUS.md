@@ -22,21 +22,21 @@ with server-based collaboration and a hybrid messaging architecture.
 
 ### Current lecture
 
-**40.37 --- Read / Unread State (Completed)**
+**40.38 --- Typing Indicators (Completed)**
 
 The immediate continuation point is now:
 
 ``` text
-40.37 Completed → verify → 40.38 Typing Indicators
+40.38 Completed → verify → 40.39 Message Delivery State
 ```
 
 The project has completed Messaging WebSocket hardening (40.28–40.30),
 cursor-based message pagination (40.31), the query-optimization pass
 (40.32), the composed thread read model (40.33), non-destructive edit
 history (40.34), tombstone delete semantics (40.35), mention
-parsing/authorization with indexed mention records (40.36), and
-per-channel read state with a derived unread count (40.37) with a
-passing automated test suite.
+parsing/authorization with indexed mention records (40.36), per-channel
+read state with a derived unread count (40.37), and ephemeral typing
+indicators (40.38) with a passing automated test suite.
 
 ------------------------------------------------------------------------
 
@@ -547,42 +547,39 @@ Listings already filter `isDeleted: false`; direct reads no longer leak
 deleted content. Verification: tsc clean, 12 Jest suites / 59 tests
 green, build ok.
 
-The next objective is **40.38 --- Typing Indicators**.
+The next objective is **40.39 --- Message Delivery State**.
 
 ------------------------------------------------------------------------
 
 # Current Task
 
-## 40.37 --- Read / Unread State (Completed)
+## 40.38 --- Typing Indicators (Completed)
 
 Implemented:
 
--   `ChannelReadState` model + migration
-    `20260829044205_add_channel_read_state` — a moving cursor per
-    (channel, member): `lastReadMessageId?` (SetNull on message delete)
-    + `lastReadAt?` mirroring the anchor message's `createdAt`;
-    `@@unique([channelId, memberId])`; indexed by member and cursor
--   `ChannelReadStateRepository` — `findByChannelAndMember`, tx-aware
-    `upsert`, `countUnreadAfter` (counts visible messages created after
-    the anchor; all messages when no cursor), `findLatestMessage`
--   write path — `markChannelRead(channelId, userId, lastReadMessageId?)`
-    through `validateChannelAccess` (404/403): cross-channel cursor
-    message rejected (`BadRequest`), unknown cursor message rejected,
-    **forward-only** monotonic cursor (older candidate is an idempotent
-    no-op, never a regression), no `lastReadMessageId` = mark-all-read
-    pinned to the newest visible message (empty channel → null cursor,
-    `lastReadAt = now`)
--   read path — `getChannelReadState(serverId, channelId, userId)` returns
-    `{ channelId, lastReadMessageId, lastReadAt, unreadCount }` with
-    `unreadCount` always derived, never stored
--   surface — `GET` + `POST servers/:serverId/channels/:channelId/read-state`
-    (`UpdateChannelReadStateRequest` with optional `lastReadMessageId`);
-    uses the existing `(channelId, createdAt, id)` index — no Redis
+-   `typing-start` / `typing-stop` WebSocket events on
+    `ChannelMessageGateway` (namespace `/messages`, guarded +
+    validated + filtered as the rest of the gateway)
+-   `TypingService` — ephemeral presence in Redis as
+    `typing:{channelId}:{userId}` with a 10 s TTL (repeated `typing-start`
+    refreshes it; disconnect/stop self-corrects via TTL) — **no DB
+    writes, no schema change**
+-   throttling — `WebSocketRateLimitService` keyed
+    `ws:typing-start:{userId}` / `ws:typing-stop:{userId}` (10 / 10 s) to
+    bound event volume
+-   authorization — both events require a valid channel access check
+    (`validateChannelAccess`) before touching presence; stop is torn
+    down best-effort under the same throttle budget
+-   broadcast — `typing-started` { channelId, userId, username } emitted
+    to the channel room **excluding the sender** (`client.broadcast.to`);
+    `username` = member `nickname ?? user.username` resolved via new
+    `ServerMemberQueryService.getMemberWithUser` /
+    `ServerMemberRepository.findByServerAndUserWithUser`
 
-Verification: `Found 0 errors` (tsc), 16 Jest suites / 103 tests passing,
-`nest build` succeeds, app boots with both read-state routes mapped.
+Verification: `Found 0 errors` (tsc), 17 Jest suites / 109 tests passing,
+`nest build` succeeds, app boots with both typing events subscribed.
 
-## Next ---- 40.38 Typing Indicators
+## Next ---- 40.39 Message Delivery State
 
 ------------------------------------------------------------------------
 
@@ -1029,15 +1026,18 @@ claiming completion before testing.
     enrichment)
 -   **40.37 --- read / unread state** (per-channel moving cursor with
     forward-only semantics; derived unread count; no Redis)
+-   **40.38 --- typing indicators** (ephemeral Redis presence with expiry,
+    throttled `typing-start`/`typing-stop`, per-channel broadcast
+    excluding the sender)
 
 ## Current task
 
-**40.38 --- Typing Indicators** (next lecture)
+**40.39 --- Message Delivery State** (next lecture)
 
 ## Where we paused
 
-After committing 40.37 (read / unread state) with a green test suite (16
-suites / 103 tests).
+After committing 40.38 (typing indicators) with a green test suite (17
+suites / 109 tests).
 
 ## Blockers
 
@@ -1046,21 +1046,24 @@ suites / 103 tests).
 
 ## Next task
 
-**40.38 --- Typing Indicators.**
+**40.39 --- Message Delivery State.**
 
 ## First next step
 
-Inspect where ephemeral, debounced typing state belongs:
+Inspect where delivery state (created → delivered → read) belongs:
 
 ``` text
 src/modules/messages/gateways/channel-message.gateway.ts
-src/common/websocket/rate-limit/websocket-rate-limit.service.ts
+src/modules/messages/services/channel-message-command.service.ts
+src/modules/messages/services/channel-message-query.service.ts
 ```
 
 and confirm:
 
-1.  which existing WS event contract (join/leave/send) typing fits beside
-2.  how Redis availability is currently gated/optional in the gateway path
-3.  where the debounce/throttle window belongs without DB writes
+1.  which existing message/lifecycle events delivery state extends
+2.  how the 40.37 read cursor and the delivery-state acks compose without
+    per-message read rows being invented
+3.  what the WS ack contract (`ack` / `message-delivered` / `message-read`)
+    should be
 
-Only then make the smallest required code change for 40.38.
+Only then make the smallest required code change for 40.39.

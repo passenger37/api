@@ -9,8 +9,8 @@
 
 **Merge rule (unchanged):** Implement every feature from all sources. Where a lecture number is claimed by more than one source with **different** content, both intents are implemented — as either a combined lecture or two sequential lectures — scheduled at the point that makes technical sense, not necessarily at the original number. Where sources describe the **same** feature under different numbers, they are treated as one lecture and deduplicated. Every renumbering is cross-referenced back to its original source/number below so nothing is silently dropped.
 
-**Current backend position:** Lecture 40.38 — Typing Indicators (next)
-**Completed:** 40.9–40.27 (foundational messaging/gateway lectures, see §3), 40.28 (WebSocket security hardening), 40.29 (WebSocket security/error-contract completion), 40.30 (Messaging Integration Test Boundary + WebSocket Connection Lifecycle), 40.31 (Cursor-Based Message Pagination), 40.32 (Message Query Optimization — composite indexes + batched reaction counts), 40.33 (Message Thread / Reply Queries — composed thread read model), 40.34 (Message Edit History — non-destructive snapshot trail), 40.35 (Message Delete Semantics — tombstones/suppressed content), 40.36 (Mentions — parsing, authorization, anti-abuse cap, indexed mention records), 40.37 (Read / Unread State — per-channel moving cursor + derived unread count)
+**Current backend position:** Lecture 40.39 — Message Delivery State (next)
+**Completed:** 40.9–40.27 (foundational messaging/gateway lectures, see §3), 40.28 (WebSocket security hardening), 40.29 (WebSocket security/error-contract completion), 40.30 (Messaging Integration Test Boundary + WebSocket Connection Lifecycle), 40.31 (Cursor-Based Message Pagination), 40.32 (Message Query Optimization — composite indexes + batched reaction counts), 40.33 (Message Thread / Reply Queries — composed thread read model), 40.34 (Message Edit History — non-destructive snapshot trail), 40.35 (Message Delete Semantics — tombstones/suppressed content), 40.36 (Mentions — parsing, authorization, anti-abuse cap, indexed mention records), 40.37 (Read / Unread State — per-channel moving cursor + derived unread count), 40.38 (Typing Indicators — ephemeral Redis presence + throttled typing-start/stop)
 
 ---
 
@@ -91,8 +91,8 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 | 40.35 | Message Delete Semantics — tombstone contract: deleted content suppressed on direct reads, parent tombstone in threads | B1 "deleted-message behavior" (§39), B2 40.35 |
 | **40.36** | Mentions — `@user` / `@role` / `@everyone` parsing, authorization, anti-abuse cap, indexed mention records (completed) | B1 40.33, B2 40.36 |
 | **40.37** | Read / Unread State — `lastReadMessageId` cursor per (channel, member), derived `unreadCount`, forward-only updates, no Redis (completed) | B1 40.25, B2 40.37, B1 concept §45 |
-| **40.38** *(current)* | Typing Indicators (Redis/Socket.IO, ephemeral, debounced — **no DB writes**) | B1 40.26, B1 concept §44 — **not present in B2 at all; inserted here** |
-| 40.39 | Message Delivery State (sent/delivered/read) | B1 40.28, B2 40.38 |
+| **40.38** | Typing Indicators — ephemeral Redis presence + throttled `typing-start`/`typing-stop`, per-channel broadcast excluding sender, **no DB writes** (completed) | B1 40.26, B1 concept §44 — **not present in B2 at all; inserted here** |
+| **40.39** *(current)* | Message Delivery State (sent/delivered/read lifecycle with WS acks) | B1 40.28, B2 40.38 |
 | 40.40 | Presence Foundation (Redis `user:{id}:presence`, online/idle/offline/dnd/invisible) | B1 40.27, B2 40.39, B1 concept §43, v1 40.35 |
 | 40.41 | Message/Event Idempotency (`clientMessageId`, dedupe on retry) | B1 40.30, B2 40.41, B1 concept §42 |
 | 40.42 | WebSocket Reconnection & Missed-Event Synchronization | B1 40.29, B2 40.42 |
@@ -261,7 +261,8 @@ PHASE 17 React Native (Mobile)
 5. **40.35** Message Delete Semantics — completed (`getMessage` 404 on deleted, thread-parent tombstones with suppressed content).
 6. **40.36** Mentions — completed (`parseMentions` util; `ChannelMentionResolver` with `@everyone` permission gate, role/member resolution, 50-mention cap; `ChannelMention` model + migration; tx-aware repository; persistence on create + edit; `getMessageMentions` + `mentionCount` enrichment).
 7. **40.37** Read / Unread State — completed (`ChannelReadState` cursor per channel/member + forward-only `markChannelRead`; derived `unreadCount`; `GET`/`POST .../read-state` routes; no Redis).
-8. **40.38** Typing Indicators — current.
+8. **40.38** Typing Indicators — completed (ephemeral Redis presence with 10 s TTL; throttled `typing-start`/`typing-stop`; per-channel broadcast excluding the sender; no DB writes, no schema change).
+9. **40.39** Message Delivery State — current.
 7. Continue sequentially through **§4.1–§4.8** as tabulated above.
 8. Satisfy the Backend Completion Gate (§4, end).
 9. Open frontend start gate → Phase F0 onward.
@@ -286,11 +287,11 @@ For each lecture: briefing before coding (why, how, drawbacks, fit, alternatives
 
 ## 9. Next Immediate Action
 
-**Lecture 40.38 — Typing Indicators.**
+**Lecture 40.39 — Message Delivery State.**
 
 Briefing required before implementation:
-- **Why:** the roadmap's typing intent (B1 40.26, B1 concept §44 — absent from B2, inserted here) wants ephemeral typing presence per channel so clients can show who is typing without durable state.
-- **How:** Redis-backed presence per (server, channel): members set a short-TTL key while typing; Socket.IO emits `typing-start` / `typing-stop` to channel members, debounced/throttled to bound event volume. **No DB writes.**
-- **Drawbacks/Alternatives:** Socket.IO client state only (loses cross-device truth), Redis keyed presence (cheap, TTL self-corrects on disconnect), per-channel pub/sub fan-out (scales, needs room-scoped broadcast). Keep distinct from presence (40.40) and delivery state (40.39).
+- **Why:** the roadmap's delivery intent (B1 40.28, B2 40.38) wants a per-message lifecycle — sent → delivered → read — so clients can distinguish "server accepted" from "other devices saw it" and show accurate read state beyond the coarse 40.37 cursor.
+- **How:** add a delivery-state layer on top of the existing gateway + read cursor: WS acks (`ack` of `message-created`), `message-delivered` fan-out when a target's socket registers receipt, and `message-read` events tied to the 40.37 read cursor advancement — keeping per-message read rows out of the hot path.
+- **Drawbacks/Alternatives:** per-message delivery rows (granular, but write-heavy), pure WS ack without server truth (lost across devices/reconnects), reuse of the 40.37 cursor (coarse but cheap). Do not treat WebSocket emission as persistence; reconcile via the cursor on reconnect.
 
-Proceed after briefing approval. **Next lecture after this: 40.39 — Message Delivery State.**
+Proceed after briefing approval. **Next lecture after this: 40.40 — Presence Foundation.**
