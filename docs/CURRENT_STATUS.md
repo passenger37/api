@@ -22,17 +22,17 @@ with server-based collaboration and a hybrid messaging architecture.
 
 ### Current lecture
 
-**40.31 --- Message History + Cursor Pagination (Completed)**
+**40.32 --- Message Query Optimization (Completed)**
 
 The immediate continuation point is now:
 
 ``` text
-40.31 Completed → verify → 40.32 Message Query Optimization
+40.32 Completed → verify → 40.33 Message Thread / Reply Queries
 ```
 
-The project has completed Messaging WebSocket hardening (40.28–40.30)
-and introduced cursor-based message pagination (40.31) with a passing
-automated test suite.
+The project has completed Messaging WebSocket hardening (40.28–40.30),
+cursor-based message pagination (40.31), and the query-optimization pass
+(40.32) with a passing automated test suite.
 
 ------------------------------------------------------------------------
 
@@ -92,6 +92,7 @@ Implemented/discussed:
 21. Redis-backed WebSocket rate limiting (`incr`/`expire`)
 22. Messaging unit + integration/security test scaffolding
 23. Cursor-based message pagination (channel history + replies)
+24. Message Query Optimization (composite indexes + batched reaction counts)
 
 ------------------------------------------------------------------------
 
@@ -523,36 +524,48 @@ messageId_memberId_emoji
 The latest roadmap position is:
 
 ``` text
-40.31 — Message History + Cursor Pagination (Completed)
+40.32 — Message Query Optimization (Completed)
 ```
 
-Channel history and thread replies are paginated with a cursor keyed on
-`(createdAt, id)`, returning `{ items, nextCursor, hasMore }`
-(plus `replyCount` for replies). The automated test suite is green.
+Composite indexes now match the pagination orderings:
 
-The next objective is **40.32 --- Message Query Optimization**.
+``` text
+ChannelMessage (channelId, createdAt, id)
+ChannelMessage (parentMessageId, createdAt, id)
+```
+
+Reaction counts are batched per page via a single `groupBy` query
+(`countReactionsByMessages`), and the query service exposes
+`getChannelMessagesWithReactionCounts`. Verification: tsc clean, 10 Jest
+suites / 41 tests green, build ok, migration applied.
+
+The next objective is **40.33 --- Message Thread / Reply Queries**.
 
 ------------------------------------------------------------------------
 
 # Current Task
 
-## 40.31 --- Message History + Cursor Pagination (Completed)
+## 40.32 --- Message Query Optimization (Completed)
 
 Implemented:
 
--   `GetChannelMessagesQuery` / `GetRepliesQuery` DTOs
-    (`cursor?: string`, `limit?: number` default 50, max 100)
--   repository `findManyByChannelPaginated` / `findRepliesPaginated` /
-    `countReplies` (cursor + `limit + 1` over-fetch)
--   query-service `getChannelMessagesPaginated` /
-    `getThreadRepliesPaginated` returning `{ items, nextCursor, hasMore,
-    replyCount }`
--   controller routes consume the new query DTOs and reject invalid
-    limits
--   duplicate `findChannelHistory` repository method removed
+-   schema composite indexes `(channelId, createdAt, id)` and
+    `(parentMessageId, createdAt, id)`; dropped the now-redundant
+    single-column `(channelId, createdAt)` and `(parentMessageId)`
+-   migration `20260829034609_add_message_pagination_composite_indexes`
+    (created + applied)
+-   repository `countReactionsByMessages(messageIds[])` — one batched
+    `groupBy(messageId, emoji)` query instead of per-message counting
+-   query-service `getChannelMessagesWithReactionCounts(...)` — paginated
+    history enriched with reaction counts (same `{ items, nextCursor,
+    hasMore }` envelope)
+-   repository + query-service specs (empty-id short-circuit, grouping
+    shape, enrichment, count default)
 
-Verification: `Found 0 errors` (tsc), 9 Jest suites / 37 tests passing,
+Verification: `Found 0 errors` (tsc), 10 Jest suites / 41 tests passing,
 `nest build` succeeds.
+
+## Next ---- 40.33 Message Thread / Reply Queries
 
 ------------------------------------------------------------------------
 
@@ -642,16 +655,16 @@ existence validation.
 
 # Next Lecture
 
-After 40.31 is fully verified:
+After 40.32 is fully verified:
 
-## 40.32 --- Message Query Optimization
+## 40.33 --- Message Thread / Reply Queries
 
 Focus on:
 
--   composite indexes for pagination orderings
--   avoiding N+1 on reactions/attachments/author joins
--   batch/join-friendly repository queries
--   verifying query plans for history and thread reads
+-   a composed thread read model (parent + bounded reply page)
+-   reply count, reaction summaries, author/member info
+-   reuse of the `(parentMessageId, createdAt, id)` index
+-   no unbounded reply-tree loads or per-reply N+1
 
 Do not jump directly into unrelated frontend work.
 
@@ -991,22 +1004,23 @@ claiming completion before testing.
 
 ## Where we paused
 
-After committing 40.31 (cursor pagination for channel history and thread
-replies) with a green test suite (9 suites / 37 tests).
+After committing 40.32 (message query optimization — composite indexes
+and batched reaction counts) with a green test suite (10 suites / 41
+tests).
 
 ## Blockers
 
--   none blocking from the previous lecture; Redis `incr`/`expire` and
-    the recursive `HttpException(429)` approach are verified
+-   none blocking from the previous lecture; composite indexes are
+    applied via migration `20260829034609`
 -   database-backed end-to-end test coverage is still pending
 
 ## Next task
 
-**40.32 --- Message Query Optimization.**
+**40.33 --- Message Thread / Reply Queries.**
 
 ## First next step
 
-Inspect the current pagination query path:
+Inspect the current reply read path:
 
 ``` text
 src/modules/messages/repositories/channel-message.repository.ts
@@ -1015,9 +1029,10 @@ src/modules/messages/services/channel-message-query.service.ts
 
 and confirm:
 
-1.  composite indexes match the `(channelId, createdAt DESC, id DESC)`
-    and `(parentMessageId, createdAt ASC, id ASC)` orderings
-2.  reaction/attachment/author data is not fetched with N+1 patterns
-3.  query plans for bounded pages are verified
+1.  thread replies load in bounded pages against the
+    `(parentMessageId, createdAt, id)` index
+2.  reply count and reaction/author data are added without per-reply
+    queries
+3.  an unlimited reply tree is never loaded in one query
 
-Only then make the smallest required code change for 40.32.
+Only then make the smallest required code change for 40.33.

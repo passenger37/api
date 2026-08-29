@@ -9,8 +9,8 @@
 
 **Merge rule (unchanged):** Implement every feature from all sources. Where a lecture number is claimed by more than one source with **different** content, both intents are implemented — as either a combined lecture or two sequential lectures — scheduled at the point that makes technical sense, not necessarily at the original number. Where sources describe the **same** feature under different numbers, they are treated as one lecture and deduplicated. Every renumbering is cross-referenced back to its original source/number below so nothing is silently dropped.
 
-**Current backend position:** Lecture 40.32 — Message Query Optimization (next)
-**Completed:** 40.9–40.27 (foundational messaging/gateway lectures, see §3), 40.28 (WebSocket security hardening), 40.29 (WebSocket security/error-contract completion), 40.30 (Messaging Integration Test Boundary + WebSocket Connection Lifecycle), 40.31 (Cursor-Based Message Pagination)
+**Current backend position:** Lecture 40.33 — Message Thread / Reply Queries (next)
+**Completed:** 40.9–40.27 (foundational messaging/gateway lectures, see §3), 40.28 (WebSocket security hardening), 40.29 (WebSocket security/error-contract completion), 40.30 (Messaging Integration Test Boundary + WebSocket Connection Lifecycle), 40.31 (Cursor-Based Message Pagination), 40.32 (Message Query Optimization — composite indexes + batched reaction counts)
 
 ---
 
@@ -85,8 +85,8 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 | # | Lecture | Originally numbered as |
 |---|---|---|
 | 40.31 | Cursor-Based Message Pagination — Prisma cursor on `(createdAt, id)`, stable ordering, pagination metadata | B1 40.23/40.24, B2 40.31, v1 40.31 |
-| **40.32** *(current)* | Message Query Optimization — indexing, avoiding N+1 on reactions/attachments joins | B2 40.32 (**new vs v1**, inserted here as a direct follow-on to pagination) |
-| 40.33 | Message Thread / Reply Queries | B1 40.32, B2 40.33, v1 40.32 |
+| 40.32 | Message Query Optimization — indexing, avoiding N+1 on reactions/attachments joins | B2 40.32 (**new vs v1**, inserted here as a direct follow-on to pagination) |
+| **40.33** *(current)* | Message Thread / Reply Queries | B1 40.32, B2 40.33, v1 40.32 |
 | 40.34 | Message Edit History | B1 "editing history" (§39), B2 40.34 |
 | 40.35 | Message Delete Semantics (soft delete / tombstones) | B1 "deleted-message behavior" (§39), B2 40.35 |
 | 40.36 | Mentions | B1 40.33, B2 40.36 |
@@ -254,9 +254,10 @@ PHASE 17 React Native (Mobile)
 
 ## 7. Consolidated Execution Order
 
-1. **40.31** Cursor-Based Message Pagination — completed (repo + query-service + controller + specs).
-2. **40.32** Message Query Optimization — current.
-3. Continue sequentially through **§4.1–§4.8** as tabulated above.
+1. **40.31** Cursor-Based Message Pagination — completed.
+2. **40.32** Message Query Optimization — completed (composite indexes `(channelId, createdAt, id)` + `(parentMessageId, createdAt, id)`, batched `countReactionsByMessages` groupBy, enriched history read model).
+3. **40.33** Message Thread / Reply Queries — current.
+4. Continue sequentially through **§4.1–§4.8** as tabulated above.
 4. Satisfy the Backend Completion Gate (§4, end).
 5. Open frontend start gate → Phase F0 onward.
 
@@ -280,11 +281,11 @@ For each lecture: briefing before coding (why, how, drawbacks, fit, alternatives
 
 ## 9. Next Immediate Action
 
-**Lecture 40.32 — Message Query Optimization.**
+**Lecture 40.33 — Message Thread / Reply Queries.**
 
 Briefing required before implementation:
-- **Why:** cursor pagination is in place (40.31), but the read path now loads `limit+1` rows per page plus reaction/reply relationships; without deliberate indexing and batching the channel-history and thread queries will degrade at scale (N+1 risk on reactions/attachments joins).
-- **How:** composite index for the pagination ordering `(channelId, createdAt DESC, id DESC)` and `(parentMessageId, createdAt ASC, id ASC)`; batch/join-friendly repository queries for reaction counts and author/member info; verify query plans; keep repository the only data-access boundary.
-- **Drawbacks/Alternatives:** eager `include` simplicity (can over-fetch) vs. explicit batch aggregation (more code, bounded IO) vs. leaving queries as-is (simplest, but N+1 and poor plans persist).
+- **Why:** reply pagination exists (40.31/40.32), but the thread read side still returns bare rows. A scalable thread read model must expose the parent + child replies with stable pagination, reply count, author/member info, and reaction summaries without joining an unlimited reply tree.
+- **How:** follow the established repository/query-service shape — `getThread(channelId, parentMessageId, cursor, limit)` composed read model using the new `(parentMessageId, createdAt, id)` index; batched reaction + member enrichment like the channel-history path.
+- **Drawbacks/Alternatives:** eager recursive `include` (simple, but unbounded trees and N+1) vs. explicit keyset pages (bounded, more code) vs. denormalized reply-count column (fast reads, write cost + invalidation).
 
-Proceed after briefing approval. **Next lecture after this: 40.33 — Message Thread / Reply Queries.**
+Proceed after briefing approval. **Next lecture after this: 40.34 — Message Edit History.**
