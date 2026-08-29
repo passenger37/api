@@ -9,8 +9,8 @@
 
 **Merge rule (unchanged):** Implement every feature from all sources. Where a lecture number is claimed by more than one source with **different** content, both intents are implemented — as either a combined lecture or two sequential lectures — scheduled at the point that makes technical sense, not necessarily at the original number. Where sources describe the **same** feature under different numbers, they are treated as one lecture and deduplicated. Every renumbering is cross-referenced back to its original source/number below so nothing is silently dropped.
 
-**Current backend position:** Lecture 40.36 — Mentions (next)
-**Completed:** 40.9–40.27 (foundational messaging/gateway lectures, see §3), 40.28 (WebSocket security hardening), 40.29 (WebSocket security/error-contract completion), 40.30 (Messaging Integration Test Boundary + WebSocket Connection Lifecycle), 40.31 (Cursor-Based Message Pagination), 40.32 (Message Query Optimization — composite indexes + batched reaction counts), 40.33 (Message Thread / Reply Queries — composed thread read model), 40.34 (Message Edit History — non-destructive snapshot trail), 40.35 (Message Delete Semantics — tombstones/suppressed content)
+**Current backend position:** Lecture 40.37 — Read / Unread State (next)
+**Completed:** 40.9–40.27 (foundational messaging/gateway lectures, see §3), 40.28 (WebSocket security hardening), 40.29 (WebSocket security/error-contract completion), 40.30 (Messaging Integration Test Boundary + WebSocket Connection Lifecycle), 40.31 (Cursor-Based Message Pagination), 40.32 (Message Query Optimization — composite indexes + batched reaction counts), 40.33 (Message Thread / Reply Queries — composed thread read model), 40.34 (Message Edit History — non-destructive snapshot trail), 40.35 (Message Delete Semantics — tombstones/suppressed content), 40.36 (Mentions — parsing, authorization, anti-abuse cap, indexed mention records)
 
 ---
 
@@ -89,8 +89,8 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 | 40.33 | Message Thread / Reply Queries — composed read model: parent anchor + bounded enriched replies | B1 40.32, B2 40.33, v1 40.32 |
 | 40.34 | Message Edit History — snapshot trail written on every edit; bounded history read route | B1 "editing history" (§39), B2 40.34 |
 | 40.35 | Message Delete Semantics — tombstone contract: deleted content suppressed on direct reads, parent tombstone in threads | B1 "deleted-message behavior" (§39), B2 40.35 |
-| **40.36** *(current)* | Mentions | B1 40.33, B2 40.36 |
-| 40.37 | Read / Unread State (`lastReadMessageId` cursor, not per-message rows) | B1 40.25, B2 40.37, B1 concept §45 |
+| **40.36** | Mentions — `@user` / `@role` / `@everyone` parsing, authorization, anti-abuse cap, indexed mention records (completed) | B1 40.33, B2 40.36 |
+| **40.37** *(current)* | Read / Unread State (`lastReadMessageId` cursor, not per-message rows) | B1 40.25, B2 40.37, B1 concept §45 |
 | 40.38 | Typing Indicators (Redis/Socket.IO, ephemeral, debounced — **no DB writes**) | B1 40.26, B1 concept §44 — **not present in B2 at all; inserted here** |
 | 40.39 | Message Delivery State (sent/delivered/read) | B1 40.28, B2 40.38 |
 | 40.40 | Presence Foundation (Redis `user:{id}:presence`, online/idle/offline/dnd/invisible) | B1 40.27, B2 40.39, B1 concept §43, v1 40.35 |
@@ -259,7 +259,8 @@ PHASE 17 React Native (Mobile)
 3. **40.33** Message Thread / Reply Queries — completed (`getThread` aggregate: parent anchor + bounded replies enriched with reaction counts, wired into the replies route).
 4. **40.34** Message Edit History — completed (`ChannelMessageEdit` model + migration, transactional snapshot write in `editMessage`, `getEditHistory` + history route).
 5. **40.35** Message Delete Semantics — completed (`getMessage` 404 on deleted, thread-parent tombstones with suppressed content).
-6. **40.36** Mentions — current.
+6. **40.36** Mentions — completed (`parseMentions` util; `ChannelMentionResolver` with `@everyone` permission gate, role/member resolution, 50-mention cap; `ChannelMention` model + migration; tx-aware repository; persistence on create + edit; `getMessageMentions` + `mentionCount` enrichment).
+7. **40.37** Read / Unread State — current.
 7. Continue sequentially through **§4.1–§4.8** as tabulated above.
 8. Satisfy the Backend Completion Gate (§4, end).
 9. Open frontend start gate → Phase F0 onward.
@@ -284,11 +285,11 @@ For each lecture: briefing before coding (why, how, drawbacks, fit, alternatives
 
 ## 9. Next Immediate Action
 
-**Lecture 40.36 — Mentions.**
+**Lecture 40.37 — Read / Unread State.**
 
 Briefing required before implementation:
-- **Why:** the roadmap's mention intent (B1 40.33, B2 40.36) wants `@user`, `@role`, `@everyone` recognized inside message content with correct authorization and notification generation — the first cross-cutting feature that touches parsing, auth, and read models at once.
-- **How:** a mention parse/render contract (`ChannelMention` model or denormalized `mentions` on ChannelMessage), recognized during create with authorization (mentionable members/roles, `@everyone` gated by permission), resolved to member ids, with a notification-generation hook. Indexed for lookup.
-- **Drawbacks/Alternatives:** parse at write-time into relation rows (fast reads, denormalization) vs. parse at read-time (always current, CPU per read) vs. skip mention metadata and rely on clients (simplest, but notifications/anti-abuse need server truth).
+- **Why:** the roadmap's read-state intent (B1 40.25, B2 40.37, B1 concept §45) wants a per-member per-channel unread story — the natural consumer of the message history, editing, and mention layers built in 40.31–40.36.
+- **How:** a `lastReadMessageId` / `lastReadAt` cursor per (member, channel) with `unreadCount` derived from messages newer than the cursor — not per-message read rows. Evaluate Redis only after measuring workload, never ahead of it.
+- **Drawbacks/Alternatives:** cursor-per-channel (cheap, coarse) vs. per-message read rows (granular, expensive writes, scales with message volume) vs. client-only rings (no server truth for other devices).
 
-Proceed after briefing approval. **Next lecture after this: 40.37 — Read / Unread State.**
+Proceed after briefing approval. **Next lecture after this: 40.38 — Typing Indicators.**

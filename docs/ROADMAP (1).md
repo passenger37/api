@@ -9,11 +9,12 @@
 > **Current position:** Messaging WebSocket gateway validation hardening
 > (40.28–40.30), **40.31 (Message History + Cursor Pagination)**,
 > **40.32 (Message Query Optimization)**, **40.33 (Message Thread /
-> Reply Queries)**, **40.34 (Message Edit History)**, and **40.35
-> (Message Delete Semantics)** are **completed**.
+> Reply Queries)**, **40.34 (Message Edit History)**, **40.35
+> (Message Delete Semantics)**, and **40.36 (Mentions)** are
+> **completed**.
 >
 > **Next lecture (merged numbering, authoritative per `PROJECT_DETAIL.md`
-> §4):** 40.36 — Mentions.
+> §4):** 40.37 — Read / Unread State.
 >
 > **Important:** This roadmap preserves the architecture and decisions
 > already established for Nexus. It is intended to be usable without the
@@ -1298,7 +1299,10 @@ Message Edit History — DONE (merged numbering)
 Message Delete Semantics — DONE (merged numbering)
         ↓
 40.36
-Mentions — NEXT (merged numbering)
+Mentions — DONE (merged numbering)
+        ↓
+40.37
+Read / Unread State — NEXT (merged numbering)
         ↓
 40.33
 Message Search

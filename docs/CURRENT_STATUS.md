@@ -22,19 +22,20 @@ with server-based collaboration and a hybrid messaging architecture.
 
 ### Current lecture
 
-**40.35 --- Message Delete Semantics (Completed)**
+**40.36 --- Mentions (Completed)**
 
 The immediate continuation point is now:
 
 ``` text
-40.35 Completed → verify → 40.36 Mentions
+40.36 Completed → verify → 40.37 Read / Unread State
 ```
 
 The project has completed Messaging WebSocket hardening (40.28–40.30),
 cursor-based message pagination (40.31), the query-optimization pass
 (40.32), the composed thread read model (40.33), non-destructive edit
-history (40.34), and tombstone delete semantics (40.35) with a passing
-automated test suite.
+history (40.34), tombstone delete semantics (40.35), and mention
+parsing/authorization with indexed mention records (40.36) with a
+passing automated test suite.
 
 ------------------------------------------------------------------------
 
@@ -545,30 +546,44 @@ Listings already filter `isDeleted: false`; direct reads no longer leak
 deleted content. Verification: tsc clean, 12 Jest suites / 59 tests
 green, build ok.
 
-The next objective is **40.36 --- Mentions**.
+The next objective is **40.37 --- Read / Unread State**.
 
 ------------------------------------------------------------------------
 
 # Current Task
 
-## 40.35 --- Message Delete Semantics (Completed)
+## 40.36 --- Mentions (Completed)
 
 Implemented:
 
--   query-service tombstone contract — `getMessage` throws
-    `NotFoundException` when the row is soft-deleted (404; deleted
-    content is not retrievable by id)
--   `getThread` returns a **tombstone** parent for deleted messages:
-    `{ id, channelId, serverId, isDeleted: true, deletedAt, content:
-    null }` — thread stays coherent, replies still page, no content
-    leaks
--   shared `toMessageOrTombstone` mapper; listings already filtered
-    `isDeleted: false` (unchanged); broadcast/delete contracts unchanged
+-   pure `parseMentions` util — recognizes `@everyone` (case-insensitive),
+    `@role:<name>`, and `@<name>` tokens; strips trailing punctuation;
+    extra `@`-free / email-like runs are extracted as member candidates
+-   `ChannelMentionResolver` — `@everyone` gated behind
+    `MANAGE_MESSAGES` (Forbidden otherwise); role names resolved via
+    `ServerRoleQueryService.getRoleByName`; member tokens resolved by
+    exact nickname/username match; hard cap of 50 mention tokens per
+    message (BadRequest above that); deduplicated targets; unknown
+    targets silently ignored
+-   `ChannelMention` model + migration `20260829043013_add_message_mentions`
+    (mentionType MEMBER/ROLE/EVERYONE, `targetMemberId?`,
+    `targetRoleId?`, indexes on message/server/targets; cascade on
+    message, set-null on member/role)
+-   `ChannelMentionRepository` — tx-aware `createMany`,
+    `deleteManyByMessage`, `findByMessage`, batched
+    `countMentionsByMessages` (groupBy)
+-   write path — `createMessage` resolves + persists mentions inside the
+    create transaction; `editMessage` replaces mention rows inside the
+    edit transaction (alongside the history snapshot); broadcast
+    unchanged
+-   read path — `getMessageMentions(messageId)` (404 on deleted) + new
+    `GET .../messages/:messageId/mentions` route; `mentionCount` added
+    additively to enriched history and thread replies via batch counts
 
-Verification: `Found 0 errors` (tsc), 12 Jest suites / 59 tests passing,
-`nest build` succeeds.
+Verification: `Found 0 errors` (tsc), 15 Jest suites / 89 tests passing,
+`nest build` succeeds, app boots with the mentions route mapped.
 
-## Next ---- 40.36 Mentions
+## Next ---- 40.37 Read / Unread State
 
 ------------------------------------------------------------------------
 
@@ -658,17 +673,19 @@ existence validation.
 
 # Next Lecture
 
-After 40.35 is fully verified:
+After 40.36 is fully verified:
 
-## 40.36 --- Mentions
+## 40.37 --- Read / Unread State
 
 Focus on:
 
--   `@user`, `@role`, `@everyone` recognized inside message content
--   authorization and anti-abuse (mentionable members/roles; `@everyone`
-    gated by permission)
--   notification generation from resolved member ids
--   indexing for mention lookup
+-   a `lastReadMessageId` / `lastReadAt` / `unreadCount` model per
+    (member, channel) — a cursor, not per-message read rows
+-   unread count derived from messages newer than the cursor
+-   do **not** front-load Redis; evaluate it only after measuring
+    workload
+-   notify-driven invalidation of the read cursor stays out of scope for
+    the notifications domain (40.44 / 40.45)
 
 Do not jump directly into unrelated frontend work.
 
@@ -1009,15 +1026,18 @@ claiming completion before testing.
     trail + history route)
 -   **40.35 --- tombstone delete semantics** (deleted content suppressed;
     thread-parent tombstones)
+-   **40.36 --- mentions** (parsing, authorization, anti-abuse cap,
+    indexed mention records; write-path persistence + read-path
+    enrichment)
 
 ## Current task
 
-**40.36 --- Mentions** (next lecture)
+**40.37 --- Read / Unread State** (next lecture)
 
 ## Where we paused
 
-After committing 40.35 (tombstone delete semantics) with a green test
-suite (12 suites / 59 tests).
+After committing 40.36 (mentions) with a green test suite (15 suites /
+89 tests).
 
 ## Blockers
 
@@ -1026,23 +1046,24 @@ suite (12 suites / 59 tests).
 
 ## Next task
 
-**40.36 --- Mentions.**
+**40.37 --- Read / Unread State.**
 
 ## First next step
 
-Inspect the create/write path for where mention recognition belongs:
+Inspect where a per-member message-read cursor belongs:
 
 ``` text
-src/modules/messages/services/channel-message-command.service.ts
-src/modules/messages/services/channel-message-validation.service.ts
+src/modules/messages/services/channel-message-query.service.ts
 src/modules/messages/repositories/channel-message.repository.ts
+prisma/schema.prisma
 ```
 
 and confirm:
 
-1.  where message content is validated and normalized on create
-2.  what member/role models exist to resolve `@user` / `@role` targets
-3.  where {@channel} / notification hooks should attach without breaking
-    the existing WS create broadcast
+1.  what model designs exist today for per-user per-channel read state
+2.  where `lastReadMessageId` / `unreadCount` should be fetched when a
+    channel is opened
+3.  how the read cursor invalidates/updates without per-message rows or
+    premature Redis usage
 
-Only then make the smallest required code change for 40.36.
+Only then make the smallest required code change for 40.37.
