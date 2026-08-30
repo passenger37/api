@@ -7,6 +7,7 @@ import { configureSwagger } from './config/swagger';
 import { configureHelmet } from './config/helmet';
 import { configureCors } from './config/cors/index';
 import { configureVersioning } from './config/versioning/index';
+import { RedisIoAdapter } from './core/redis/redis-io.adapter';
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
@@ -14,6 +15,10 @@ async function bootstrap() {
     bufferLogs: true,
   });
   app.use(cookieParser());
+
+  const redisIoAdapter = new RedisIoAdapter(app.getHttpServer());
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   const expressApp = app.getHttpAdapter().getInstance() as any;
 

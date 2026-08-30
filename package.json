@@ -32,6 +32,7 @@
     "@nestjs/swagger": "^11.4.4",
     "@nestjs/websockets": "^11.1.28",
     "@prisma/client": "6.16.3",
+    "@socket.io/redis-adapter": "^8.3.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.79.1",
     "class-transformer": "^0.5.1",

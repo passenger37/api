@@ -86,4 +86,6 @@ export const redisKeys = {
   ): string => prefix(`msg:unread:${channelId}:${memberId}:${version}`),
 
   lock: (name: string): string => prefix(`lock:${name}`),
+
+  socketIoAdapter: (): string => prefix('socket.io'),
 };
