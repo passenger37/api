@@ -243,4 +243,39 @@ export class UserValidationService {
       throw new BadRequestException('You cannot follow yourself.');
     }
   }
+
+  // =====================================================
+  // User Circle Validation
+  // =====================================================
+
+  validateCannotAddSelfToCircle(ownerId: string, memberId: string): void {
+    if (ownerId === memberId) {
+      throw new BadRequestException('You cannot add yourself to the circle.');
+    }
+  }
+
+  async validateAlreadyInCircle(
+    ownerId: string,
+    memberId: string,
+  ): Promise<void> {
+    const exists = await this.socialRepository.existsCircleMember(
+      ownerId,
+      memberId,
+    );
+
+    if (exists) {
+      throw new ConflictException('User is already in your circle.');
+    }
+  }
+
+  async validateNotInCircle(ownerId: string, memberId: string): Promise<void> {
+    const exists = await this.socialRepository.existsCircleMember(
+      ownerId,
+      memberId,
+    );
+
+    if (!exists) {
+      throw new NotFoundException('User is not in your circle.');
+    }
+  }
 }

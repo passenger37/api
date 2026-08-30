@@ -50,6 +50,8 @@ import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
 import { FollowerResponse } from '../dto/response/follower.response';
 import { MutedUserResponse } from '../dto/response/muted-user.response';
 import { FollowActionResponse } from '../dto/response/follow-action.response';
+import { CircleMemberResponse } from '../dto/response/circle-member.response';
+import { SearchUserResponse } from '../dto/response/search-user.response';
 
 @ApiTags('Users')
 @Controller({
@@ -449,5 +451,67 @@ export class UsersController {
     @Query() pagination: PaginationQueryDto,
   ) {
     return this.usersService.getOutgoingFollowRequests(user.sub, pagination);
+  }
+
+  // =====================================================
+  // Suggested Users
+  // =====================================================
+
+  @Get('me/suggested')
+  @ApiOperation({
+    summary: 'Get suggested users to follow',
+  })
+  @ApiOkResponse({
+    description: 'Suggested users retrieved successfully.',
+    type: PaginationResponseDto,
+  })
+  async getSuggestedUsers(
+    @CurrentUser() user: JwtPayload,
+    @Query() pagination: PaginationQueryDto,
+  ): Promise<PaginationResponseDto<SearchUserResponse>> {
+    return this.usersService.getSuggestedUsers(user.sub, pagination);
+  }
+
+  // =====================================================
+  // User Circle (Close Friends)
+  // =====================================================
+
+  @Get('me/circles')
+  @ApiOperation({
+    summary: 'Get circle members (close friends)',
+  })
+  @ApiOkResponse({
+    description: 'Circle members retrieved successfully.',
+    type: PaginationResponseDto,
+  })
+  async getCircleMembers(
+    @CurrentUser() user: JwtPayload,
+    @Query() pagination: PaginationQueryDto,
+  ): Promise<PaginationResponseDto<CircleMemberResponse>> {
+    return this.usersService.getCircleMembers(user.sub, pagination);
+  }
+
+  @Post('me/circles/:userId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Add a user to the circle (close friends)',
+  })
+  async addCircleMember(
+    @CurrentUser() user: JwtPayload,
+    @Param('userId') memberId: string,
+  ): Promise<void> {
+    await this.usersService.addCircleMember(user.sub, memberId);
+  }
+
+  @Delete('me/circles/:userId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Remove a user from the circle (close friends)',
+  })
+  async removeCircleMember(
+    @CurrentUser() user: JwtPayload,
+    @Param('userId') memberId: string,
+  ): Promise<void> {
+    await this.usersService.removeCircleMember(user.sub, memberId);
   }
 }

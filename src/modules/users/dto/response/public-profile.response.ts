@@ -21,5 +21,9 @@ export class PublicProfileResponse {
 
   isVerified!: boolean;
 
+  followersCount!: number;
+
+  followingCount!: number;
+
   createdAt!: Date;
 }

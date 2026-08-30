@@ -242,4 +242,20 @@ export class UsersService {
   ) {
     return this.queryService.getOutgoingFollowRequests(requesterId, pagination);
   }
+
+  // =====================================================
+  // User Circle (Close Friends)
+  // =====================================================
+
+  async addCircleMember(ownerId: string, memberId: string): Promise<void> {
+    await this.commandService.addCircleMember(ownerId, memberId);
+  }
+
+  async removeCircleMember(ownerId: string, memberId: string): Promise<void> {
+    await this.commandService.removeCircleMember(ownerId, memberId);
+  }
+
+  async getCircleMembers(ownerId: string, pagination: PaginationQueryDto) {
+    return this.queryService.getCircleMembers(ownerId, pagination);
+  }
 }

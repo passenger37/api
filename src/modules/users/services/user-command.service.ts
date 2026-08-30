@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Gender, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
@@ -148,6 +152,12 @@ export class UserCommandService {
         blockedId,
         tx,
       );
+
+      await this.socialRepository.removeFollowRequestRelationship(
+        blockerId,
+        blockedId,
+        tx,
+      );
     });
   }
 
@@ -257,6 +267,50 @@ export class UserCommandService {
         receiverId,
         tx,
       );
+    });
+  }
+
+  // =====================================================
+  // Add User to Circle (Close Friends)
+  // =====================================================
+
+  async addCircleMember(ownerId: string, memberId: string): Promise<void> {
+    await this.validation.validateUserExists(memberId);
+
+    this.validation.validateCannotAddSelfToCircle(ownerId, memberId);
+
+    await this.validation.validateAlreadyInCircle(ownerId, memberId);
+
+    const blockedByOwner = await this.socialRepository.existsBlock(
+      ownerId,
+      memberId,
+    );
+
+    const blockedByMember = await this.socialRepository.existsBlock(
+      memberId,
+      ownerId,
+    );
+
+    if (blockedByOwner || blockedByMember) {
+      throw new ConflictException(
+        'You cannot add a user you have an active block relationship with.',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.socialRepository.addCircleMember(ownerId, memberId, tx);
+    });
+  }
+
+  // =====================================================
+  // Remove User from Circle (Close Friends)
+  // =====================================================
+
+  async removeCircleMember(ownerId: string, memberId: string): Promise<void> {
+    await this.validation.validateNotInCircle(ownerId, memberId);
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.socialRepository.removeCircleMember(ownerId, memberId, tx);
     });
   }
 }

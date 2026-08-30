@@ -22,6 +22,7 @@ import { BlockedUserResponse } from '../dto/response/blocked-user.response';
 import { PaginationMapper } from '../../../common/pagination/mappers/pagination.mapper';
 import { MutedUserResponse } from '../dto/response/muted-user.response';
 import { FollowRequestResponse } from '../dto/response/follow-request.response';
+import { CircleMemberResponse } from '../dto/response/circle-member.response';
 
 export class UserMapper {
   static toResponse(user: User): UserResponseDto {
@@ -176,31 +177,38 @@ export class UserMapper {
   // Public Profile
   // =====================================================
 
-  static toPublicProfileResponse(user: {
-    id: string;
+  static toPublicProfileResponse(
+    user: {
+      id: string;
 
-    username: string;
+      username: string;
 
-    displayName: string;
+      displayName: string;
 
-    avatarUrl: string | null;
+      avatarUrl: string | null;
 
-    coverImageUrl: string | null;
+      coverImageUrl: string | null;
 
-    bio: string | null;
+      bio: string | null;
 
-    website: string | null;
+      website: string | null;
 
-    country: string | null;
+      country: string | null;
 
-    state: string | null;
+      state: string | null;
 
-    city: string | null;
+      city: string | null;
 
-    isVerified: boolean;
+      isVerified: boolean;
 
-    createdAt: Date;
-  }): PublicProfileResponse {
+      createdAt: Date;
+    },
+    counts?: {
+      followersCount: number;
+
+      followingCount: number;
+    },
+  ): PublicProfileResponse {
     return {
       id: user.id,
 
@@ -223,6 +231,10 @@ export class UserMapper {
       city: user.city,
 
       isVerified: user.isVerified,
+
+      followersCount: counts?.followersCount ?? 0,
+
+      followingCount: counts?.followingCount ?? 0,
 
       createdAt: user.createdAt,
     };
@@ -537,6 +549,41 @@ export class UserMapper {
       page,
       pageSize,
       (item) => item,
+    );
+  }
+
+  // =====================================================
+  // User Circle (Close Friends)
+  // =====================================================
+
+  static toCircleMembersResponse(
+    members: Array<{
+      createdAt: Date;
+      member: {
+        id: string;
+        username: string;
+        displayName: string;
+        avatarUrl: string | null;
+        isVerified: boolean;
+      };
+    }>,
+    page: number,
+    pageSize: number,
+    total: number,
+  ): PaginationResponseDto<CircleMemberResponse> {
+    return PaginationMapper.toResponse(
+      members,
+      total,
+      page,
+      pageSize,
+      (item): CircleMemberResponse => ({
+        id: item.member.id,
+        username: item.member.username,
+        displayName: item.member.displayName,
+        avatarUrl: item.member.avatarUrl,
+        isVerified: item.member.isVerified,
+        addedAt: item.createdAt,
+      }),
     );
   }
 }

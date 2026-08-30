@@ -204,9 +204,42 @@ export class UserSocialRepository {
       },
     });
 
+    const blockedByMe = await this.prisma.block.findMany({
+      where: {
+        blockerId: currentUserId,
+      },
+
+      select: {
+        blockedId: true,
+      },
+    });
+
+    const blockedMe = await this.prisma.block.findMany({
+      where: {
+        blockedId: currentUserId,
+      },
+
+      select: {
+        blockerId: true,
+      },
+    });
+
+    const requested = await this.prisma.followRequest.findMany({
+      where: {
+        requesterId: currentUserId,
+      },
+
+      select: {
+        receiverId: true,
+      },
+    });
+
     const excludedIds = [
       currentUserId,
       ...followedUsers.map((x) => x.followingId),
+      ...blockedByMe.map((x) => x.blockedId),
+      ...blockedMe.map((x) => x.blockerId),
+      ...requested.map((x) => x.receiverId),
     ];
 
     const where = {
@@ -660,6 +693,122 @@ export class UserSocialRepository {
 
     return {
       requests,
+      total,
+    };
+  }
+
+  // =====================================================
+  // Follow Request Cleanup (used on block)
+  // =====================================================
+
+  async removeFollowRequestRelationship(
+    userA: string,
+    userB: string,
+    prisma: PrismaExecutor = this.prisma,
+  ) {
+    return prisma.followRequest.deleteMany({
+      where: {
+        OR: [
+          {
+            requesterId: userA,
+            receiverId: userB,
+          },
+          {
+            requesterId: userB,
+            receiverId: userA,
+          },
+        ],
+      },
+    });
+  }
+
+  // =====================================================
+  // User Circle (Close Friends)
+  // =====================================================
+
+  async addCircleMember(
+    ownerId: string,
+    memberId: string,
+    prisma: PrismaExecutor = this.prisma,
+  ) {
+    return prisma.userCircle.create({
+      data: {
+        ownerId,
+        memberId,
+      },
+    });
+  }
+
+  async removeCircleMember(
+    ownerId: string,
+    memberId: string,
+    prisma: PrismaExecutor = this.prisma,
+  ) {
+    return prisma.userCircle.delete({
+      where: {
+        ownerId_memberId: {
+          ownerId,
+          memberId,
+        },
+      },
+    });
+  }
+
+  async existsCircleMember(
+    ownerId: string,
+    memberId: string,
+  ): Promise<boolean> {
+    const entry = await this.prisma.userCircle.findUnique({
+      where: {
+        ownerId_memberId: {
+          ownerId,
+          memberId,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return !!entry;
+  }
+
+  async findCircleMembers(ownerId: string, skip: number, take: number) {
+    const [members, total] = await this.prisma.$transaction([
+      this.prisma.userCircle.findMany({
+        where: {
+          ownerId,
+        },
+
+        include: {
+          member: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatarUrl: true,
+              isVerified: true,
+            },
+          },
+        },
+
+        orderBy: {
+          createdAt: 'desc',
+        },
+
+        skip,
+        take,
+      }),
+
+      this.prisma.userCircle.count({
+        where: {
+          ownerId,
+        },
+      }),
+    ]);
+
+    return {
+      members,
       total,
     };
   }

@@ -157,6 +157,10 @@ model User {
 
   sentFollowRequests     FollowRequest[] @relation("UserSentFollowRequests")
   receivedFollowRequests FollowRequest[] @relation("UserReceivedFollowRequests")
+
+  circleMembers UserCircle[] @relation("UserCircleOwner")
+  circlesOf     UserCircle[] @relation("UserCircleMember")
+
   ownedServers           Server[]        @relation("OwnedServers")
 
   serverMemberships ServerMember[]
@@ -377,6 +381,23 @@ model FollowRequest {
   @@unique([requesterId, receiverId])
   @@index([requesterId])
   @@index([receiverId])
+}
+
+model UserCircle {
+  id String @id @default(cuid())
+
+  ownerId  String
+  memberId String
+
+  owner  User @relation("UserCircleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  member User @relation("UserCircleMember", fields: [memberId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([ownerId, memberId])
+  @@index([ownerId])
+  @@index([memberId])
 }
 
 enum ServerVisibility {

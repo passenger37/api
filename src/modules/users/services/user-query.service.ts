@@ -32,6 +32,8 @@ import { BlockedUserResponse } from '../dto/response/blocked-user.response';
 
 import { MutedUserResponse } from '../dto/response/muted-user.response';
 
+import { CircleMemberResponse } from '../dto/response/circle-member.response';
+
 @Injectable()
 export class UserQueryService {
   constructor(
@@ -109,7 +111,15 @@ export class UserQueryService {
       throw new NotFoundException('User not found.');
     }
 
-    return UserMapper.toPublicProfileResponse(user);
+    const [followersCount, followingCount] = await Promise.all([
+      this.socialRepository.countFollowers(user.id),
+      this.socialRepository.countFollowing(user.id),
+    ]);
+
+    return UserMapper.toPublicProfileResponse(user, {
+      followersCount,
+      followingCount,
+    });
   }
 
   // =====================================================
@@ -338,6 +348,30 @@ export class UserQueryService {
 
     return UserMapper.toOutgoingFollowRequestsResponse(
       requests,
+      pagination.page,
+      pagination.pageSize,
+      total,
+    );
+  }
+
+  async getCircleMembers(
+    ownerId: string,
+    pagination: PaginationQueryDto,
+  ): Promise<PaginationResponseDto<CircleMemberResponse>> {
+    const exists = await this.usersRepository.existsById(ownerId);
+
+    if (!exists) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const { members, total } = await this.socialRepository.findCircleMembers(
+      ownerId,
+      pagination.skip,
+      pagination.take,
+    );
+
+    return UserMapper.toCircleMembersResponse(
+      members,
       pagination.page,
       pagination.pageSize,
       total,
