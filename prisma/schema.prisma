@@ -163,6 +163,12 @@ model User {
   ServerInvite      ServerInvite[]
 
   createdChannels ServerChannel[]
+
+  serverBans ServerBan[] @relation("UserServerBans")
+
+  bansIssued ServerBan[] @relation("UserBansIssued")
+
+  reportedInServers UserReport[] @relation("UserReportedTargets")
 }
 
 model Follow {
@@ -405,10 +411,19 @@ model Server {
 
   roles ServerRole[]
 
-  invites        ServerInvite[]
+  invites ServerInvite[]
+
   ChannelMessage ChannelMessage[]
 
   messageAttachments MessageAttachment[] @relation("AttachmentServer")
+
+  bans ServerBan[]
+
+  messageReports MessageReport[]
+
+  userReports UserReport[]
+
+  moderationAuditLogs ModerationAuditLog[]
 
   @@index([ownerId])
   @@index([visibility])
@@ -427,6 +442,8 @@ model ServerMember {
 
   joinedAt DateTime @default(now())
 
+  removedAt DateTime?
+
   roles ServerMemberRole[]
 
   channelPermissionOverwrites ServerChannelPermissionOverwrite[]
@@ -441,6 +458,16 @@ messageReactions ChannelMessageReaction[]
   channelReadStates ChannelReadState[]
 
   attachments MessageAttachment[] @relation("AttachmentUploads")
+
+  messageReports MessageReport[] @relation("MessageReportsAuthored")
+
+  messageReportsHandled MessageReport[] @relation("MessageReportsHandled")
+
+  userReports UserReport[] @relation("UserReportsAuthored")
+
+  userReportsHandled UserReport[] @relation("UserReportsHandled")
+
+  moderationActions ModerationAuditLog[] @relation("ModerationAuditActor")
 
   @@unique([serverId, userId])
   @@index([serverId])
@@ -658,6 +685,8 @@ model ServerChannel {
 
   messageAttachments MessageAttachment[] @relation("AttachmentChannel")
 
+  messageReports MessageReport[]
+
   readStates ChannelReadState[]
 
   @@unique([serverId, name])
@@ -749,6 +778,8 @@ model ChannelMessage {
   readCursors ChannelReadState[] @relation("ChannelReadCursor")
 
   attachments MessageAttachment[] @relation("MessageAttachments")
+
+  reports MessageReport[]
 
   @@index([channelId, createdAt, id])
   @@index([channelId, messageSeq])
@@ -922,4 +953,169 @@ model MessageAttachment {
   @@index([serverId])
   @@index([channelId, createdAt])
   @@index([uploadedById])
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+enum MessageReportReason {
+  HARASSMENT
+  HATE_SPEECH
+  SPAM
+  NSFW_CONTENT
+  VIOLENCE_OR_GORE
+  SELF_HARM
+  IMPERSONATION
+  COPYRIGHT_VIOLATION
+  MISINFORMATION
+  TOS_VIOLATION
+  OTHER
+}
+
+enum UserReportReason {
+  HARASSMENT
+  DISRUPTIVE_CONDUCT
+  SPAM_OR_UNWANTED_CONTENT
+  BAN_EVASION
+  INAPPROPRIATE_NAME_OR_AVATAR
+  IMPERSONATION
+  SUSPICIOUS_BEHAVIOR
+  OTHER
+}
+
+enum ModerationAction {
+  MEMBER_KICKED
+  MEMBER_BANNED
+  MEMBER_UNBANNED
+  MESSAGE_REPORT_RESOLVED
+  USER_REPORT_RESOLVED
+}
+
+model ServerBan {
+  id String @id @default(cuid())
+
+  serverId String
+  userId   String
+
+  bannedById String
+
+  reason String?
+
+  createdAt DateTime @default(now())
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  user User @relation("UserServerBans", fields: [userId], references: [id], onDelete: Cascade)
+
+  bannedBy User @relation("UserBansIssued", fields: [bannedById], references: [id], onDelete: Cascade)
+
+  @@unique([serverId, userId])
+  @@index([serverId])
+  @@index([userId])
+  @@index([bannedById])
+}
+
+model MessageReport {
+  id String @id @default(cuid())
+
+  serverId String
+  channelId String
+  messageId String
+  reporterMemberId String
+
+  reason MessageReportReason
+
+  detailText String?
+
+  status ReportStatus @default(PENDING)
+
+  handledByMemberId String?
+
+  handledAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  channel ServerChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  message ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  reporter ServerMember @relation("MessageReportsAuthored", fields: [reporterMemberId], references: [id], onDelete: Cascade)
+
+  handledBy ServerMember? @relation("MessageReportsHandled", fields: [handledByMemberId], references: [id], onDelete: SetNull)
+
+  @@unique([messageId, reporterMemberId])
+  @@index([serverId])
+  @@index([channelId])
+  @@index([messageId])
+  @@index([status])
+  @@index([reporterMemberId])
+  @@index([handledByMemberId])
+}
+
+model UserReport {
+  id String @id @default(cuid())
+
+  serverId String
+  reporterMemberId String
+  targetUserId String
+
+  reason UserReportReason
+
+  detailText String?
+
+  status ReportStatus @default(PENDING)
+
+  handledByMemberId String?
+
+  handledAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  reporter ServerMember @relation("UserReportsAuthored", fields: [reporterMemberId], references: [id], onDelete: Cascade)
+
+  target User @relation("UserReportedTargets", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  handledBy ServerMember? @relation("UserReportsHandled", fields: [handledByMemberId], references: [id], onDelete: SetNull)
+
+  @@unique([reporterMemberId, targetUserId])
+  @@index([serverId])
+  @@index([targetUserId])
+  @@index([status])
+  @@index([reporterMemberId])
+  @@index([handledByMemberId])
+}
+
+model ModerationAuditLog {
+  id String @id @default(cuid())
+
+  serverId String
+  actorMemberId String
+
+  action ModerationAction
+
+  targetUserId String?
+
+  targetMemberId String?
+
+  reason String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  actor ServerMember @relation("ModerationAuditActor", fields: [actorMemberId], references: [id], onDelete: Cascade)
+
+  @@index([serverId, createdAt])
+  @@index([actorMemberId])
+  @@index([action])
 }

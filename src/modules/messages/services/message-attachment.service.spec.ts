@@ -7,6 +7,7 @@ import { ServerMemberQueryService } from '../../servers/services/server-member-q
 import { AttachmentStorageService } from './attachment-storage.service';
 import { AttachmentValidationService } from './attachment-validation.service';
 import { MessageAttachmentRepository } from '../repositories/message-attachment.repository';
+import { MessageSpamControlService } from './message-spam-control.service';
 
 describe('MessageAttachmentService', () => {
   let service: MessageAttachmentService;
@@ -32,6 +33,7 @@ describe('MessageAttachmentService', () => {
     markUploaded: jest.Mock;
     attachToMessage: jest.Mock;
   };
+  let spamControl: { checkUploadRequest: jest.Mock };
 
   beforeEach(async () => {
     validation = {
@@ -56,6 +58,7 @@ describe('MessageAttachmentService', () => {
       markUploaded: jest.fn(),
       attachToMessage: jest.fn(),
     };
+    spamControl = { checkUploadRequest: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -71,6 +74,7 @@ describe('MessageAttachmentService', () => {
           useValue: attachmentValidation,
         },
         { provide: MessageAttachmentRepository, useValue: repository },
+        { provide: MessageSpamControlService, useValue: spamControl },
       ],
     }).compile();
 

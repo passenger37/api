@@ -12,6 +12,7 @@ import { ChannelMessageValidationService } from './channel-message-validation.se
 import { AttachmentStorageService } from './attachment-storage.service';
 import { AttachmentValidationService } from './attachment-validation.service';
 import { MessageAttachmentRepository } from '../repositories/message-attachment.repository';
+import { MessageSpamControlService } from './message-spam-control.service';
 
 @Injectable()
 export class MessageAttachmentService {
@@ -25,6 +26,8 @@ export class MessageAttachmentService {
     private readonly attachmentValidation: AttachmentValidationService,
 
     private readonly repository: MessageAttachmentRepository,
+
+    private readonly spamControl: MessageSpamControlService,
   ) {}
 
   async requestUpload(
@@ -46,6 +49,8 @@ export class MessageAttachmentService {
       serverId,
       userId,
     );
+
+    await this.spamControl.checkUploadRequest(member.id);
 
     const fileName = this.attachmentValidation.validateUploadPolicy(
       dto.fileName,

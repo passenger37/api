@@ -62,6 +62,12 @@ import { ServerRolePermissionController } from './controllers/server-role-permis
 import { ServerMemberController } from './controllers/server-member.controller';
 import { ServerChannelController } from './controllers/server-channel.controller';
 import { ServerChannelPermissionOverwriteController } from './controllers/server-channel-permission-overwrite.controller';
+import { ServerModerationController } from './controllers/server-moderation.controller';
+import { ServerAuditLogController } from './controllers/server-audit-log.controller';
+import { ServerBanRepository } from './repositories/server-ban.repository';
+import { ModerationAuditRepository } from './repositories/moderation-audit.repository';
+import { ServerModerationService } from './services/server-moderation.service';
+import { ServerAuditLogQueryService } from './services/server-audit-log-query.service';
 
 @Module({
   imports: [PrismaModule],
@@ -74,6 +80,8 @@ import { ServerChannelPermissionOverwriteController } from './controllers/server
     ServerMemberController,
     ServerChannelController,
     ServerChannelPermissionOverwriteController,
+    ServerModerationController,
+    ServerAuditLogController,
   ],
 
   providers: [
@@ -129,6 +137,10 @@ import { ServerChannelPermissionOverwriteController } from './controllers/server
     ServerPermissionResolverService,
     ServerInviteQueryService,
     ServerPermissionCacheMetricsService,
+    ServerBanRepository,
+    ModerationAuditRepository,
+    ServerModerationService,
+    ServerAuditLogQueryService,
   ],
 
   exports: [
@@ -138,6 +150,8 @@ import { ServerChannelPermissionOverwriteController } from './controllers/server
     ServerChannelQueryService,
     ServerPermissionResolverService,
     ServerRoleQueryService,
+    ModerationAuditRepository,
+    ServerBanRepository,
   ],
 })
 export class ServersModule {}

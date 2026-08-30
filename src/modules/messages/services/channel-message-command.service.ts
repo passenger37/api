@@ -18,6 +18,7 @@ import { ChannelMessageGateway } from '../gateways/channel-message.gateway';
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
 import { OutboxEventRepository } from '../repositories/outbox-event.repository';
 import { MessageAttachmentService } from './message-attachment.service';
+import { MessageSpamControlService } from './message-spam-control.service';
 
 @Injectable()
 export class ChannelMessageCommandService {
@@ -46,6 +47,8 @@ export class ChannelMessageCommandService {
     private readonly outboxRepository: OutboxEventRepository,
 
     private readonly attachmentService: MessageAttachmentService,
+
+    private readonly spamControl: MessageSpamControlService,
   ) {}
 
   async createMessage(
@@ -85,6 +88,8 @@ export class ChannelMessageCommandService {
         };
       }
     }
+
+    await this.spamControl.checkSend(channelId, member.id, content);
 
     const mentions = await this.mentionResolver.resolve(
       content,

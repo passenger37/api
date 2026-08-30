@@ -39,6 +39,22 @@ export class ServerMemberRepository {
       where: {
         serverId,
         userId,
+        removedAt: null,
+      },
+    });
+  }
+
+  async findByServerAndUserIncludingRemoved(
+    serverId: string,
+    userId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<ServerMember | null> {
+    const client = tx ?? this.prisma;
+
+    return client.serverMember.findFirst({
+      where: {
+        serverId,
+        userId,
       },
     });
   }
@@ -72,6 +88,7 @@ export class ServerMemberRepository {
       where: {
         serverId,
         userId,
+        removedAt: null,
       },
 
       include: SERVER_MEMBER_WITH_ROLES_INCLUDE,
@@ -82,6 +99,7 @@ export class ServerMemberRepository {
     return this.prisma.serverMember.count({
       where: {
         serverId,
+        removedAt: null,
       },
     });
   }
@@ -95,6 +113,7 @@ export class ServerMemberRepository {
     return this.prisma.serverMember.findMany({
       where: {
         serverId,
+        removedAt: null,
 
         ...(query
           ? {
@@ -136,6 +155,7 @@ export class ServerMemberRepository {
     return this.prisma.serverMember.count({
       where: {
         serverId,
+        removedAt: null,
 
         ...(query
           ? {
@@ -165,6 +185,7 @@ export class ServerMemberRepository {
     return this.prisma.serverMember.findFirst({
       where: {
         serverId,
+        removedAt: null,
 
         roles: {
           some: {
@@ -188,12 +209,38 @@ export class ServerMemberRepository {
   }
 
   async findHighestRole(serverId: string, userId: string) {
-    const member = await this.prisma.serverMember.findUnique({
+    const member = await this.prisma.serverMember.findFirst({
       where: {
-        serverId_userId: {
-          serverId,
-          userId,
+        serverId,
+        userId,
+        removedAt: null,
+      },
+
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+
+          orderBy: {
+            role: {
+              position: 'desc',
+            },
+          },
+
+          take: 1,
         },
+      },
+    });
+
+    return member?.roles[0]?.role ?? null;
+  }
+
+  async findHighestRoleAny(serverId: string, userId: string) {
+    const member = await this.prisma.serverMember.findFirst({
+      where: {
+        serverId,
+        userId,
       },
 
       include: {
@@ -224,12 +271,11 @@ export class ServerMemberRepository {
     });
   }
   async findByUser(serverId: string, userId: string) {
-    return this.prisma.serverMember.findUnique({
+    return this.prisma.serverMember.findFirst({
       where: {
-        serverId_userId: {
-          serverId,
-          userId,
-        },
+        serverId,
+        userId,
+        removedAt: null,
       },
     });
   }
@@ -239,6 +285,7 @@ export class ServerMemberRepository {
       where: {
         serverId,
         userId,
+        removedAt: null,
       },
 
       include: {
@@ -258,6 +305,38 @@ export class ServerMemberRepository {
   ) {
     return prisma.serverMember.create({
       data,
+    });
+  }
+
+  async markRemoved(
+    memberId: string,
+    removedAt: Date,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx ?? this.prisma;
+
+    return client.serverMember.update({
+      where: {
+        id: memberId,
+      },
+
+      data: {
+        removedAt,
+      },
+    });
+  }
+
+  async restoreMembership(memberId: string, tx?: Prisma.TransactionClient) {
+    const client = tx ?? this.prisma;
+
+    return client.serverMember.update({
+      where: {
+        id: memberId,
+      },
+
+      data: {
+        removedAt: null,
+      },
     });
   }
 }

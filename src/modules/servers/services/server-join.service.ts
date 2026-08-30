@@ -10,7 +10,9 @@ import { PrismaService } from '../../../core/database/prisma.service';
 
 import { ServerRepository } from '../repositories/server.repository';
 import { ServerMemberRepository } from '../repositories/server-member.repository';
+import { ServerBanRepository } from '../repositories/server-ban.repository';
 import { ServerMemberService } from './server-member.service';
+import { ServerPermissionService } from './server-permission.service';
 
 @Injectable()
 export class ServerJoinService {
@@ -18,7 +20,9 @@ export class ServerJoinService {
     private readonly prisma: PrismaService,
     private readonly serverRepository: ServerRepository,
     private readonly memberRepository: ServerMemberRepository,
+    private readonly banRepository: ServerBanRepository,
     private readonly memberService: ServerMemberService,
+    private readonly permissionService: ServerPermissionService,
   ) {}
 
   /**
@@ -38,6 +42,16 @@ export class ServerJoinService {
       );
     }
 
+    const ban = await this.banRepository.findByServerAndUser(serverId, userId);
+
+    if (ban) {
+      throw new ForbiddenException(
+        ban.reason
+          ? `You are banned from this server: ${ban.reason}`
+          : 'You are banned from this server.',
+      );
+    }
+
     const existingMember = await this.memberRepository.findByUser(
       serverId,
       userId,
@@ -45,6 +59,20 @@ export class ServerJoinService {
 
     if (existingMember) {
       return existingMember;
+    }
+
+    const previouslyRemoved =
+      await this.memberRepository.findByServerAndUserIncludingRemoved(
+        serverId,
+        userId,
+      );
+
+    if (previouslyRemoved) {
+      this.permissionService.clearUserCache(serverId, userId);
+
+      return this.prisma.$transaction(async (tx: Prisma.TransactionClient) =>
+        this.memberRepository.restoreMembership(previouslyRemoved.id, tx),
+      );
     }
 
     return this.prisma.$transaction((tx: Prisma.TransactionClient) =>

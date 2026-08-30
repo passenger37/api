@@ -17,6 +17,7 @@ import { BootstrapService } from './bootstrap/bootstrap.service';
 import { RedisModule } from './core/redis/redis.module';
 import { ServersModule } from './modules/servers/servers.module';
 import { MessagesModule } from './modules/messages/messages.module';
+import { ModerationModule } from './modules/moderation/moderation.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { MessagesModule } from './modules/messages/messages.module';
     RedisModule,
     ServersModule,
     MessagesModule,
+    ModerationModule,
   ],
   controllers: [],
   // providers: [AppService],
