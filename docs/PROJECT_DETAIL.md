@@ -131,8 +131,8 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 | 40.56 | PostgreSQL Index Strategy (completed) | B2 40.47 |
 | 40.57 (completed) | Transaction Boundaries (completed) | B2 40.48 |
 | 40.58 (completed) | Formalize Command/Query (CQRS) Architecture (completed) | B2 40.49 |
-| 40.59 *(current)* | Repository Boundary Hardening | B2 40.50 |
-| 40.60 | Domain/Data Mapping | B2 40.51 |
+| 40.59 (completed) | Repository Boundary Hardening (completed) | B2 40.50 |
+| 40.60 *(current)* | Domain/Data Mapping | B2 40.51 |
 
 ### 4.4 Distributed / Scaling Foundation (moved later — depends on 4.1–4.3)
 
