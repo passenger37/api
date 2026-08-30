@@ -10,6 +10,8 @@ import { SystemRoles } from '../../../common/constants/system-roles';
 import { PermissionService } from './permission.service';
 import { AuthorizationService } from '../../authorization/services/authorization.service';
 import { RoleRepository } from '../repositories/role.repository';
+import { RoleMapper, PermissionMapper } from '../mappers';
+import { PermissionResponse, RoleResponse } from '../responses';
 
 @Injectable()
 export class RoleService {
@@ -19,35 +21,41 @@ export class RoleService {
     private readonly authorizationService: AuthorizationService,
   ) {}
 
-  async findAll() {
-    return this.roleRepository.findAll();
+  async findAll(): Promise<RoleResponse[]> {
+    const roles = await this.roleRepository.findAll();
+
+    return RoleMapper.toResponseList(roles);
   }
 
-  async findById(id: string) {
+  async findById(id: string): Promise<RoleResponse> {
     const role = await this.roleRepository.findById(id);
 
     if (!role) {
       throw new NotFoundException('Role not found');
     }
 
-    return role;
+    return RoleMapper.toResponse(role);
   }
 
-  async findByName(name: string) {
-    return this.roleRepository.findByName(name);
+  async findByName(name: string): Promise<RoleResponse | null> {
+    const role = await this.roleRepository.findByName(name);
+
+    return role ? RoleMapper.toResponse(role) : null;
   }
 
-  async create(dto: CreateRoleDto) {
+  async create(dto: CreateRoleDto): Promise<RoleResponse> {
     const existing = await this.findByName(dto.name);
 
     if (existing) {
       throw new ConflictException('Role already exists');
     }
 
-    return this.roleRepository.create(dto);
+    const role = await this.roleRepository.create(dto);
+
+    return RoleMapper.toResponse(role);
   }
 
-  async update(id: string, dto: UpdateRoleDto) {
+  async update(id: string, dto: UpdateRoleDto): Promise<RoleResponse> {
     const role = await this.findById(id);
 
     if (role.isSystem) {
@@ -62,17 +70,21 @@ export class RoleService {
       }
     }
 
-    return this.roleRepository.update(id, dto);
+    const updated = await this.roleRepository.update(id, dto);
+
+    return RoleMapper.toResponse(updated);
   }
 
-  async delete(id: string) {
+  async delete(id: string): Promise<RoleResponse> {
     const role = await this.findById(id);
 
     if (role.isSystem) {
       throw new ForbiddenException('System roles cannot be deleted.');
     }
 
-    return this.roleRepository.delete(id);
+    const deleted = await this.roleRepository.delete(id);
+
+    return RoleMapper.toResponse(deleted);
   }
 
   async assignRole(userId: string, roleId: string, assignedById?: string) {
@@ -180,12 +192,14 @@ export class RoleService {
     };
   }
 
-  async getPermissions(roleId: string) {
+  async getPermissions(roleId: string): Promise<PermissionResponse[]> {
     await this.findById(roleId);
 
     const permissions =
       await this.roleRepository.findPermissionsForRole(roleId);
 
-    return permissions.map((item) => item.permission);
+    return PermissionMapper.toResponseList(
+      permissions.map((item) => item.permission),
+    );
   }
 }
