@@ -1,29 +1,16 @@
 import { Injectable } from '@nestjs/common';
 
-import { PrismaService } from '../../../core/database/index';
+import { AuthUserRoleRepository } from '../repositories/auth-user-role.repository';
 
 @Injectable()
 export class AuthorizationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly authUserRoleRepository: AuthUserRoleRepository,
+  ) {}
 
   async getUserPermissions(userId: string): Promise<string[]> {
-    const userRoles = await this.prisma.userRole.findMany({
-      where: {
-        userId,
-      },
-
-      include: {
-        role: {
-          include: {
-            permissions: {
-              include: {
-                permission: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const userRoles =
+      await this.authUserRoleRepository.findUserRolesWithPermissions(userId);
 
     const permissions = new Set<string>();
 
@@ -37,15 +24,8 @@ export class AuthorizationService {
   }
 
   async getUserRoles(userId: string): Promise<string[]> {
-    const roles = await this.prisma.userRole.findMany({
-      where: {
-        userId,
-      },
-
-      include: {
-        role: true,
-      },
-    });
+    const roles =
+      await this.authUserRoleRepository.findUserRolesWithRole(userId);
 
     return roles.map((r) => r.role.name);
   }

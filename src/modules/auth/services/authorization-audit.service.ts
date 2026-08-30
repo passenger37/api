@@ -1,24 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../core/database/prisma.service';
+
+import { AuthorizationAuditRepository } from '../repositories/authorization-audit.repository';
 import { AuthorizationAudit } from '../interfaces/audit-log.interface';
 
 @Injectable()
 export class AuthorizationAuditService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly authorizationAuditRepository: AuthorizationAuditRepository,
+  ) {}
 
   async log(data: AuthorizationAudit) {
-    return this.prisma.authorizationAuditLog.create({
-      data: {
-        actorId: data.actorId,
-        action: data.action,
-        targetUserId: data.targetUserId,
-        roleId: data.roleId,
-        permissionId: data.permissionId,
-        ipAddress: data.ipAddress,
-        userAgent: data.userAgent,
-        metadata: data.metadata,
-      },
-    });
+    return this.authorizationAuditRepository.create(data);
   }
 
   async roleAssigned(data: AuthorizationAudit) {

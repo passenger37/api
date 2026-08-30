@@ -5,32 +5,26 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { PrismaService } from '../../../core/database';
 import { CreateRoleDto, UpdateRoleDto } from '../dto';
 import { SystemRoles } from '../../../common/constants/system-roles';
 import { PermissionService } from './permission.service';
 import { AuthorizationService } from '../../authorization/services/authorization.service';
+import { RoleRepository } from '../repositories/role.repository';
 
 @Injectable()
 export class RoleService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly roleRepository: RoleRepository,
     private readonly permissionService: PermissionService,
     private readonly authorizationService: AuthorizationService,
   ) {}
 
   async findAll() {
-    return this.prisma.role.findMany({
-      orderBy: {
-        name: 'asc',
-      },
-    });
+    return this.roleRepository.findAll();
   }
 
   async findById(id: string) {
-    const role = await this.prisma.role.findUnique({
-      where: { id },
-    });
+    const role = await this.roleRepository.findById(id);
 
     if (!role) {
       throw new NotFoundException('Role not found');
@@ -40,11 +34,7 @@ export class RoleService {
   }
 
   async findByName(name: string) {
-    return this.prisma.role.findUnique({
-      where: {
-        name,
-      },
-    });
+    return this.roleRepository.findByName(name);
   }
 
   async create(dto: CreateRoleDto) {
@@ -54,13 +44,7 @@ export class RoleService {
       throw new ConflictException('Role already exists');
     }
 
-    return this.prisma.role.create({
-      data: {
-        name: dto.name,
-        description: dto.description,
-        isSystem: dto.isSystem ?? false,
-      },
-    });
+    return this.roleRepository.create(dto);
   }
 
   async update(id: string, dto: UpdateRoleDto) {
@@ -78,12 +62,7 @@ export class RoleService {
       }
     }
 
-    return this.prisma.role.update({
-      where: {
-        id,
-      },
-      data: dto,
-    });
+    return this.roleRepository.update(id, dto);
   }
 
   async delete(id: string) {
@@ -93,20 +72,11 @@ export class RoleService {
       throw new ForbiddenException('System roles cannot be deleted.');
     }
 
-    return this.prisma.role.delete({
-      where: {
-        id,
-      },
-    });
+    return this.roleRepository.delete(id);
   }
 
   async assignRole(userId: string, roleId: string, assignedById?: string) {
-    const existing = await this.prisma.userRole.findFirst({
-      where: {
-        userId,
-        roleId,
-      },
-    });
+    const existing = await this.roleRepository.findUserRole(userId, roleId);
 
     if (existing) {
       throw new ConflictException('Role already assigned');
@@ -119,13 +89,11 @@ export class RoleService {
       throw new NotFoundException('Role not found');
     }
 
-    const created = await this.prisma.userRole.create({
-      data: {
-        userId,
-        roleId,
-        assignedById,
-      },
-    });
+    const created = await this.roleRepository.createUserRole(
+      userId,
+      roleId,
+      assignedById,
+    );
 
     await this.authorizationService.invalidateAuthorization(userId);
 
@@ -152,31 +120,18 @@ export class RoleService {
      * Prevent deleting the last SUPER_ADMIN.
      */
     if (role.name === SystemRoles.SUPER_ADMIN) {
-      const totalSuperAdmins = await this.prisma.userRole.count({
-        where: {
-          role: {
-            name: SystemRoles.SUPER_ADMIN,
-          },
-        },
-      });
+      const totalSuperAdmins = await this.roleRepository.countSuperAdmins();
 
       if (totalSuperAdmins <= 1) {
         throw new ForbiddenException('At least one Super Admin must remain.');
       }
     }
 
-    return this.prisma.userRole
-      .deleteMany({
-        where: {
-          userId,
-          roleId,
-        },
-      })
-      .then((result) => {
-        void this.authorizationService.invalidateAuthorization(userId);
+    return this.roleRepository.deleteUserRole(userId, roleId).then((result) => {
+      void this.authorizationService.invalidateAuthorization(userId);
 
-        return result;
-      });
+      return result;
+    });
   }
 
   async assignPermission(roleId: string, permissionId: string) {
@@ -187,26 +142,19 @@ export class RoleService {
     await this.permissionService.findById(permissionId);
 
     // Prevent duplicates
-    const existing = await this.prisma.rolePermission.findFirst({
-      where: {
-        roleId,
-        permissionId,
-      },
-    });
+    const existing = await this.roleRepository.findRolePermission(
+      roleId,
+      permissionId,
+    );
 
     if (existing) {
       throw new ConflictException('Permission already assigned to role.');
     }
 
-    const created = await this.prisma.rolePermission.create({
-      data: {
-        roleId,
-        permissionId,
-      },
-      include: {
-        permission: true,
-      },
-    });
+    const created = await this.roleRepository.createRolePermission(
+      roleId,
+      permissionId,
+    );
 
     await this.authorizationService.invalidateUsersForRole(roleId);
 
@@ -214,22 +162,16 @@ export class RoleService {
   }
 
   async removePermission(roleId: string, permissionId: string) {
-    const relation = await this.prisma.rolePermission.findFirst({
-      where: {
-        roleId,
-        permissionId,
-      },
-    });
+    const relation = await this.roleRepository.findRolePermission(
+      roleId,
+      permissionId,
+    );
 
     if (!relation) {
       throw new NotFoundException('Permission is not assigned to this role.');
     }
 
-    await this.prisma.rolePermission.delete({
-      where: {
-        id: relation.id,
-      },
-    });
+    await this.roleRepository.deleteRolePermissionById(relation.id);
 
     await this.authorizationService.invalidateUsersForRole(roleId);
 
@@ -241,19 +183,8 @@ export class RoleService {
   async getPermissions(roleId: string) {
     await this.findById(roleId);
 
-    const permissions = await this.prisma.rolePermission.findMany({
-      where: {
-        roleId,
-      },
-      include: {
-        permission: true,
-      },
-      orderBy: {
-        permission: {
-          name: 'asc',
-        },
-      },
-    });
+    const permissions =
+      await this.roleRepository.findPermissionsForRole(roleId);
 
     return permissions.map((item) => item.permission);
   }

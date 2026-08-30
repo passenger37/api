@@ -37,6 +37,11 @@ import { RolePermissionSeeder } from './seeders/role-permission.seeder';
 import { SuperAdminSeeder } from './seeders/super-admin.seeder';
 import { SecurityModule } from '../security/security.module';
 
+import { RoleRepository } from './repositories/role.repository';
+import { PermissionRepository } from './repositories/permission.repository';
+import { AuthUserRoleRepository } from './repositories/auth-user-role.repository';
+import { AuthorizationAuditRepository } from './repositories/authorization-audit.repository';
+
 @Module({
   imports: [
     PassportModule,
@@ -76,6 +81,10 @@ import { SecurityModule } from '../security/security.module';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    RoleRepository,
+    PermissionRepository,
+    AuthUserRoleRepository,
+    AuthorizationAuditRepository,
     AuthorizationService,
     RoleService,
     PermissionService,
