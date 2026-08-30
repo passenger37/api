@@ -1,12 +1,14 @@
 import * as bcrypt from 'bcrypt';
 
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 import { SessionsRepository } from '../repositories';
 
 import { CreateSessionDto } from '../dto';
-
-import { UnauthorizedException } from '@nestjs/common';
 
 @Injectable()
 export class SessionsService {
@@ -38,6 +40,10 @@ export class SessionsService {
 
   async findByUserId(userId: string) {
     return this.sessionsRepository.findByUserId(userId);
+  }
+
+  async listSessionsByUser(userId: string) {
+    return this.sessionsRepository.findAllActiveByUserId(userId);
   }
 
   async updateRefreshToken(
@@ -88,6 +94,20 @@ export class SessionsService {
   }
   async revoke(id: string) {
     return this.sessionsRepository.revoke(id);
+  }
+
+  async revokeSessionIfOwned(userId: string, sessionId: string) {
+    const session = await this.sessionsRepository.findBySessionId(sessionId);
+
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+
+    if (session.user.id !== userId) {
+      throw new UnauthorizedException('Cannot revoke this session');
+    }
+
+    return this.sessionsRepository.revoke(session.id);
   }
 
   async revokeAllByUserId(userId: string) {

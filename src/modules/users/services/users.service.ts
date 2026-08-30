@@ -63,6 +63,14 @@ export class UsersService {
   }
 
   // =====================================================
+  // Presence
+  // =====================================================
+
+  async updateLastSeen(userId: string) {
+    return this.usersRepository.updateLastSeen(userId);
+  }
+
+  // =====================================================
   // Update My Profile
   // =====================================================
 

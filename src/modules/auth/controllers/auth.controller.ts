@@ -6,7 +6,10 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from '../services/auth.service';
@@ -23,9 +26,11 @@ import { Public } from '../../../common/decorators';
 import { SystemRole } from '../../../common/constants/system-role.enum';
 import { Permissions } from '../../../common/decorators';
 import { Res } from '@nestjs/common';
-import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { PermissionsGuard } from '../../../common/guards';
+import { AuthRateLimit } from '../decorators/auth-rate-limit.decorator';
+import { AuthRateLimitGuard } from '../guards/auth-rate-limit.guard';
+import { AuthRequestMetadata } from '../interfaces';
 
 @ApiTags('Authentication')
 @ApiBearerAuth('JWT')
@@ -44,6 +49,8 @@ export class AuthController {
   @ApiOperation({
     summary: 'Register a new user',
   })
+  @AuthRateLimit('register')
+  @UseGuards(AuthRateLimitGuard)
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
@@ -53,11 +60,17 @@ export class AuthController {
   @ApiOperation({
     summary: 'Login using email or username',
   })
+  @AuthRateLimit('login')
+  @UseGuards(AuthRateLimitGuard)
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) response: Response,
+    @Req() request: Request,
   ) {
-    const result = await this.authService.login(dto);
+    const result = await this.authService.login(
+      dto,
+      this.metadataFrom(request),
+    );
 
     const cookie = this.configService.get('session.cookie');
 
@@ -72,12 +85,17 @@ export class AuthController {
     return result;
   }
 
+  @Public()
   @Post('logout')
   async logout(
     @Body() dto: LogoutDto,
     @Res({ passthrough: true }) response: Response,
+    @Req() request: Request,
   ) {
-    const result = await this.authService.logout(dto);
+    const result = await this.authService.logout(
+      dto,
+      this.metadataFrom(request),
+    );
 
     const cookie = this.configService.get('session.cookie');
 
@@ -97,8 +115,9 @@ export class AuthController {
   async logoutAll(
     @CurrentUser() user: { id: string },
     @Res({ passthrough: true }) response: Response,
+    @Req() request: Request,
   ) {
-    await this.authService.logoutAll(user.id);
+    await this.authService.logoutAll(user.id, this.metadataFrom(request));
 
     const cookie = this.configService.get('session.cookie');
 
@@ -129,9 +148,19 @@ export class AuthController {
     return 'hi';
   }
 
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body() dto: RefreshTokenDto) {
-    return this.authService.refresh(dto);
+  @AuthRateLimit('refresh')
+  @UseGuards(AuthRateLimitGuard)
+  async refresh(@Body() dto: RefreshTokenDto, @Req() request: Request) {
+    return this.authService.refresh(dto, this.metadataFrom(request));
+  }
+
+  private metadataFrom(request: Request): AuthRequestMetadata {
+    return {
+      ipAddress: request.ip,
+      userAgent: request.headers['user-agent'],
+    };
   }
 }

@@ -6,6 +6,8 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { ConfigService } from '@nestjs/config';
 
+import { UserStatus } from '@prisma/client';
+
 import { UserQueryService } from '../../users/services/user-query.service';
 import { CurrentUserDto } from '../dto/current-user.dto';
 
@@ -27,7 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: any): Promise<CurrentUserDto> {
     const user = await this.userQueryService.findById(payload.sub);
 
-    if (!user) {
+    if (!user || user.status !== UserStatus.ACTIVE || user.deletedAt) {
       throw new UnauthorizedException();
     }
 

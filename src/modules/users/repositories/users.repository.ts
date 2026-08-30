@@ -198,8 +198,15 @@ export class UsersRepository {
     throw new Error('Not implemented yet.');
   }
 
-  async updateLastSeen() {
-    throw new Error('Not implemented yet.');
+  async updateLastSeen(userId: string, at: Date = new Date()): Promise<User> {
+    return this.prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        lastSeenAt: at,
+      },
+    });
   }
 
   async update(id: string, data: Prisma.UserUpdateInput) {

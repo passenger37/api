@@ -22,6 +22,8 @@ import { RoleService } from './services/role.service';
 import { PermissionService } from './services/permission.service';
 import { AuthorizationAuditService } from './services/authorization-audit.service';
 import { AuthorizationBootstrapService } from './services/authorization-bootstrap.service';
+import { AuthRateLimitService } from './services/auth-rate-limit.service';
+import { AuthRateLimitGuard } from './guards/auth-rate-limit.guard';
 
 import { RoleController } from './controllers/role.controller';
 import { PermissionController } from './controllers/permission.controller';
@@ -79,6 +81,8 @@ import { SecurityModule } from '../security/security.module';
     PermissionService,
     AuthorizationAuditService,
     SuperAdminGuard,
+    AuthRateLimitService,
+    AuthRateLimitGuard,
     PermissionSeeder,
     RoleSeeder,
     RolePermissionSeeder,

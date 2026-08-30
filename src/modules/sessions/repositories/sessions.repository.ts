@@ -25,6 +25,18 @@ export class SessionsRepository {
     });
   }
 
+  async findAllActiveByUserId(userId: string) {
+    return this.prisma.userSession.findMany({
+      where: {
+        userId,
+        isRevoked: false,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
   async updateRefreshToken(id: string, refreshTokenHash: string) {
     return this.prisma.userSession.update({
       where: {
