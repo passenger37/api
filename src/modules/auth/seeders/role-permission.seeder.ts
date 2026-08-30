@@ -21,32 +21,36 @@ export class RolePermissionSeeder {
       throw new Error('SUPER_ADMIN role not found.');
     }
 
-    const permissions = await this.prisma.permission.findMany();
+    const [permissions, existing] = await this.prisma.$transaction([
+      this.prisma.permission.findMany(),
+      this.prisma.rolePermission.findMany({
+        where: {
+          roleId: superAdmin.id,
+        },
+        select: {
+          permissionId: true,
+        },
+      }),
+    ]);
+
+    const existingIds = new Set(existing.map((item) => item.permissionId));
+
+    const missing = permissions.filter(
+      (permission) => !existingIds.has(permission.id),
+    );
 
     let created = 0;
 
-    for (const permission of permissions) {
-      const exists = await this.prisma.rolePermission.findUnique({
-        where: {
-          roleId_permissionId: {
-            roleId: superAdmin.id,
-            permissionId: permission.id,
-          },
-        },
-      });
-
-      if (exists) {
-        continue;
-      }
-
-      await this.prisma.rolePermission.create({
-        data: {
+    if (missing.length > 0) {
+      const result = await this.prisma.rolePermission.createMany({
+        data: missing.map((permission) => ({
           roleId: superAdmin.id,
           permissionId: permission.id,
-        },
+        })),
+        skipDuplicates: true,
       });
 
-      created++;
+      created = result.count;
     }
 
     this.logger.log(`Assigned ${created} permission(s) to SUPER_ADMIN.`);

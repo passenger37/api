@@ -3,10 +3,14 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { AuthorizationRepository } from '../repositories/authorization.repository';
+import { PermissionCacheService } from './permission-cache.service';
 
 @Injectable()
 export class AuthorizationDomainService {
-  constructor(private readonly repository: AuthorizationRepository) {}
+  constructor(
+    private readonly repository: AuthorizationRepository,
+    private readonly permissionCacheService: PermissionCacheService,
+  ) {}
 
   // =====================================================
   // Assign One Permission
@@ -72,6 +76,12 @@ export class AuthorizationDomainService {
     await Promise.all(
       role.users.map((userRole) =>
         this.repository.incrementPermissionVersion(userRole.userId),
+      ),
+    );
+
+    await Promise.all(
+      role.users.map((userRole) =>
+        this.permissionCacheService.delete(userRole.userId),
       ),
     );
   }

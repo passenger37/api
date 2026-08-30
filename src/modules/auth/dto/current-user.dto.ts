@@ -6,4 +6,6 @@ export class CurrentUserDto {
   email: string;
 
   username: string;
+
+  permissionVersion: number;
 }

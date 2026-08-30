@@ -5,7 +5,6 @@ import { AppLoggerModule } from './core/logger/logger.module';
 import { HealthModule } from './modules/health/heath.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptors/reesponse.interceptor';
-import { AuthorizationInterceptor } from './common/interceptors/authorization.interceptor';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth';
 import { SessionsModule } from './modules/sessions/sessions.module';
@@ -45,10 +44,6 @@ import { FeedModule } from './modules/feed/feed.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: AuthorizationInterceptor,
     },
     BootstrapService,
   ],

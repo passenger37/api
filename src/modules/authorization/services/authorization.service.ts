@@ -73,4 +73,8 @@ export class AuthorizationService {
   invalidateAuthorization(userId: string) {
     return this.queryService.invalidateAuthorization(userId);
   }
+
+  invalidateUsersForRole(roleId: string) {
+    return this.commandService.invalidateUsersForRole(roleId);
+  }
 }

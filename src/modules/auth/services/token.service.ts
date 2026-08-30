@@ -19,6 +19,7 @@ export class TokenService {
       sub: user.id,
       email: user.email,
       username: user.username,
+      permissionVersion: user.permissionVersion,
     };
 
     return this.jwtService.signAsync(payload, {

@@ -5,9 +5,15 @@ import {
   Injectable,
 } from '@nestjs/common';
 
+import { AuthorizationService } from '../../modules/authorization/services/authorization.service';
+
+import { SystemRole } from '../constants/system-role.enum';
+
 @Injectable()
 export class SuperAdminGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  constructor(private readonly authorizationService: AuthorizationService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
     const user = request.user;
@@ -16,7 +22,10 @@ export class SuperAdminGuard implements CanActivate {
       throw new ForbiddenException();
     }
 
-    const isSuperAdmin = user.roles?.includes('SUPER_ADMIN');
+    const isSuperAdmin = await this.authorizationService.hasRole(
+      user.id,
+      SystemRole.SUPER_ADMIN,
+    );
 
     if (!isSuperAdmin) {
       throw new ForbiddenException('Super Admin access required');

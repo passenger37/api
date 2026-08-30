@@ -9,12 +9,14 @@ import { PrismaService } from '../../../core/database';
 import { CreateRoleDto, UpdateRoleDto } from '../dto';
 import { SystemRoles } from '../../../common/constants/system-roles';
 import { PermissionService } from './permission.service';
+import { AuthorizationService } from '../../authorization/services/authorization.service';
 
 @Injectable()
 export class RoleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly permissionService: PermissionService,
+    private readonly authorizationService: AuthorizationService,
   ) {}
 
   async findAll() {
@@ -117,13 +119,17 @@ export class RoleService {
       throw new NotFoundException('Role not found');
     }
 
-    return this.prisma.userRole.create({
+    const created = await this.prisma.userRole.create({
       data: {
         userId,
         roleId,
         assignedById,
       },
     });
+
+    await this.authorizationService.invalidateAuthorization(userId);
+
+    return created;
   }
 
   async removeRole(userId: string, roleId: string, actorId?: string) {
@@ -159,12 +165,18 @@ export class RoleService {
       }
     }
 
-    return this.prisma.userRole.deleteMany({
-      where: {
-        userId,
-        roleId,
-      },
-    });
+    return this.prisma.userRole
+      .deleteMany({
+        where: {
+          userId,
+          roleId,
+        },
+      })
+      .then((result) => {
+        void this.authorizationService.invalidateAuthorization(userId);
+
+        return result;
+      });
   }
 
   async assignPermission(roleId: string, permissionId: string) {
@@ -186,7 +198,7 @@ export class RoleService {
       throw new ConflictException('Permission already assigned to role.');
     }
 
-    return this.prisma.rolePermission.create({
+    const created = await this.prisma.rolePermission.create({
       data: {
         roleId,
         permissionId,
@@ -195,6 +207,10 @@ export class RoleService {
         permission: true,
       },
     });
+
+    await this.authorizationService.invalidateUsersForRole(roleId);
+
+    return created;
   }
 
   async removePermission(roleId: string, permissionId: string) {
@@ -214,6 +230,8 @@ export class RoleService {
         id: relation.id,
       },
     });
+
+    await this.authorizationService.invalidateUsersForRole(roleId);
 
     return {
       message: 'Permission removed successfully.',

@@ -31,6 +31,7 @@ import { PermissionsGuard } from '../../../common/guards';
 import { AuthRateLimit } from '../decorators/auth-rate-limit.decorator';
 import { AuthRateLimitGuard } from '../guards/auth-rate-limit.guard';
 import { AuthRequestMetadata } from '../interfaces';
+import { UsersService } from '../../users/services/users.service';
 
 @ApiTags('Authentication')
 @ApiBearerAuth('JWT')
@@ -42,6 +43,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly usersService: UsersService,
   ) {}
 
   @Public()
@@ -145,7 +147,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(SystemRole.SUPER_ADMIN)
   findAllUsers() {
-    return 'hi';
+    return this.usersService.findAllUsers();
   }
 
   @Public()

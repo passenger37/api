@@ -23,7 +23,11 @@ import { UserFactory } from '../../users/factories/user.factory';
 
 import { AuthorizationAuditService } from './authorization-audit.service';
 
+import { RoleService } from './role.service';
+
 import { AuditActions } from '../constants/audit-actions';
+
+import { SystemRoles } from '../../../common/constants/system-roles';
 
 @Injectable()
 export class AuthService {
@@ -36,6 +40,7 @@ export class AuthService {
     private readonly userFactory: UserFactory,
     private readonly userCommandService: UserCommandService,
     private readonly auditService: AuthorizationAuditService,
+    private readonly roleService: RoleService,
   ) {}
 
   // =====================================================
@@ -49,6 +54,8 @@ export class AuthService {
 
     const user = await this.userCommandService.createForRegistration(input);
 
+    await this.assignDefaultRole(user.id);
+
     return {
       id: user.id,
       email: user.email,
@@ -56,6 +63,20 @@ export class AuthService {
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
     };
+  }
+
+  private async assignDefaultRole(userId: string): Promise<void> {
+    const defaultRole = await this.roleService
+      .findByName(SystemRoles.USER)
+      .catch(() => null);
+
+    if (!defaultRole) {
+      return;
+    }
+
+    await this.roleService
+      .assignRole(userId, defaultRole.id)
+      .catch(() => undefined);
   }
 
   // =====================================================

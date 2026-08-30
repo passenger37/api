@@ -43,6 +43,7 @@ describe('JwtAuthGuard', () => {
         username: 'user',
         status: 'ACTIVE',
         deletedAt: null,
+        permissionVersion: 1,
       },
     });
 
@@ -54,6 +55,7 @@ describe('JwtAuthGuard', () => {
       sub: 'user-id',
       email: 'user@example.com',
       username: 'user',
+      permissionVersion: 1,
     });
   });
 
@@ -73,6 +75,7 @@ describe('JwtAuthGuard', () => {
         username: 'user',
         status: 'SUSPENDED',
         deletedAt: null,
+        permissionVersion: 1,
       },
     });
     const parentCanActivate = jest
@@ -99,6 +102,7 @@ describe('JwtAuthGuard', () => {
         username: 'user',
         status: 'ACTIVE',
         deletedAt: null,
+        permissionVersion: 1,
       },
     });
 

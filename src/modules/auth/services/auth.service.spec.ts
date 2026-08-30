@@ -12,6 +12,7 @@ import { UserFactory } from '../../users/factories/user.factory';
 import { AuthorizationAuditService } from './authorization-audit.service';
 import { AuditActions } from '../constants/audit-actions';
 import { AuthService } from './auth.service';
+import { RoleService } from './role.service';
 
 describe('AuthService', () => {
   const usersService = {
@@ -43,7 +44,9 @@ describe('AuthService', () => {
     revokeAllByUserId: jest.fn(),
   } as unknown as SessionsService;
 
-  const userFactory = {} as UserFactory;
+  const userFactory = {
+    createForRegistration: jest.fn(),
+  } as unknown as UserFactory;
 
   const userCommandService = {
     createForRegistration: jest.fn(),
@@ -52,6 +55,11 @@ describe('AuthService', () => {
   const auditService = {
     log: jest.fn(),
   } as unknown as AuthorizationAuditService;
+
+  const roleService = {
+    findByName: jest.fn(),
+    assignRole: jest.fn(),
+  } as unknown as RoleService;
 
   const service = new AuthService(
     usersService as never,
@@ -62,6 +70,7 @@ describe('AuthService', () => {
     userFactory,
     userCommandService as never,
     auditService as never,
+    roleService as never,
   );
 
   const activeUser = {
@@ -80,6 +89,41 @@ describe('AuthService', () => {
 
     (auditService.log as jest.Mock).mockResolvedValue({});
     (passwordService.verify as jest.Mock).mockResolvedValue(true);
+  });
+
+  describe('register', () => {
+    it('assigns the default USER role after creating the account', async () => {
+      (userFactory.createForRegistration as jest.Mock).mockReturnValue({
+        email: 'user@example.com',
+        username: 'user',
+        displayName: 'User',
+        passwordHash: 'hash',
+      });
+      (userCommandService.createForRegistration as jest.Mock).mockResolvedValue(
+        activeUser,
+      );
+      (roleService.findByName as jest.Mock).mockResolvedValue({
+        id: 'role-user',
+        name: 'USER',
+      });
+      (roleService.assignRole as jest.Mock).mockResolvedValue({});
+
+      const result = await service.register({
+        email: 'user@example.com',
+        username: 'user',
+        password: 'Password@123',
+        displayName: 'User',
+      });
+
+      expect(roleService.findByName).toHaveBeenCalledWith('USER');
+      expect(roleService.assignRole).toHaveBeenCalledWith(
+        'user-1',
+        'role-user',
+      );
+      expect(result).toEqual(
+        expect.objectContaining({ id: 'user-1', email: 'user@example.com' }),
+      );
+    });
   });
 
   describe('login', () => {

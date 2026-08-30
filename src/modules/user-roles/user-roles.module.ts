@@ -13,12 +13,8 @@ import { UserRoleQueryService } from './services/user-role-query.service';
 import { UserRoleCommandService } from './services/user-role-command.service';
 import { UserRolesService } from './services/user-roles.service';
 
-import { UserRolesController } from './controllers/user-roles.controller';
-
 @Module({
   imports: [UsersModule, RolesModule],
-
-  controllers: [UserRolesController],
 
   providers: [
     UserRolesRepository,

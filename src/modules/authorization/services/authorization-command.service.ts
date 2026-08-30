@@ -124,4 +124,12 @@ export class AuthorizationCommandService {
 
     return result;
   }
+
+  // =====================================================
+  // Invalidate Cache For Role Users
+  // =====================================================
+
+  async invalidateUsersForRole(roleId: string): Promise<void> {
+    await this.domain.bumpPermissionVersionForRoleUsers(roleId);
+  }
 }

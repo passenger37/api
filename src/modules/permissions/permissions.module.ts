@@ -11,10 +11,8 @@ import { PermissionDomainService } from './services';
 import { PermissionQueryService } from './services';
 import { PermissionCommandService } from './services/permission-command.service';
 
-import { PermissionsController } from './controllers';
 @Module({
   imports: [],
-  controllers: [PermissionsController],
   providers: [
     PermissionsService,
     PermissionValidationService,

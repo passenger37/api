@@ -10,6 +10,8 @@ import { UserMapper } from '../mappers';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { SearchUsersRequest } from '../dto/request/search-users.request';
 
+import { QueryUsersDto } from '../dto/query-users.dto';
+
 import { UserValidationService } from './user-validation.service';
 import { UserProfileService } from './user-profile.service';
 import { UserQueryService } from './user-query.service';
@@ -60,6 +62,14 @@ export class UsersService {
 
   async getMyProfile(userId: string) {
     return this.queryService.getMyProfile(userId);
+  }
+
+  // =====================================================
+  // Admin: List Users
+  // =====================================================
+
+  async findAllUsers() {
+    return this.usersRepository.findMany(new QueryUsersDto());
   }
 
   // =====================================================

@@ -54,6 +54,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
           sub: session.user.id,
           email: session.user.email,
           username: session.user.username,
+          permissionVersion: session.user.permissionVersion,
         };
 
         return true;
