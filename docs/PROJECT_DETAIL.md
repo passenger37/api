@@ -109,8 +109,8 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 
 | # | Lecture | Originally numbered as |
 |---|---|---|
-| 40.47 *(current)* | Messaging Audit and Moderation — report/block/mute/ban, spam detection, abuse rate limiting, audit logs; explicit note that E2EE (Type C/D) moderation is client-side/metadata-only, never server decryption | v1 40.38, B1 §51 (fuller detail merged in) |
-| 40.48 | Advanced Messaging Performance (query/caching pass once full feature set exists) | v1 40.39 |
+| **40.47** | Messaging Audit and Moderation — report/block/mute/ban, spam detection, abuse rate limiting, audit logs; explicit note that E2EE (Type C/D) moderation is client-side/metadata-only, never server decryption (completed) | v1 40.38, B1 §51 (fuller detail merged in) |
+| 40.48 *(current)* | Advanced Messaging Performance (query/caching pass once full feature set exists) | v1 40.39 |
 
 ### 4.2 Server/Social/Feed/Auth Completion
 
