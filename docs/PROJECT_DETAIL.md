@@ -120,8 +120,8 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 | **40.50** | Social Graph Backend - close friends circles (UserCircle), follower/following counts on public profile, suggested users, block request cleanup (completed) | v1 40.42, B1 Phase 4 |
 | **40.51** | Feed Backend - message-activity feed (latest/following), auth-aware channel filtering, composite cursor pagination (completed) | v1 40.43, B1 Phase 6 |
 | **40.52** | Authentication and Session Hardening - rate-limited login/register/refresh, public refresh/logout, ACTIVE/deleted enforcement, session list + revoke, durable lastSeenAt, auth audit trail (completed) | v1 40.44 |
-| 40.53 *(current)* | Advanced RBAC / Permission Optimization | v1 40.45 |
-| 40.54 | Security Hardening — WebSocket Security Review + API Security Hardening | v1 40.46, B2 40.52/40.53 |
+| 40.53 | Advanced RBAC / Permission Optimization (completed) | v1 40.45 |
+| 40.54 *(current)* | Security Hardening — WebSocket Security Review + API Security Hardening | v1 40.46, B2 40.52/40.53 |
 
 ### 4.3 Redis / Database / Code-Architecture Formalization
 
