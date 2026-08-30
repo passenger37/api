@@ -15,6 +15,7 @@ import { WebSocketJwtGuard } from '../gaurds/websocket-jwt.guard';
 import { WebSocketConnectionAuthService } from '../gaurds/websocket-connection-auth.service';
 import { WebSocketConnectionLimitService } from '../gaurds/websocket-connection-limit.service';
 import { WebSocketExceptionFilter } from '../../../common/filters/websocket-exception.filter';
+import { redisKeys } from '../../../core/redis/redis-keys';
 import { WebSocketValidationPipe } from '../../../common/websocket/pipes/websocket-validation.pipe';
 import { WebSocketErrorNormalizer } from '../../../common/websocket/error/websocket-error.normalizer';
 import { WebSocketRateLimitService } from '../../../common/websocket/rate-limit/websocket-rate-limit.service';
@@ -100,7 +101,7 @@ export class PresenceGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:set-presence:${userId}`,
+        key: redisKeys.wsRateLimit('set-presence', userId),
         limit: 10,
         windowSeconds: 10,
       });
@@ -137,7 +138,7 @@ export class PresenceGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:get-presence:${userId}`,
+        key: redisKeys.wsRateLimit('get-presence', userId),
         limit: 20,
         windowSeconds: 10,
       });

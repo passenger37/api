@@ -6,6 +6,8 @@ import type { Request } from 'express';
 
 import { AuthRateLimitService } from '../services/auth-rate-limit.service';
 
+import { redisKeys } from '../../../core/redis/redis-keys';
+
 import {
   AUTH_RATE_LIMIT_KEY,
   AuthRateLimitTarget,
@@ -47,8 +49,8 @@ export class AuthRateLimitGuard implements CanActivate {
 
     const key =
       target === 'login'
-        ? `auth:login:${identifier.toLowerCase()}:${ip}`
-        : `auth:${target}:${ip}`;
+        ? redisKeys.authLogin(identifier.toLowerCase(), ip)
+        : redisKeys.authTarget(target, ip);
 
     await this.rateLimiter.consume({
       key,

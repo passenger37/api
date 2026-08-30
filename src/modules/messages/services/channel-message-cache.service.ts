@@ -1,22 +1,16 @@
 import { Injectable } from '@nestjs/common';
 
+import { REDIS_TTL, redisKeys } from '../../../core/redis/redis-keys';
 import { RedisService } from '../../../core/redis/redis.service';
 
-export const MESSAGE_READ_CACHE_TTL_SECONDS = 10;
+export const MESSAGE_READ_CACHE_TTL_SECONDS = REDIS_TTL.MESSAGE_PAGE;
 
 @Injectable()
 export class ChannelMessageCacheService {
-  private readonly versionPrefix = 'msg:ver:';
-  private readonly pagePrefix = 'msg:page:';
-  private readonly afterPrefix = 'msg:after:';
-  private readonly threadPrefix = 'msg:thread:';
-  private readonly unreadPrefix = 'msg:unread:';
-  private readonly ttlSeconds = MESSAGE_READ_CACHE_TTL_SECONDS;
-
   constructor(private readonly redis: RedisService) {}
 
   async getChannelVersion(channelId: string): Promise<number> {
-    const raw = await this.redis.get(`${this.versionPrefix}${channelId}`);
+    const raw = await this.redis.get(redisKeys.messageVersion(channelId));
 
     if (raw === null) {
       return 0;
@@ -28,7 +22,7 @@ export class ChannelMessageCacheService {
   }
 
   async invalidateChannel(channelId: string): Promise<void> {
-    await this.redis.incr(`${this.versionPrefix}${channelId}`);
+    await this.redis.incr(redisKeys.messageVersion(channelId));
   }
 
   async getCachedPage<T>(
@@ -148,9 +142,9 @@ export class ChannelMessageCacheService {
     count: number,
   ): Promise<void> {
     await this.redis.set(
-      this.unreadKey(channelId, memberId, version),
+      redisKeys.messageUnread(channelId, memberId, version),
       String(count),
-      this.ttlSeconds,
+      REDIS_TTL.MESSAGE_PAGE,
     );
   }
 
@@ -160,7 +154,7 @@ export class ChannelMessageCacheService {
     cursor: string,
     limit: number,
   ): string {
-    return `${this.pagePrefix}${channelId}:${version}:${cursor}:${limit}`;
+    return redisKeys.messagePage(channelId, version, cursor, limit);
   }
 
   private afterKey(
@@ -169,7 +163,7 @@ export class ChannelMessageCacheService {
     afterMessageId: string,
     take: number,
   ): string {
-    return `${this.afterPrefix}${channelId}:${version}:${afterMessageId}:${take}`;
+    return redisKeys.messageAfter(channelId, version, afterMessageId, take);
   }
 
   private threadKey(
@@ -179,7 +173,13 @@ export class ChannelMessageCacheService {
     cursor: string,
     limit: number,
   ): string {
-    return `${this.threadPrefix}${channelId}:${version}:${parentMessageId}:${cursor}:${limit}`;
+    return redisKeys.messageThread(
+      channelId,
+      version,
+      parentMessageId,
+      cursor,
+      limit,
+    );
   }
 
   private unreadKey(
@@ -187,7 +187,7 @@ export class ChannelMessageCacheService {
     memberId: string,
     version: number,
   ): string {
-    return `${this.unreadPrefix}${channelId}:${memberId}:${version}`;
+    return redisKeys.messageUnread(channelId, memberId, version);
   }
 
   private async getJson<T>(key: string): Promise<T | null> {
@@ -205,6 +205,6 @@ export class ChannelMessageCacheService {
   }
 
   private async setJson<T>(key: string, payload: T): Promise<void> {
-    await this.redis.set(key, JSON.stringify(payload), this.ttlSeconds);
+    await this.redis.set(key, JSON.stringify(payload), REDIS_TTL.MESSAGE_PAGE);
   }
 }

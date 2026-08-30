@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
+import { redisKeys } from '../../../core/redis/redis-keys';
 import { RedisService } from '../../../core/redis/redis.service';
 
 @Injectable()
@@ -23,7 +24,7 @@ export class MessageSpamControlService {
    * truth for durable messages.
    */
   async checkSend(channelId: string, memberId: string, content: string) {
-    const rateKey = `spam:send:${memberId}`;
+    const rateKey = redisKeys.spamSend(memberId);
 
     const rate = await this.redis.incr(rateKey);
 
@@ -43,7 +44,11 @@ export class MessageSpamControlService {
 
     const signature = this.signature(content);
 
-    const duplicateKey = `spam:sig:${channelId}:${memberId}:${signature}`;
+    const duplicateKey = redisKeys.spamSignature(
+      channelId,
+      memberId,
+      signature,
+    );
 
     const duplicate = await this.redis.incr(duplicateKey);
 
@@ -67,7 +72,7 @@ export class MessageSpamControlService {
    * member can request signed uploads in a short window.
    */
   async checkUploadRequest(memberId: string) {
-    const key = `spam:upload:${memberId}`;
+    const key = redisKeys.spamUpload(memberId);
 
     const count = await this.redis.incr(key);
 

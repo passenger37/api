@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+import { REDIS_TTL, redisKeys } from '../../../core/redis/redis-keys';
 import { RedisService } from '../../../core/redis/redis.service';
 
 export enum PresenceStatus {
@@ -17,9 +18,6 @@ export type PresenceResult = {
 };
 
 export const PRESENCE_ROOM = 'presence';
-
-const PRESENCE_TTL_SECONDS = 60;
-const LAST_SEEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 @Injectable()
 export class PresenceService {
@@ -39,9 +37,9 @@ export class PresenceService {
     };
 
     await this.redis.set(
-      this.presenceKey(userId),
+      redisKeys.presence(userId),
       JSON.stringify(presence),
-      PRESENCE_TTL_SECONDS,
+      REDIS_TTL.PRESENCE,
     );
 
     return {
@@ -52,10 +50,10 @@ export class PresenceService {
   }
 
   async getStatus(userId: string): Promise<PresenceResult> {
-    const raw = await this.redis.get(this.presenceKey(userId));
+    const raw = await this.redis.get(redisKeys.presence(userId));
 
     if (!raw) {
-      const lastSeenRaw = await this.redis.get(this.lastSeenKey(userId));
+      const lastSeenRaw = await this.redis.get(redisKeys.lastSeen(userId));
 
       return {
         userId,
@@ -95,17 +93,17 @@ export class PresenceService {
   }
 
   async touch(userId: string): Promise<void> {
-    await this.redis.expire(this.presenceKey(userId), PRESENCE_TTL_SECONDS);
+    await this.redis.expire(redisKeys.presence(userId), REDIS_TTL.PRESENCE);
   }
 
   async markOffline(userId: string): Promise<PresenceResult> {
     const lastSeen = Date.now();
 
-    await this.redis.del(this.presenceKey(userId));
+    await this.redis.del(redisKeys.presence(userId));
     await this.redis.set(
-      this.lastSeenKey(userId),
+      redisKeys.lastSeen(userId),
       String(lastSeen),
-      LAST_SEEN_TTL_SECONDS,
+      REDIS_TTL.LAST_SEEN,
     );
 
     return {
@@ -113,13 +111,5 @@ export class PresenceService {
       status: PresenceStatus.OFFLINE,
       lastSeen,
     };
-  }
-
-  private presenceKey(userId: string) {
-    return `user:${userId}:presence`;
-  }
-
-  private lastSeenKey(userId: string) {
-    return `user:${userId}:last-seen`;
   }
 }

@@ -17,6 +17,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { WebSocketExceptionFilter } from '../../../common/filters/websocket-exception.filter';
+import { redisKeys } from '../../../core/redis/redis-keys';
 import { Server, Socket } from 'socket.io';
 import { DeleteChannelMessageRequest } from '../dto/request/delete-channel-message.request';
 import { ChannelMessageValidationService } from '../services/channel-message-validation.service';
@@ -160,7 +161,7 @@ export class ChannelMessageGateway
     try {
       const userId = client.data.userId;
       await this.rateLimit.consume({
-        key: `ws:sync-channel:${userId}`,
+        key: redisKeys.wsRateLimit('sync-channel', userId),
         limit: 10,
         windowSeconds: 10,
       });
@@ -215,7 +216,7 @@ export class ChannelMessageGateway
     try {
       const userId = client.data.userId;
       await this.rateLimit.consume({
-        key: `ws:send-message:${userId}`,
+        key: redisKeys.wsRateLimit('send-message', userId),
         limit: 20,
         windowSeconds: 10,
       });
@@ -249,7 +250,7 @@ export class ChannelMessageGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:edit-message:${userId}`,
+        key: redisKeys.wsRateLimit('edit-message', userId),
         limit: 20,
         windowSeconds: 10,
       });
@@ -280,7 +281,7 @@ export class ChannelMessageGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:delete-message:${userId}`,
+        key: redisKeys.wsRateLimit('delete-message', userId),
         limit: 20,
         windowSeconds: 10,
       });
@@ -316,7 +317,7 @@ export class ChannelMessageGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:pin-message:${userId}`,
+        key: redisKeys.wsRateLimit('pin-message', userId),
         limit: 20,
         windowSeconds: 10,
       });
@@ -350,7 +351,7 @@ export class ChannelMessageGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:unpin-message:${userId}`,
+        key: redisKeys.wsRateLimit('unpin-message', userId),
         limit: 20,
         windowSeconds: 10,
       });
@@ -384,7 +385,7 @@ export class ChannelMessageGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:add-reaction:${userId}`,
+        key: redisKeys.wsRateLimit('add-reaction', userId),
         limit: 20,
         windowSeconds: 10,
       });
@@ -420,7 +421,7 @@ export class ChannelMessageGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:remove-reaction:${userId}`,
+        key: redisKeys.wsRateLimit('remove-reaction', userId),
         limit: 20,
         windowSeconds: 10,
       });
@@ -456,7 +457,7 @@ export class ChannelMessageGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:get-message-reactions:${userId}`,
+        key: redisKeys.wsRateLimit('get-message-reactions', userId),
         limit: 20,
         windowSeconds: 10,
       });
@@ -491,7 +492,7 @@ export class ChannelMessageGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:get-reaction-counts:${userId}`,
+        key: redisKeys.wsRateLimit('get-reaction-counts', userId),
         limit: 20,
         windowSeconds: 10,
       });
@@ -526,7 +527,7 @@ export class ChannelMessageGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:typing-start:${userId}`,
+        key: redisKeys.wsRateLimit('typing-start', userId),
         limit: 10,
         windowSeconds: 10,
       });
@@ -568,7 +569,7 @@ export class ChannelMessageGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:typing-stop:${userId}`,
+        key: redisKeys.wsRateLimit('typing-stop', userId),
         limit: 10,
         windowSeconds: 10,
       });
@@ -601,7 +602,7 @@ export class ChannelMessageGateway
       const userId = client.data.userId;
 
       await this.rateLimit.consume({
-        key: `ws:message-read:${userId}`,
+        key: redisKeys.wsRateLimit('message-read', userId),
         limit: 20,
         windowSeconds: 10,
       });

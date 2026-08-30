@@ -1,5 +1,7 @@
 import { PermissionCacheService } from './permission-cache.service';
 import { RedisService } from '../../../core/redis/redis.service';
+import { RedisPubSubService } from '../../../core/redis/redis-pub-sub.service';
+import { PERMISSION_INVALIDATE_CHANNEL } from '../../../core/redis/redis-keys';
 
 describe('PermissionCacheService', () => {
   const redis = {
@@ -8,6 +10,11 @@ describe('PermissionCacheService', () => {
     del: jest.fn(),
     exists: jest.fn(),
   } as unknown as RedisService;
+
+  const pubSub = {
+    subscribe: jest.fn().mockResolvedValue(jest.fn()),
+    publish: jest.fn().mockResolvedValue(undefined),
+  } as unknown as RedisPubSubService;
 
   let service: PermissionCacheService;
 
@@ -26,7 +33,8 @@ describe('PermissionCacheService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    service = new PermissionCacheService(redis);
+    (pubSub.subscribe as jest.Mock).mockResolvedValue(jest.fn());
+    service = new PermissionCacheService(redis, pubSub);
   });
 
   it('reads from the in-memory cache when present', async () => {
@@ -66,12 +74,39 @@ describe('PermissionCacheService', () => {
     await expect(service.get('user-1')).resolves.toBe(context);
   });
 
-  it('deletes the context from memory and Redis', async () => {
+  it('deletes the context from memory and Redis and notifies peers', async () => {
     await service.set('user-1', context);
 
     await service.delete('user-1');
 
     expect(redis.del).toHaveBeenCalledWith('authorization:user:user-1');
+    expect(pubSub.publish).toHaveBeenCalledWith(PERMISSION_INVALIDATE_CHANNEL, {
+      userId: 'user-1',
+    });
+  });
+
+  it('evicts the local memory copy when a peer invalidates the user', () => {
+    const onMessage = jest.fn();
+    (pubSub.subscribe as jest.Mock).mockImplementation(async (_channel, fn) => {
+      onMessage.mockImplementation(fn);
+      return jest.fn();
+    });
+
+    service = new PermissionCacheService(redis, pubSub);
+
+    service.onModuleInit();
+
+    expect(pubSub.subscribe).toHaveBeenCalledWith(
+      PERMISSION_INVALIDATE_CHANNEL,
+      expect.any(Function),
+    );
+
+    service.set('user-1', context);
+    expect(service['memory'].has('user-1')).toBe(true);
+
+    onMessage({ userId: 'user-1' });
+
+    expect(service['memory'].has('user-1')).toBe(false);
   });
 
   it('reports existence from memory first, then Redis', async () => {

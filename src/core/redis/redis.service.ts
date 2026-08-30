@@ -8,7 +8,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.client = createClient({
-      url: process.env.REDIS_URL,
+      url: this.resolveUrl(),
     });
 
     this.client.on('error', (err) => {
@@ -16,6 +16,22 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.client.connect();
+  }
+
+  private resolveUrl(): string {
+    if (process.env.REDIS_URL) {
+      return process.env.REDIS_URL;
+    }
+
+    const host = process.env.REDIS_HOST ?? 'localhost';
+    const port = process.env.REDIS_PORT ?? '6379';
+    const password = process.env.REDIS_PASSWORD;
+
+    const authority = password ? `:${encodeURIComponent(password)}@` : '';
+
+    const db = process.env.REDIS_DB ? `/${process.env.REDIS_DB}` : '';
+
+    return `redis://${authority}${host}:${port}${db}`;
   }
 
   async onModuleDestroy() {

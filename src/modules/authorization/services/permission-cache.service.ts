@@ -1,23 +1,31 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 
 import { AuthorizationContext } from '../domain';
 
+import {
+  PERMISSION_INVALIDATE_CHANNEL,
+  REDIS_TTL,
+  redisKeys,
+} from '../../../core/redis/redis-keys';
+import { RedisPubSubService } from '../../../core/redis/redis-pub-sub.service';
 import { RedisService } from '../../../core/redis/redis.service';
 
 @Injectable()
-export class PermissionCacheService {
+export class PermissionCacheService implements OnModuleInit {
   private readonly memory = new Map<string, AuthorizationContext>();
 
-  private readonly ttlSeconds = 300; // 5 minutes
+  constructor(
+    private readonly redis: RedisService,
+    private readonly pubSub: RedisPubSubService,
+  ) {}
 
-  constructor(private readonly redis: RedisService) {}
-
-  // =====================================================
-  // Helpers
-  // =====================================================
-
-  private getKey(userId: string): string {
-    return `authorization:user:${userId}`;
+  async onModuleInit() {
+    await this.pubSub.subscribe<{ userId: string }>(
+      PERMISSION_INVALIDATE_CHANNEL,
+      ({ userId }) => {
+        this.memory.delete(userId);
+      },
+    );
   }
 
   // =====================================================
@@ -33,7 +41,7 @@ export class PermissionCacheService {
     }
 
     // 2. Redis Cache
-    const redisValue = await this.redis.get(this.getKey(userId));
+    const redisValue = await this.redis.get(redisKeys.permissionCache(userId));
 
     if (!redisValue) {
       return null;
@@ -57,9 +65,9 @@ export class PermissionCacheService {
 
     // Redis
     await this.redis.set(
-      this.getKey(userId),
+      redisKeys.permissionCache(userId),
       JSON.stringify(context),
-      this.ttlSeconds,
+      REDIS_TTL.PERMISSION_CACHE,
     );
   }
 
@@ -70,7 +78,11 @@ export class PermissionCacheService {
   async delete(userId: string): Promise<void> {
     this.memory.delete(userId);
 
-    await this.redis.del(this.getKey(userId));
+    await this.redis.del(redisKeys.permissionCache(userId));
+
+    // Evict the in-memory copy on every instance so a revoked permission
+    // cannot linger in a peer process until its TTL lapses.
+    await this.pubSub.publish(PERMISSION_INVALIDATE_CHANNEL, { userId });
   }
 
   // =====================================================
@@ -82,7 +94,7 @@ export class PermissionCacheService {
       return true;
     }
 
-    return this.redis.exists(this.getKey(userId));
+    return this.redis.exists(redisKeys.permissionCache(userId));
   }
 
   // =====================================================
