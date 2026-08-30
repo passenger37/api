@@ -128,8 +128,8 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 | # | Lecture | Originally numbered as |
 |---|---|---|
 | 40.55 | Redis Usage Strategy (production responsibilities: cache, sessions, rate limit, presence, typing, pub/sub, locks, job coordination) (completed) | B2 40.46, B1 concept §47 |
-| 40.56 *(current)* | PostgreSQL Index Strategy | B2 40.47 |
-| 40.57 | Transaction Boundaries | B2 40.48 |
+| 40.56 | PostgreSQL Index Strategy (completed) | B2 40.47 |
+| 40.57 *(current)* | Transaction Boundaries | B2 40.48 |
 | 40.58 | Formalize Command/Query (CQRS) Architecture | B2 40.49 |
 | 40.59 | Repository Boundary Hardening | B2 40.50 |
 | 40.60 | Domain/Data Mapping | B2 40.51 |
