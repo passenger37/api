@@ -18,6 +18,7 @@ import { RedisModule } from './core/redis/redis.module';
 import { ServersModule } from './modules/servers/servers.module';
 import { MessagesModule } from './modules/messages/messages.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
+import { FeedModule } from './modules/feed/feed.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ModerationModule } from './modules/moderation/moderation.module';
     ServersModule,
     MessagesModule,
     ModerationModule,
+    FeedModule,
   ],
   controllers: [],
   // providers: [AppService],
