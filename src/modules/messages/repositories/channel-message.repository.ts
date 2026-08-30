@@ -7,6 +7,14 @@ import {
   MessageSearchQueryBuilder,
 } from '../queries/message-search.query';
 
+const MESSAGE_INCLUDE = {
+  attachments: {
+    orderBy: {
+      createdAt: 'asc' as const,
+    },
+  },
+} satisfies Prisma.ChannelMessageInclude;
+
 @Injectable()
 export class ChannelMessageRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -22,11 +30,15 @@ export class ChannelMessageRepository {
     });
   }
 
-  async findById(messageId: string) {
-    return this.prisma.channelMessage.findUnique({
+  async findById(messageId: string, tx?: Prisma.TransactionClient) {
+    const client = tx ?? this.prisma;
+
+    return client.channelMessage.findUnique({
       where: {
         id: messageId,
       },
+
+      include: MESSAGE_INCLUDE,
     });
   }
 
@@ -36,6 +48,8 @@ export class ChannelMessageRepository {
         clientMessageId,
         authorMemberId,
       },
+
+      include: MESSAGE_INCLUDE,
     });
   }
 
@@ -57,6 +71,8 @@ export class ChannelMessageRepository {
 
       skip: 1,
       take,
+
+      include: MESSAGE_INCLUDE,
     });
   }
 
@@ -87,6 +103,8 @@ export class ChannelMessageRepository {
 
       skip,
       take,
+
+      include: MESSAGE_INCLUDE,
     });
   }
 
@@ -108,6 +126,8 @@ export class ChannelMessageRepository {
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
       take: limit,
+
+      include: MESSAGE_INCLUDE,
     });
   }
 
@@ -201,6 +221,8 @@ export class ChannelMessageRepository {
       orderBy: {
         pinnedAt: 'desc',
       },
+
+      include: MESSAGE_INCLUDE,
     });
   }
 
@@ -214,6 +236,8 @@ export class ChannelMessageRepository {
       orderBy: {
         createdAt: 'asc',
       },
+
+      include: MESSAGE_INCLUDE,
     });
   }
 
@@ -233,6 +257,8 @@ export class ChannelMessageRepository {
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
       take: limit,
+
+      include: MESSAGE_INCLUDE,
     });
   }
 

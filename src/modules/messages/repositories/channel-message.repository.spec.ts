@@ -62,6 +62,9 @@ describe('ChannelMessageRepository', () => {
       cursor: undefined,
       skip: 0,
       take: 2,
+      include: {
+        attachments: { orderBy: { createdAt: 'asc' } },
+      },
     });
   });
 
@@ -90,6 +93,9 @@ describe('ChannelMessageRepository', () => {
       cursor: undefined,
       skip: 0,
       take: 10,
+      include: {
+        attachments: { orderBy: { createdAt: 'asc' } },
+      },
     });
   });
 
@@ -115,6 +121,9 @@ describe('ChannelMessageRepository', () => {
       cursor: { id: 'anchor-1' },
       skip: 1,
       take: 50,
+      include: {
+        attachments: { orderBy: { createdAt: 'asc' } },
+      },
     });
   });
 });

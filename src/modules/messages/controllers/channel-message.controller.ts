@@ -44,6 +44,8 @@ export class ChannelMessageController {
       userId,
       request.content,
       request.parentMessageId,
+      undefined,
+      request.attachmentIds,
     );
   }
 

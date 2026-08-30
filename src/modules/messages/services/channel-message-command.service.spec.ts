@@ -13,6 +13,7 @@ import { ChannelMessageQueryService } from './channel-message-query.service';
 import { ChannelMessageGateway } from '../gateways/channel-message.gateway';
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
 import { OutboxEventRepository } from '../repositories/outbox-event.repository';
+import { MessageAttachmentService } from './message-attachment.service';
 
 describe('ChannelMessageCommandService - mentions', () => {
   let service: ChannelMessageCommandService;
@@ -101,6 +102,7 @@ describe('ChannelMessageCommandService - mentions', () => {
       validateChannelAccess: jest.fn(),
     };
     outboxEventRepository = { create: jest.fn() };
+    const attachmentService = { attachToMessage: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -116,6 +118,7 @@ describe('ChannelMessageCommandService - mentions', () => {
         { provide: ChannelMessageGateway, useValue: {} },
         { provide: ServerMemberQueryService, useValue: memberQueryService },
         { provide: OutboxEventRepository, useValue: outboxEventRepository },
+        { provide: MessageAttachmentService, useValue: attachmentService },
       ],
     }).compile();
 

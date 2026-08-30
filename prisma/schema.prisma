@@ -408,6 +408,8 @@ model Server {
   invites        ServerInvite[]
   ChannelMessage ChannelMessage[]
 
+  messageAttachments MessageAttachment[] @relation("AttachmentServer")
+
   @@index([ownerId])
   @@index([visibility])
 }
@@ -437,6 +439,8 @@ messageReactions ChannelMessageReaction[]
   mentionTargets ChannelMention[]
 
   channelReadStates ChannelReadState[]
+
+  attachments MessageAttachment[] @relation("AttachmentUploads")
 
   @@unique([serverId, userId])
   @@index([serverId])
@@ -652,6 +656,8 @@ model ServerChannel {
   permissionOverwrites ServerChannelPermissionOverwrite[]
   ChannelMessage       ChannelMessage[]
 
+  messageAttachments MessageAttachment[] @relation("AttachmentChannel")
+
   readStates ChannelReadState[]
 
   @@unique([serverId, name])
@@ -741,6 +747,8 @@ model ChannelMessage {
   mentions ChannelMention[]
 
   readCursors ChannelReadState[] @relation("ChannelReadCursor")
+
+  attachments MessageAttachment[] @relation("MessageAttachments")
 
   @@index([channelId, createdAt, id])
   @@index([channelId, messageSeq])
@@ -869,4 +877,49 @@ model OutboxEvent {
   updatedAt DateTime @updatedAt
 
   @@index([status, createdAt])
+}
+
+enum AttachmentStatus {
+  PENDING
+  UPLOADED
+  FAILED
+}
+
+model MessageAttachment {
+  id String @id @default(cuid())
+
+  messageId String?
+
+  serverId String
+
+  channelId String
+
+  uploadedById String
+
+  status AttachmentStatus @default(PENDING)
+
+  fileName String
+
+  mimeType String
+
+  sizeBytes Int
+
+  storageKey String @unique
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  message ChannelMessage? @relation("MessageAttachments", fields: [messageId], references: [id], onDelete: Cascade)
+
+  server Server @relation("AttachmentServer", fields: [serverId], references: [id], onDelete: Cascade)
+
+  channel ServerChannel @relation("AttachmentChannel", fields: [channelId], references: [id], onDelete: Cascade)
+
+  uploadedBy ServerMember @relation("AttachmentUploads", fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([serverId])
+  @@index([channelId, createdAt])
+  @@index([uploadedById])
 }

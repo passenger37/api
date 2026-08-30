@@ -26,9 +26,14 @@ import { WebSocketErrorNormalizer } from '../../common/websocket/error/websocket
 import { OutboxEventRepository } from './repositories/outbox-event.repository';
 import { OutboxPublisherService } from './services/outbox-publisher.service';
 import { ChannelMessageSearchService } from './services/channel-message-search.service';
+import { MessageAttachmentService } from './services/message-attachment.service';
+import { AttachmentStorageService } from './services/attachment-storage.service';
+import { AttachmentValidationService } from './services/attachment-validation.service';
+import { MessageAttachmentRepository } from './repositories/message-attachment.repository';
+import { MessageAttachmentController } from './controllers/message-attachment.controller';
 @Module({
   imports: [PrismaModule, ServersModule, AuthModule],
-  controllers: [ChannelMessageController],
+  controllers: [ChannelMessageController, MessageAttachmentController],
   providers: [
     ChannelMessageRepository,
     ChannelMessageEditRepository,
@@ -51,6 +56,10 @@ import { ChannelMessageSearchService } from './services/channel-message-search.s
     OutboxEventRepository,
     OutboxPublisherService,
     ChannelMessageSearchService,
+    MessageAttachmentService,
+    AttachmentStorageService,
+    AttachmentValidationService,
+    MessageAttachmentRepository,
   ],
 
   exports: [

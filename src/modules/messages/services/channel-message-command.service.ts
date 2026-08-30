@@ -17,6 +17,7 @@ import { ChannelMessageQueryService } from './channel-message-query.service';
 import { ChannelMessageGateway } from '../gateways/channel-message.gateway';
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
 import { OutboxEventRepository } from '../repositories/outbox-event.repository';
+import { MessageAttachmentService } from './message-attachment.service';
 
 @Injectable()
 export class ChannelMessageCommandService {
@@ -43,6 +44,8 @@ export class ChannelMessageCommandService {
     private readonly memberQueryService: ServerMemberQueryService,
 
     private readonly outboxRepository: OutboxEventRepository,
+
+    private readonly attachmentService: MessageAttachmentService,
   ) {}
 
   async createMessage(
@@ -51,6 +54,7 @@ export class ChannelMessageCommandService {
     content: string,
     parentMessageId?: string,
     clientMessageId?: string,
+    attachmentIds?: string[],
   ) {
     const channel = await this.validation.validateSendPermission(
       channelId,
@@ -140,6 +144,20 @@ export class ChannelMessageCommandService {
           tx,
         );
 
+        let message = created;
+
+        if (attachmentIds?.length) {
+          await this.attachmentService.attachToMessage(
+            created.id,
+            channelId,
+            member.id,
+            attachmentIds,
+            tx,
+          );
+
+          message = (await this.repository.findById(created.id, tx)) ?? created;
+        }
+
         await this.mentionRepository.createMany(
           created.id,
           serverId,
@@ -152,12 +170,12 @@ export class ChannelMessageCommandService {
           {
             eventType: 'message-created',
             channelId,
-            payload: this.toTransportMessage(created),
+            payload: this.toTransportMessage(message),
           },
           tx,
         );
 
-        return created;
+        return message;
       });
 
       return {
@@ -312,6 +330,13 @@ export class ChannelMessageCommandService {
     messageSeq: number;
     createdAt: Date;
     updatedAt: Date;
+    attachments?: Array<{
+      id: string;
+      fileName: string;
+      mimeType: string;
+      sizeBytes: number;
+      status: string;
+    }>;
   }) {
     return {
       id: message.id,
@@ -331,6 +356,14 @@ export class ChannelMessageCommandService {
       messageSeq: message.messageSeq,
       createdAt: message.createdAt.toISOString(),
       updatedAt: message.updatedAt.toISOString(),
+      attachments:
+        message.attachments?.map((attachment) => ({
+          id: attachment.id,
+          fileName: attachment.fileName,
+          mimeType: attachment.mimeType,
+          sizeBytes: attachment.sizeBytes,
+          status: attachment.status,
+        })) ?? [],
     };
   }
 

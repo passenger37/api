@@ -40,6 +40,15 @@ export const validationSchema = Joi.object({
 
   MINIO_BUCKET: Joi.string().required(),
 
+  MINIO_REGION: Joi.string().default('auto'),
+
+  MINIO_USE_PATH_STYLE: Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .default(true),
+
+  MINIO_PUBLIC_BASE_URL: Joi.string().uri().optional(),
+
   SESSION_COOKIE_NAME: Joi.string().default('nexus_session'),
 
   SESSION_COOKIE_HTTP_ONLY: Joi.boolean()

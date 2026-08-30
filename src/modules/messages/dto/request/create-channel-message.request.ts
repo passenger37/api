@@ -8,4 +8,8 @@ export class CreateChannelMessageRequest {
   @IsOptional()
   @IsString()
   parentMessageId?: string;
+
+  @IsOptional()
+  @IsString({ each: true })
+  attachmentIds?: string[];
 }

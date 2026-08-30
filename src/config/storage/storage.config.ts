@@ -10,4 +10,10 @@ export default registerAs('storage', () => ({
   secretKey: process.env.MINIO_SECRET_KEY,
 
   bucket: process.env.MINIO_BUCKET,
+
+  region: process.env.MINIO_REGION ?? 'auto',
+
+  forcePathStyle: process.env.MINIO_USE_PATH_STYLE !== 'false',
+
+  publicBaseUrl: process.env.MINIO_PUBLIC_BASE_URL?.replace(/\/+$/, '') ?? null,
 }));
