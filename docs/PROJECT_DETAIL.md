@@ -110,13 +110,13 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 | # | Lecture | Originally numbered as |
 |---|---|---|
 | **40.47** | Messaging Audit and Moderation — report/block/mute/ban, spam detection, abuse rate limiting, audit logs; explicit note that E2EE (Type C/D) moderation is client-side/metadata-only, never server decryption (completed) | v1 40.38, B1 §51 (fuller detail merged in) |
-| 40.48 *(current)* | Advanced Messaging Performance (query/caching pass once full feature set exists) | v1 40.39 |
+| **40.48** | Advanced Messaging Performance (query/caching pass once full feature set exists) (completed) | v1 40.39 |
 
 ### 4.2 Server/Social/Feed/Auth Completion
 
 | # | Lecture | Originally numbered as |
 |---|---|---|
-| 40.49 | Server Module Completion | v1 40.41 |
+| 40.49 *(current)* | Server Module Completion | v1 40.41 |
 | 40.50 | Social Graph Backend | v1 40.42, B1 Phase 4 |
 | 40.51 | Feed Backend | v1 40.43, B1 Phase 6 |
 | 40.52 | Authentication and Session Hardening | v1 40.44 |
