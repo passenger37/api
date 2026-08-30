@@ -132,13 +132,13 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 | 40.57 (completed) | Transaction Boundaries (completed) | B2 40.48 |
 | 40.58 (completed) | Formalize Command/Query (CQRS) Architecture (completed) | B2 40.49 |
 | 40.59 (completed) | Repository Boundary Hardening (completed) | B2 40.50 |
-| 40.60 *(current)* | Domain/Data Mapping | B2 40.51 |
+| 40.60 (completed) | Domain/Data Mapping (completed) | B2 40.51 |
 
 ### 4.4 Distributed / Scaling Foundation (moved later — depends on 4.1–4.3)
 
 | # | Lecture | Originally numbered as |
 |---|---|---|
-| 40.61 | Distributed WebSocket Scaling — Redis adapter foundation | v1 40.40 (**this is the other half of the 40.44/40.40 conflict noted above**) |
+| 40.61 *(current)* | Distributed WebSocket Scaling — Redis adapter foundation | v1 40.40 (**this is the other half of the 40.44/40.40 conflict noted above**) |
 
 ### 4.5 Private Messaging & E2EE (dedup B2 Phase 24–34 with B1's 16-lecture E2EE sequence)
 
