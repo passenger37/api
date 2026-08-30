@@ -11,6 +11,8 @@ describe('ChannelMessageGateway Integration', () => {
   let reactionQueryService: any;
   let typingService: any;
   let memberQueryService: any;
+  let connectionAuth: any;
+  let connectionLimit: any;
 
   const mockServer = {
     to: jest.fn().mockReturnThis(),
@@ -76,6 +78,13 @@ describe('ChannelMessageGateway Integration', () => {
         user: { id: 'u1', username: 'alice_dev' },
       }),
     };
+    connectionAuth = {
+      authenticate: jest.fn().mockResolvedValue({ userId: 'u1' }),
+    };
+    connectionLimit = {
+      acquire: jest.fn().mockResolvedValue(true),
+      release: jest.fn().mockResolvedValue(undefined),
+    };
 
     gateway = new ChannelMessageGateway(
       errorNormalizer,
@@ -88,6 +97,8 @@ describe('ChannelMessageGateway Integration', () => {
       commandService,
       typingService,
       memberQueryService,
+      connectionAuth,
+      connectionLimit,
     );
 
     // @ts-ignore
@@ -246,6 +257,10 @@ describe('ChannelMessageGateway Integration', () => {
       limit: 10,
       windowSeconds: 10,
     });
+    expect(validationService.validateChannelAccess).toHaveBeenCalledWith(
+      'ch1',
+      'u1',
+    );
     expect(typingService.stopTyping).toHaveBeenCalledWith('ch1', 'u1');
     expect(client.broadcast.to).toHaveBeenCalledWith('ch1');
     expect(client.broadcast.emit).toHaveBeenCalledWith('typing-stopped', {
@@ -253,6 +268,55 @@ describe('ChannelMessageGateway Integration', () => {
       userId: 'u1',
     });
     expect(result).toEqual({ success: true, channelId: 'ch1' });
+  });
+
+  it('should refuse to send typing-stopped for a channel the user cannot access', async () => {
+    validationService.validateChannelAccess.mockRejectedValueOnce(
+      new Error('Channel access denied'),
+    );
+    const client = { data: { userId: 'u1' } } as any;
+    const request = { channelId: 'ch-private' };
+
+    const result = await gateway.typingStop(client, request);
+
+    expect(typingService.stopTyping).not.toHaveBeenCalled();
+    expect(client.broadcast).toBeUndefined();
+    expect(errorNormalizer.normalize).toHaveBeenCalledWith(
+      expect.any(Error),
+      'typing-stop',
+    );
+    expect(result).toEqual({ error: true });
+  });
+
+  it('should reject an unauthenticated connection outright', async () => {
+    connectionAuth.authenticate.mockResolvedValue(null);
+    const client = { disconnect: jest.fn(), emit: jest.fn() } as any;
+
+    await gateway.handleConnection(client);
+
+    expect(client.disconnect).toHaveBeenCalledWith(true);
+    expect(connectionLimit.acquire).not.toHaveBeenCalled();
+  });
+
+  it('should disconnect a user over the connection cap', async () => {
+    connectionLimit.acquire.mockResolvedValueOnce(false);
+    const client = { disconnect: jest.fn(), emit: jest.fn() } as any;
+
+    await gateway.handleConnection(client);
+
+    expect(client.disconnect).toHaveBeenCalledWith(true);
+    expect(client.emit).toHaveBeenCalledWith(
+      'error',
+      expect.objectContaining({ statusCode: 429 }),
+    );
+  });
+
+  it('should release the connection slot on disconnect', async () => {
+    const client = { data: { userId: 'u1' } } as any;
+
+    await gateway.handleDisconnect(client);
+
+    expect(connectionLimit.release).toHaveBeenCalledWith('u1');
   });
 
   it('should normalize errors on typing-start failure', async () => {

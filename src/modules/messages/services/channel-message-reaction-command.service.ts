@@ -23,6 +23,8 @@ export class ChannelMessageReactionCommandService {
   async addReaction(messageId: string, userId: string, emoji: string) {
     const message = await this.messageQueryService.getMessage(messageId);
 
+    await this.validation.validateChannelAccess(message.channelId, userId);
+
     const member = await this.memberQueryService.getMemberOrThrow(
       message.serverId,
       userId,
@@ -43,6 +45,8 @@ export class ChannelMessageReactionCommandService {
 
   async removeReaction(messageId: string, userId: string, emoji: string) {
     const message = await this.messageQueryService.getMessage(messageId);
+
+    await this.validation.validateChannelAccess(message.channelId, userId);
 
     const member = await this.memberQueryService.getMemberOrThrow(
       message.serverId,

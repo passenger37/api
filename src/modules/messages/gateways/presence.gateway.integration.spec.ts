@@ -6,6 +6,8 @@ describe('PresenceGateway Integration', () => {
   let presenceService: any;
   let rateLimitService: any;
   let errorNormalizer: any;
+  let connectionAuth: any;
+  let connectionLimit: any;
 
   const mockServer = {
     to: jest.fn().mockReturnThis(),
@@ -37,15 +39,59 @@ describe('PresenceGateway Integration', () => {
     };
     rateLimitService = { consume: jest.fn().mockResolvedValue(undefined) };
     errorNormalizer = { normalize: jest.fn().mockReturnValue({ error: true }) };
+    connectionAuth = {
+      authenticate: jest.fn().mockResolvedValue({ userId: 'u1' }),
+    };
+    connectionLimit = {
+      acquire: jest.fn().mockResolvedValue(true),
+      release: jest.fn().mockResolvedValue(undefined),
+    };
 
     gateway = new PresenceGateway(
       errorNormalizer,
       presenceService,
       rateLimitService,
+      connectionAuth,
+      connectionLimit,
     );
 
     // @ts-ignore
     gateway.server = mockServer;
+  });
+
+  it('should reject an unauthenticated connection before joining presence', async () => {
+    connectionAuth.authenticate.mockResolvedValue(null);
+    const client = {
+      join: jest.fn(),
+      disconnect: jest.fn(),
+      emit: jest.fn(),
+      data: {},
+    } as any;
+
+    await gateway.handleConnection(client);
+
+    expect(client.join).not.toHaveBeenCalled();
+    expect(client.disconnect).toHaveBeenCalledWith(true);
+    expect(presenceService.markOnline).not.toHaveBeenCalled();
+  });
+
+  it('should disconnect a user over the connection cap', async () => {
+    connectionLimit.acquire.mockResolvedValueOnce(false);
+    const client = {
+      join: jest.fn(),
+      disconnect: jest.fn(),
+      emit: jest.fn(),
+      data: {},
+    } as any;
+
+    await gateway.handleConnection(client);
+
+    expect(client.join).not.toHaveBeenCalled();
+    expect(client.disconnect).toHaveBeenCalledWith(true);
+    expect(client.emit).toHaveBeenCalledWith(
+      'error',
+      expect.objectContaining({ statusCode: 429 }),
+    );
   });
 
   it('should join the presence room and mark online on connection', async () => {
@@ -75,10 +121,9 @@ describe('PresenceGateway Integration', () => {
       broadcast: { to: jest.fn().mockReturnThis(), emit: jest.fn() },
     } as any;
 
-    gateway.handleDisconnect(client);
+    await gateway.handleDisconnect(client);
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
+    expect(connectionLimit.release).toHaveBeenCalledWith('u1');
     expect(presenceService.markOffline).toHaveBeenCalledWith('u1');
     expect(client.broadcast.emit).toHaveBeenCalledWith('presence-change', {
       userId: 'u1',

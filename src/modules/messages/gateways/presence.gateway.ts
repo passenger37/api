@@ -12,10 +12,16 @@ import { UseGuards, UseFilters, UsePipes } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 
 import { WebSocketJwtGuard } from '../gaurds/websocket-jwt.guard';
+import { WebSocketConnectionAuthService } from '../gaurds/websocket-connection-auth.service';
+import { WebSocketConnectionLimitService } from '../gaurds/websocket-connection-limit.service';
 import { WebSocketExceptionFilter } from '../../../common/filters/websocket-exception.filter';
 import { WebSocketValidationPipe } from '../../../common/websocket/pipes/websocket-validation.pipe';
 import { WebSocketErrorNormalizer } from '../../../common/websocket/error/websocket-error.normalizer';
 import { WebSocketRateLimitService } from '../../../common/websocket/rate-limit/websocket-rate-limit.service';
+import {
+  WEB_SOCKET_ALLOWED_ORIGINS,
+  WS_MAX_BUFFER_BYTES,
+} from '../../../common/websocket/websocket-origins';
 import {
   PresenceService,
   PresenceStatus,
@@ -28,8 +34,10 @@ import { GetPresenceRequest } from '../dto/request/get-presence.request';
   namespace: '/presence',
 
   cors: {
-    origin: '*',
+    origin: WEB_SOCKET_ALLOWED_ORIGINS,
   },
+
+  maxHttpBufferSize: WS_MAX_BUFFER_BYTES,
 })
 @UseGuards(WebSocketJwtGuard)
 @UsePipes(new WebSocketValidationPipe())
@@ -44,9 +52,27 @@ export class PresenceGateway
     private readonly errorNormalizer: WebSocketErrorNormalizer,
     private readonly presenceService: PresenceService,
     private readonly rateLimit: WebSocketRateLimitService,
+    private readonly connectionAuth: WebSocketConnectionAuthService,
+    private readonly connectionLimit: WebSocketConnectionLimitService,
   ) {}
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
+    const authenticated = await this.connectionAuth.authenticate(client);
+
+    if (!authenticated) {
+      this.reject(client, 401, 'WebSocket authentication required.');
+      return;
+    }
+
+    const allowed = await this.connectionLimit.acquire(authenticated.userId);
+
+    if (!allowed) {
+      this.reject(client, 429, 'Too many connections. Try again later.');
+      return;
+    }
+
+    client.data.userId = authenticated.userId;
+
     const userId = client.data.userId;
 
     client.join(PRESENCE_ROOM);
@@ -54,8 +80,12 @@ export class PresenceGateway
     void this.broadcastOnline(client, userId);
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     const userId = client.data.userId;
+
+    if (userId) {
+      await this.connectionLimit.release(userId);
+    }
 
     void this.broadcastOffline(client, userId);
   }
@@ -151,6 +181,12 @@ export class PresenceGateway
     } catch (error) {
       console.error('Presence offline broadcast failed', error);
     }
+  }
+
+  private reject(client: Socket, statusCode: number, message: string) {
+    client.emit('error', { statusCode, message });
+
+    client.disconnect(true);
   }
 
   private normalizeError(exception: unknown, event: string) {

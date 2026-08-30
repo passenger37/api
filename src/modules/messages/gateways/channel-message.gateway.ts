@@ -38,6 +38,12 @@ import { GetReactionCountsRequest } from '../dto/request/get-reaction-counts.req
 import { WebSocketRateLimitService } from '../../../common/websocket/rate-limit/websocket-rate-limit.service';
 import { WebSocketValidationPipe } from '../../../common/websocket/pipes/websocket-validation.pipe';
 import { WebSocketErrorNormalizer } from '../../../common/websocket/error/websocket-error.normalizer';
+import {
+  WEB_SOCKET_ALLOWED_ORIGINS,
+  WS_MAX_BUFFER_BYTES,
+} from '../../../common/websocket/websocket-origins';
+import { WebSocketConnectionAuthService } from '../gaurds/websocket-connection-auth.service';
+import { WebSocketConnectionLimitService } from '../gaurds/websocket-connection-limit.service';
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
 import { TypingStartRequest } from '../dto/request/typing-start.request';
 import { TypingStopRequest } from '../dto/request/typing-stop.request';
@@ -49,8 +55,10 @@ import { SyncChannelRequest } from '../dto/request/sync-channel.request';
   namespace: '/messages',
 
   cors: {
-    origin: '*',
+    origin: WEB_SOCKET_ALLOWED_ORIGINS,
   },
+
+  maxHttpBufferSize: WS_MAX_BUFFER_BYTES,
 })
 @UseGuards(WebSocketJwtGuard)
 @UsePipes(new WebSocketValidationPipe())
@@ -73,16 +81,38 @@ export class ChannelMessageGateway
     private readonly commandService: ChannelMessageCommandService,
     private readonly typingService: TypingService,
     private readonly memberQueryService: ServerMemberQueryService,
+    private readonly connectionAuth: WebSocketConnectionAuthService,
+    private readonly connectionLimit: WebSocketConnectionLimitService,
   ) {}
 
-  handleConnection(client: Socket) {
-    const userId = client.data.userId;
+  async handleConnection(client: Socket) {
+    const authenticated = await this.connectionAuth.authenticate(client);
 
-    console.log(`WebSocket connected: ${client.id} | user: ${userId}`);
+    if (!authenticated) {
+      this.reject(client, 401, 'WebSocket authentication required.');
+      return;
+    }
+
+    const allowed = await this.connectionLimit.acquire(authenticated.userId);
+
+    if (!allowed) {
+      this.reject(client, 429, 'Too many connections. Try again later.');
+      return;
+    }
+
+    client.data.userId = authenticated.userId;
+
+    console.log(
+      `WebSocket connected: ${client.id} | user: ${client.data.userId}`,
+    );
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     const userId = client.data.userId;
+
+    if (userId) {
+      await this.connectionLimit.release(userId);
+    }
 
     console.log(`WebSocket disconnected: ${client.id} | user: ${userId}`);
   }
@@ -218,7 +248,7 @@ export class ChannelMessageGateway
     try {
       const userId = client.data.userId;
 
-await this.rateLimit.consume({
+      await this.rateLimit.consume({
         key: `ws:edit-message:${userId}`,
         limit: 20,
         windowSeconds: 10,
@@ -421,23 +451,34 @@ await this.rateLimit.consume({
     @ConnectedSocket() client: Socket,
     @MessageBody() request: GetMessageReactionsRequest,
   ) {
-    const userId = client.data.userId;
+    const event = 'get-message-reactions';
+    try {
+      const userId = client.data.userId;
 
-    const message = await this.messageQueryService.getMessage(
-      request.messageId,
-    );
+      await this.rateLimit.consume({
+        key: `ws:get-message-reactions:${userId}`,
+        limit: 20,
+        windowSeconds: 10,
+      });
 
-    await this.validation.validateChannelAccess(message.channelId, userId);
+      const message = await this.messageQueryService.getMessage(
+        request.messageId,
+      );
 
-    const reactions = await this.reactionQueryService.getMessageReactions(
-      request.messageId,
-    );
+      await this.validation.validateChannelAccess(message.channelId, userId);
 
-    return {
-      success: true,
-      messageId: request.messageId,
-      reactions,
-    };
+      const reactions = await this.reactionQueryService.getMessageReactions(
+        request.messageId,
+      );
+
+      return {
+        success: true,
+        messageId: request.messageId,
+        reactions,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
   }
 
   @SubscribeMessage('get-reaction-counts')
@@ -445,23 +486,34 @@ await this.rateLimit.consume({
     @ConnectedSocket() client: Socket,
     @MessageBody() request: GetReactionCountsRequest,
   ) {
-    const userId = client.data.userId;
+    const event = 'get-reaction-counts';
+    try {
+      const userId = client.data.userId;
 
-    const message = await this.messageQueryService.getMessage(
-      request.messageId,
-    );
+      await this.rateLimit.consume({
+        key: `ws:get-reaction-counts:${userId}`,
+        limit: 20,
+        windowSeconds: 10,
+      });
 
-    await this.validation.validateChannelAccess(message.channelId, userId);
+      const message = await this.messageQueryService.getMessage(
+        request.messageId,
+      );
 
-    const counts = await this.reactionQueryService.getReactionCounts(
-      request.messageId,
-    );
+      await this.validation.validateChannelAccess(message.channelId, userId);
 
-    return {
-      success: true,
-      messageId: request.messageId,
-      counts,
-    };
+      const counts = await this.reactionQueryService.getReactionCounts(
+        request.messageId,
+      );
+
+      return {
+        success: true,
+        messageId: request.messageId,
+        counts,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
   }
 
   @SubscribeMessage('typing-start')
@@ -520,6 +572,8 @@ await this.rateLimit.consume({
         limit: 10,
         windowSeconds: 10,
       });
+
+      await this.validation.validateChannelAccess(request.channelId, userId);
 
       await this.typingService.stopTyping(request.channelId, userId);
 
@@ -606,6 +660,12 @@ await this.rateLimit.consume({
 
   broadcastReactionRemoved(channelId: string, payload: unknown) {
     this.server.to(channelId).emit('reaction-removed', payload);
+  }
+
+  private reject(client: Socket, statusCode: number, message: string) {
+    client.emit('error', { statusCode, message });
+
+    client.disconnect(true);
   }
 
   private normalizeError(exception: unknown, event: string) {

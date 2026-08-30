@@ -6,7 +6,10 @@ export default registerAs('session', () => ({
 
     httpOnly: process.env.SESSION_COOKIE_HTTP_ONLY !== 'false',
 
-    secure: process.env.SESSION_COOKIE_SECURE === 'true',
+    secure:
+      process.env.SESSION_COOKIE_SECURE === 'true' ||
+      (process.env.NODE_ENV === 'production' &&
+        process.env.SESSION_COOKIE_SECURE !== 'false'),
 
     sameSite: process.env.SESSION_COOKIE_SAME_SITE ?? 'lax',
 

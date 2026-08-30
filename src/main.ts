@@ -14,6 +14,14 @@ async function bootstrap() {
     bufferLogs: true,
   });
   app.use(cookieParser());
+
+  const expressApp = app.getHttpAdapter().getInstance() as any;
+
+  expressApp.set(
+    'trust proxy',
+    process.env.TRUST_PROXY !== 'false' ? 1 : false,
+  );
+
   configureVersioning(app);
   configureValidation(app);
   configureHelmet(app);

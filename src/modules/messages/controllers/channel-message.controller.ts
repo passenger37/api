@@ -70,8 +70,15 @@ export class ChannelMessageController {
   }
 
   @Get('messages/:messageId')
-  async getMessage(@Param('messageId') messageId: string) {
-    return this.queryService.getMessage(messageId);
+  async getMessage(
+    @Param('messageId') messageId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    const message = await this.queryService.getMessage(messageId);
+
+    await this.validation.validateChannelAccess(message.channelId, userId);
+
+    return message;
   }
 
   @Get('servers/:serverId/messages/search')
