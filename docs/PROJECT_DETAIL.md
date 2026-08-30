@@ -116,8 +116,8 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 
 | # | Lecture | Originally numbered as |
 |---|---|---|
-| 40.49 *(current)* | Server Module Completion | v1 40.41 |
-| 40.50 | Social Graph Backend | v1 40.42, B1 Phase 4 |
+| **40.49** | Server Module Completion - server settings update (SERVER_UPDATE), owner-only delete (SERVER_DELETE), self-leave (completed) | v1 40.41 |
+| 40.50 *(current)* | Social Graph Backend | v1 40.42, B1 Phase 4 |
 | 40.51 | Feed Backend | v1 40.43, B1 Phase 6 |
 | 40.52 | Authentication and Session Hardening | v1 40.44 |
 | 40.53 | Advanced RBAC / Permission Optimization | v1 40.45 |
