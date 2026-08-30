@@ -7,7 +7,7 @@ import {
 
 import { ReportStatus } from '@prisma/client';
 
-import { ReportService } from './report.service';
+import { ReportCommandService } from './report-command.service';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { MessageReportRepository } from '../repositories/message-report.repository';
 import { UserReportRepository } from '../repositories/user-report.repository';
@@ -17,30 +17,25 @@ import { ServerMemberQueryService } from '../../servers/services/server-member-q
 import { ServerPermissionService } from '../../servers/services/server-permission.service';
 import { ModerationAuditRepository } from '../../servers/repositories/moderation-audit.repository';
 
-describe('ReportService', () => {
-  let service: ReportService;
+describe('ReportCommandService', () => {
+  let service: ReportCommandService;
   let prisma: { $transaction: jest.Mock };
   let messageReportRepository: {
     create: jest.Mock;
     findByMessageAndReporter: jest.Mock;
     findById: jest.Mock;
-    listByServer: jest.Mock;
     updateStatus: jest.Mock;
   };
   let userReportRepository: {
     create: jest.Mock;
     findByReporterAndTarget: jest.Mock;
     findById: jest.Mock;
-    listByServer: jest.Mock;
     updateStatus: jest.Mock;
   };
   let messageQueryService: { getMessage: jest.Mock };
   let messageValidation: { validateChannelViewPermission: jest.Mock };
   let memberQueryService: { getMemberOrThrow: jest.Mock; getMember: jest.Mock };
-  let permissionService: {
-    hasPermission: jest.Mock;
-    requirePermission: jest.Mock;
-  };
+  let permissionService: { requirePermission: jest.Mock };
   let auditRepository: { create: jest.Mock };
 
   const reporter = { id: 'member-1', userId: 'user-1', serverId: 'srv-1' };
@@ -53,14 +48,12 @@ describe('ReportService', () => {
       create: jest.fn(),
       findByMessageAndReporter: jest.fn(),
       findById: jest.fn(),
-      listByServer: jest.fn(),
       updateStatus: jest.fn(),
     };
     userReportRepository = {
       create: jest.fn(),
       findByReporterAndTarget: jest.fn(),
       findById: jest.fn(),
-      listByServer: jest.fn(),
       updateStatus: jest.fn(),
     };
     messageQueryService = { getMessage: jest.fn() };
@@ -69,15 +62,12 @@ describe('ReportService', () => {
       getMemberOrThrow: jest.fn(),
       getMember: jest.fn(),
     };
-    permissionService = {
-      hasPermission: jest.fn(),
-      requirePermission: jest.fn(),
-    };
+    permissionService = { requirePermission: jest.fn() };
     auditRepository = { create: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ReportService,
+        ReportCommandService,
         { provide: PrismaService, useValue: prisma },
         { provide: MessageReportRepository, useValue: messageReportRepository },
         { provide: UserReportRepository, useValue: userReportRepository },
@@ -92,7 +82,7 @@ describe('ReportService', () => {
       ],
     }).compile();
 
-    service = module.get(ReportService);
+    service = module.get(ReportCommandService);
   });
 
   describe('submitMessageReport', () => {
@@ -260,37 +250,6 @@ describe('ReportService', () => {
           reason: 'OTHER',
         }),
       ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('listMessageReports', () => {
-    it('should deny members without queue access', async () => {
-      permissionService.hasPermission
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(false);
-
-      await expect(
-        service.listMessageReports('srv-1', 'user-1', {}),
-      ).rejects.toThrow(ForbiddenException);
-    });
-
-    it('should list pending reports for a moderator', async () => {
-      permissionService.hasPermission
-        .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(false);
-      messageReportRepository.listByServer.mockResolvedValue([]);
-
-      const result = await service.listMessageReports('srv-1', 'user-1', {});
-
-      expect(messageReportRepository.listByServer).toHaveBeenCalledWith(
-        'srv-1',
-        {
-          status: ReportStatus.PENDING,
-          cursorId: undefined,
-          limit: undefined,
-        },
-      );
-      expect(result.items).toEqual([]);
     });
   });
 

@@ -13,7 +13,8 @@ import { ServerPermission } from '@prisma/client';
 import { RequireServerPermission } from '../../servers/decorators/require-server-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
-import { ReportService } from '../services/report.service';
+import { ReportQueryService } from '../services/report-query.service';
+import { ReportCommandService } from '../services/report-command.service';
 import { CreateMessageReportRequest } from '../dto/request/create-message-report.request';
 import { CreateUserReportRequest } from '../dto/request/create-user-report.request';
 import { ResolveReportRequest } from '../dto/request/resolve-report.request';
@@ -21,7 +22,10 @@ import { GetReportsQuery } from '../dto/query/get-reports.query';
 
 @Controller('servers/:serverId/reports')
 export class ModerationReportController {
-  constructor(private readonly reportService: ReportService) {}
+  constructor(
+    private readonly queryService: ReportQueryService,
+    private readonly commandService: ReportCommandService,
+  ) {}
 
   /**
    * POST
@@ -34,7 +38,7 @@ export class ModerationReportController {
     @CurrentUser('id') userId: string,
     @Body() request: CreateMessageReportRequest,
   ) {
-    return this.reportService.submitMessageReport(serverId, userId, request);
+    return this.commandService.submitMessageReport(serverId, userId, request);
   }
 
   /**
@@ -48,7 +52,7 @@ export class ModerationReportController {
     @CurrentUser('id') userId: string,
     @Query() request: GetReportsQuery,
   ) {
-    return this.reportService.listMessageReports(serverId, userId, {
+    return this.queryService.listMessageReports(serverId, userId, {
       status: request.status,
       cursorId: request.cursor,
       limit: request.limit,
@@ -67,7 +71,7 @@ export class ModerationReportController {
     @CurrentUser('id') userId: string,
     @Body() request: ResolveReportRequest,
   ) {
-    return this.reportService.resolveMessageReport(
+    return this.commandService.resolveMessageReport(
       serverId,
       userId,
       reportId,
@@ -86,7 +90,7 @@ export class ModerationReportController {
     @CurrentUser('id') userId: string,
     @Body() request: CreateUserReportRequest,
   ) {
-    return this.reportService.submitUserReport(serverId, userId, request);
+    return this.commandService.submitUserReport(serverId, userId, request);
   }
 
   /**
@@ -100,7 +104,7 @@ export class ModerationReportController {
     @CurrentUser('id') userId: string,
     @Query() request: GetReportsQuery,
   ) {
-    return this.reportService.listUserReports(serverId, userId, {
+    return this.queryService.listUserReports(serverId, userId, {
       status: request.status,
       cursorId: request.cursor,
       limit: request.limit,
@@ -119,7 +123,7 @@ export class ModerationReportController {
     @CurrentUser('id') userId: string,
     @Body() request: ResolveReportRequest,
   ) {
-    return this.reportService.resolveUserReport(
+    return this.commandService.resolveUserReport(
       serverId,
       userId,
       reportId,

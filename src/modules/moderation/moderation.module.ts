@@ -7,7 +7,8 @@ import { MessagesModule } from '../messages/messages.module';
 
 import { MessageReportRepository } from './repositories/message-report.repository';
 import { UserReportRepository } from './repositories/user-report.repository';
-import { ReportService } from './services/report.service';
+import { ReportQueryService } from './services/report-query.service';
+import { ReportCommandService } from './services/report-command.service';
 import { ModerationReportController } from './controllers/moderation-report.controller';
 
 @Module({
@@ -15,8 +16,13 @@ import { ModerationReportController } from './controllers/moderation-report.cont
 
   controllers: [ModerationReportController],
 
-  providers: [MessageReportRepository, UserReportRepository, ReportService],
+  providers: [
+    MessageReportRepository,
+    UserReportRepository,
+    ReportQueryService,
+    ReportCommandService,
+  ],
 
-  exports: [ReportService],
+  exports: [ReportCommandService, ReportQueryService],
 })
 export class ModerationModule {}
