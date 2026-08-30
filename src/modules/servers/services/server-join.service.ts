@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -78,5 +79,38 @@ export class ServerJoinService {
     return this.prisma.$transaction((tx: Prisma.TransactionClient) =>
       this.memberService.createMemberWithDefaultRole(serverId, userId, tx),
     );
+  }
+
+  /**
+   * Lets any member voluntarily leave a server. The server owner cannot
+   * leave - they must transfer ownership or delete the server instead.
+   */
+  async leaveServer(serverId: string, userId: string) {
+    const member = await this.memberRepository.findByServerAndUser(
+      serverId,
+      userId,
+    );
+
+    if (!member) {
+      throw new NotFoundException('You are not a member of this server.');
+    }
+
+    const owner = await this.memberRepository.findOwner(serverId);
+
+    if (owner?.userId === userId) {
+      throw new BadRequestException(
+        'The server owner cannot leave. Transfer ownership or delete the server instead.',
+      );
+    }
+
+    await this.prisma.$transaction((tx: Prisma.TransactionClient) =>
+      this.memberRepository.markRemoved(member.id, new Date(), tx),
+    );
+
+    this.permissionService.clearUserCache(serverId, userId);
+
+    return {
+      success: true,
+    };
   }
 }

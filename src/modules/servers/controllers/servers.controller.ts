@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 
 import { ServerPermission } from '@prisma/client';
 
@@ -8,6 +17,7 @@ import { Public } from '../../../common/decorators/public.decorator';
 import type { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 
 import { CreateServerRequest } from '../dto/request/create-server.request';
+import { UpdateServerRequest } from '../dto/request/update-server.request';
 
 import { RequireServerPermission } from '../decorators/require-server-permission.decorator';
 import { ServerPermissionGuard } from '../gaurds/server-permission.guard';
@@ -92,5 +102,49 @@ export class ServersController {
   @RequireServerPermission(ServerPermission.SERVER_VIEW)
   async getServer(@Param('serverId') serverId: string) {
     return this.serverQueryService.getByIdOrThrow(serverId);
+  }
+
+  /**
+   * PATCH
+   * /servers/:serverId
+   * Updates the server's display settings (requires SERVER_UPDATE).
+   */
+  @Patch(':serverId')
+  @UseGuards(ServerPermissionGuard)
+  @RequireServerPermission(ServerPermission.SERVER_UPDATE)
+  async updateServer(
+    @Param('serverId') serverId: string,
+    @CurrentUser('id') userId: string,
+    @Body() request: UpdateServerRequest,
+  ) {
+    return this.serversService.updateServer(serverId, userId, request);
+  }
+
+  /**
+   * DELETE
+   * /servers/:serverId
+   * Permanently deletes a server and everything in it (owner only).
+   */
+  @Delete(':serverId')
+  @UseGuards(ServerPermissionGuard)
+  @RequireServerPermission(ServerPermission.SERVER_DELETE)
+  async deleteServer(
+    @Param('serverId') serverId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.serversService.deleteServer(serverId, userId);
+  }
+
+  /**
+   * POST
+   * /servers/:serverId/leave
+   * Removes the current user's membership from the server.
+   */
+  @Post(':serverId/leave')
+  async leaveServer(
+    @Param('serverId') serverId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.serverJoinService.leaveServer(serverId, userId);
   }
 }

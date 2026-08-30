@@ -1,9 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+
+import { Prisma, ServerPermission } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
 
 import { CreateServerRequest } from '../dto/request/create-server.request';
 import { CreateServerResponse } from '../dto/response/create-server.response';
+import { UpdateServerRequest } from '../dto/request/update-server.request';
 
 import { ServerRepository } from '../repositories/server.repository';
 import { ServerMemberRepository } from '../repositories/server-member.repository';
@@ -18,6 +26,7 @@ import { ServerTemplateFactory } from '../factories/server-template.factory';
 import { ServerMapper } from '../mappers/server.mapper';
 import { ServerStructureService } from './server-structure.service';
 import { ServerRoleService } from './server-role.service';
+import { ServerPermissionService } from './server-permission.service';
 
 @Injectable()
 export class ServerCommandService {
@@ -32,6 +41,7 @@ export class ServerCommandService {
     private readonly serverMemberRepository: ServerMemberRepository,
     private readonly serverRoleRepository: ServerRoleRepository,
     private readonly serverRoleAssignmentRepository: ServerRoleAssignmentRepository,
+    private readonly permissionService: ServerPermissionService,
   ) {}
 
   async createServer(
@@ -113,5 +123,83 @@ export class ServerCommandService {
 
       return ServerMapper.toCreateResponse(server);
     });
+  }
+
+  async updateServer(
+    serverId: string,
+    userId: string,
+    request: UpdateServerRequest,
+  ) {
+    const server = await this.serverRepository.findById(serverId);
+
+    if (!server) {
+      throw new NotFoundException('Server not found.');
+    }
+
+    await this.permissionService.requirePermission(
+      serverId,
+      userId,
+      ServerPermission.SERVER_UPDATE,
+    );
+
+    await this.validation.validateUpdateServer(request);
+
+    const data: Prisma.ServerUpdateInput = {};
+
+    if (request.name !== undefined) {
+      data.name = request.name.trim();
+    }
+
+    if (request.description !== undefined) {
+      data.description = request.description;
+    }
+
+    if (request.iconUrl !== undefined) {
+      data.iconUrl = request.iconUrl;
+    }
+
+    if (request.bannerUrl !== undefined) {
+      data.bannerUrl = request.bannerUrl;
+    }
+
+    if (request.visibility !== undefined) {
+      data.visibility = request.visibility;
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('Nothing to update.');
+    }
+
+    const updated = await this.serverRepository.update(serverId, data);
+
+    return ServerMapper.toUpdateResponse(updated);
+  }
+
+  async deleteServer(serverId: string, userId: string) {
+    const server = await this.serverRepository.findById(serverId);
+
+    if (!server) {
+      throw new NotFoundException('Server not found.');
+    }
+
+    await this.permissionService.requirePermission(
+      serverId,
+      userId,
+      ServerPermission.SERVER_DELETE,
+    );
+
+    const owner = await this.serverMemberRepository.findOwner(serverId);
+
+    if (!owner || owner.userId !== userId) {
+      throw new ForbiddenException(
+        'Only the server owner can delete the server.',
+      );
+    }
+
+    await this.serverRepository.delete(serverId);
+
+    return {
+      success: true,
+    };
   }
 }

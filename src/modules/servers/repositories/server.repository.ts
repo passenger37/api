@@ -45,6 +45,27 @@ export class ServerRepository {
     });
   }
 
+  async update(
+    id: string,
+    data: Prisma.ServerUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Server> {
+    const client = tx ?? this.prisma;
+
+    return client.server.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async delete(id: string, tx?: Prisma.TransactionClient): Promise<Server> {
+    const client = tx ?? this.prisma;
+
+    return client.server.delete({
+      where: { id },
+    });
+  }
+
   async search(query: string | undefined, skip: number, take: number) {
     return this.prisma.server.findMany({
       where: {
