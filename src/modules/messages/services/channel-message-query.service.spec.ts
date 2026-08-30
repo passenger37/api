@@ -7,6 +7,7 @@ import { ChannelMessageEditRepository } from '../repositories/channel-message-ed
 import { ChannelMentionRepository } from '../repositories/channel-message-mention.repository';
 import { ChannelReadStateRepository } from '../repositories/channel-read-state.repository';
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
+import { ChannelMessageCacheService } from './channel-message-cache.service';
 
 describe('ChannelMessageQueryService - pagination', () => {
   let service: ChannelMessageQueryService;
@@ -16,6 +17,17 @@ describe('ChannelMessageQueryService - pagination', () => {
   let mentionRepository: jest.Mocked<ChannelMentionRepository>;
   let readStateRepository: jest.Mocked<ChannelReadStateRepository>;
   let memberQueryService: { getMemberOrThrow: jest.Mock };
+  let cache: {
+    getCachedPage: jest.Mock;
+    cachePage: jest.Mock;
+    getCachedMessagesAfter: jest.Mock;
+    cacheMessagesAfter: jest.Mock;
+    getCachedThread: jest.Mock;
+    cacheThread: jest.Mock;
+    getChannelVersion: jest.Mock;
+    getCachedUnread: jest.Mock;
+    cacheUnread: jest.Mock;
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -65,6 +77,20 @@ describe('ChannelMessageQueryService - pagination', () => {
             getMemberOrThrow: jest.fn(),
           },
         },
+        {
+          provide: ChannelMessageCacheService,
+          useValue: {
+            getCachedPage: jest.fn().mockResolvedValue(null),
+            cachePage: jest.fn(),
+            getCachedMessagesAfter: jest.fn().mockResolvedValue(null),
+            cacheMessagesAfter: jest.fn(),
+            getCachedThread: jest.fn().mockResolvedValue(null),
+            cacheThread: jest.fn(),
+            getChannelVersion: jest.fn().mockResolvedValue(0),
+            getCachedUnread: jest.fn().mockResolvedValue(null),
+            cacheUnread: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -77,6 +103,7 @@ describe('ChannelMessageQueryService - pagination', () => {
     mentionRepository = module.get(ChannelMentionRepository);
     readStateRepository = module.get(ChannelReadStateRepository);
     memberQueryService = module.get(ServerMemberQueryService);
+    cache = module.get(ChannelMessageCacheService);
     mentionRepository.countMentionsByMessages.mockResolvedValue(new Map());
     readStateRepository.countUnreadAfter.mockResolvedValue(0);
   });
@@ -537,6 +564,20 @@ describe('ChannelMessageQueryService - reconnect sync', () => {
           provide: ServerMemberQueryService,
           useValue: {
             getMemberOrThrow: jest.fn(),
+          },
+        },
+        {
+          provide: ChannelMessageCacheService,
+          useValue: {
+            getCachedPage: jest.fn().mockResolvedValue(null),
+            cachePage: jest.fn(),
+            getCachedMessagesAfter: jest.fn().mockResolvedValue(null),
+            cacheMessagesAfter: jest.fn(),
+            getCachedThread: jest.fn().mockResolvedValue(null),
+            cacheThread: jest.fn(),
+            getChannelVersion: jest.fn().mockResolvedValue(0),
+            getCachedUnread: jest.fn().mockResolvedValue(null),
+            cacheUnread: jest.fn(),
           },
         },
       ],

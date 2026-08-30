@@ -32,6 +32,7 @@ import { AttachmentValidationService } from './services/attachment-validation.se
 import { MessageAttachmentRepository } from './repositories/message-attachment.repository';
 import { MessageAttachmentController } from './controllers/message-attachment.controller';
 import { MessageSpamControlService } from './services/message-spam-control.service';
+import { ChannelMessageCacheService } from './services/channel-message-cache.service';
 @Module({
   imports: [PrismaModule, ServersModule, AuthModule],
   controllers: [ChannelMessageController, MessageAttachmentController],
@@ -62,6 +63,7 @@ import { MessageSpamControlService } from './services/message-spam-control.servi
     AttachmentValidationService,
     MessageAttachmentRepository,
     MessageSpamControlService,
+    ChannelMessageCacheService,
   ],
 
   exports: [

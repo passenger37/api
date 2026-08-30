@@ -7,6 +7,7 @@ import { ChannelMessageEditRepository } from '../repositories/channel-message-ed
 import { ChannelMentionRepository } from '../repositories/channel-message-mention.repository';
 import { ChannelReadStateRepository } from '../repositories/channel-read-state.repository';
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
+import { ChannelMessageCacheService } from './channel-message-cache.service';
 
 @Injectable()
 export class ChannelMessageQueryService {
@@ -17,6 +18,7 @@ export class ChannelMessageQueryService {
     private readonly mentionRepository: ChannelMentionRepository,
     private readonly readStateRepository: ChannelReadStateRepository,
     private readonly memberQueryService: ServerMemberQueryService,
+    private readonly cache: ChannelMessageCacheService,
   ) {}
 
   async getMessage(messageId: string) {
@@ -53,6 +55,16 @@ export class ChannelMessageQueryService {
     cursor?: string,
     limit = 50,
   ) {
+    const cached = await this.cache.getCachedPage<{
+      items: ChannelMessage[];
+      nextCursor: string | undefined;
+      hasMore: boolean;
+    }>(channelId, cursor, limit);
+
+    if (cached) {
+      return cached;
+    }
+
     const messages = await this.repository.findManyByChannelPaginated(
       channelId,
       cursor,
@@ -61,7 +73,11 @@ export class ChannelMessageQueryService {
     const hasMore = messages.length > limit;
     const items = hasMore ? messages.slice(0, limit) : messages;
     const nextCursor = hasMore ? items[items.length - 1].id : undefined;
-    return { items, nextCursor, hasMore };
+    const result = { items, nextCursor, hasMore };
+
+    await this.cache.cachePage(channelId, cursor, limit, result);
+
+    return result;
   }
 
   async countMessages(channelId: string) {
@@ -122,6 +138,19 @@ export class ChannelMessageQueryService {
     afterMessageId: string,
     take = 50,
   ) {
+    const cached = await this.cache.getCachedMessagesAfter<
+      Array<
+        ChannelMessage & {
+          reactionCounts: Record<string, number>;
+          mentionCount: number;
+        }
+      >
+    >(channelId, afterMessageId, take);
+
+    if (cached) {
+      return cached;
+    }
+
     const messages = await this.repository.findMessagesAfterCursor(
       channelId,
       afterMessageId,
@@ -137,13 +166,22 @@ export class ChannelMessageQueryService {
       messages.map((message) => message.id),
     );
 
-    return messages.map((message) => ({
+    const enriched = messages.map((message) => ({
       ...message,
       reactionCounts: Object.fromEntries(
         reactionCounts.get(message.id) ?? new Map<string, number>(),
       ),
       mentionCount: mentionCounts.get(message.id) ?? 0,
     }));
+
+    await this.cache.cacheMessagesAfter(
+      channelId,
+      afterMessageId,
+      take,
+      enriched,
+    );
+
+    return enriched;
   }
 
   async getPinnedMessages(channelId: string) {
@@ -178,6 +216,27 @@ export class ChannelMessageQueryService {
       throw new NotFoundException('Message not found.');
     }
 
+    const channelId = message.channelId;
+
+    const cached = await this.cache.getCachedThread<{
+      items: Array<
+        ChannelMessage & {
+          reactionCounts: Record<string, number>;
+          mentionCount: number;
+        }
+      >;
+      nextCursor: string | undefined;
+      hasMore: boolean;
+      replyCount: number;
+    }>(channelId, parentMessageId, cursor, limit);
+
+    if (cached) {
+      return {
+        message: this.toMessageOrTombstone(message),
+        ...cached,
+      };
+    }
+
     const replies = await this.repository.findRepliesPaginated(
       parentMessageId,
       cursor,
@@ -197,8 +256,7 @@ export class ChannelMessageQueryService {
 
     const replyCount = await this.repository.countReplies(parentMessageId);
 
-    return {
-      message: this.toMessageOrTombstone(message),
+    const enriched = {
       items: items.map((item) => ({
         ...item,
         reactionCounts: Object.fromEntries(
@@ -209,6 +267,19 @@ export class ChannelMessageQueryService {
       nextCursor: hasMore ? items[items.length - 1].id : undefined,
       hasMore,
       replyCount,
+    };
+
+    await this.cache.cacheThread(
+      channelId,
+      parentMessageId,
+      cursor,
+      limit,
+      enriched,
+    );
+
+    return {
+      message: this.toMessageOrTombstone(message),
+      ...enriched,
     };
   }
 
@@ -262,10 +333,23 @@ export class ChannelMessageQueryService {
       member.id,
     );
 
-    const unreadCount = await this.readStateRepository.countUnreadAfter(
+    const version = await this.cache.getChannelVersion(channelId);
+    const cachedUnread = await this.cache.getCachedUnread(
       channelId,
-      state?.lastReadAt ?? null,
+      member.id,
+      version,
     );
+
+    let unreadCount = cachedUnread;
+
+    if (unreadCount === null) {
+      unreadCount = await this.readStateRepository.countUnreadAfter(
+        channelId,
+        state?.lastReadAt ?? null,
+      );
+
+      await this.cache.cacheUnread(channelId, member.id, version, unreadCount);
+    }
 
     return {
       channelId,

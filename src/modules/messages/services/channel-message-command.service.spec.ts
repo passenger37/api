@@ -15,6 +15,7 @@ import { ServerMemberQueryService } from '../../servers/services/server-member-q
 import { OutboxEventRepository } from '../repositories/outbox-event.repository';
 import { MessageAttachmentService } from './message-attachment.service';
 import { MessageSpamControlService } from './message-spam-control.service';
+import { ChannelMessageCacheService } from './channel-message-cache.service';
 
 describe('ChannelMessageCommandService - mentions', () => {
   let service: ChannelMessageCommandService;
@@ -47,6 +48,11 @@ describe('ChannelMessageCommandService - mentions', () => {
     validateChannelAccess: jest.Mock;
   };
   let outboxEventRepository: { create: jest.Mock };
+  let cache: {
+    invalidateChannel: jest.Mock;
+    getChannelVersion: jest.Mock;
+    cacheUnread: jest.Mock;
+  };
 
   const fullMessage = {
     id: 'msg-1',
@@ -106,6 +112,11 @@ describe('ChannelMessageCommandService - mentions', () => {
     const attachmentService = { attachToMessage: jest.fn() };
 
     const spamControl = { checkSend: jest.fn() };
+    cache = {
+      invalidateChannel: jest.fn(),
+      getChannelVersion: jest.fn().mockResolvedValue(0),
+      cacheUnread: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -123,6 +134,7 @@ describe('ChannelMessageCommandService - mentions', () => {
         { provide: OutboxEventRepository, useValue: outboxEventRepository },
         { provide: MessageAttachmentService, useValue: attachmentService },
         { provide: MessageSpamControlService, useValue: spamControl },
+        { provide: ChannelMessageCacheService, useValue: cache },
       ],
     }).compile();
 

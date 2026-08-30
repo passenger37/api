@@ -8,6 +8,7 @@ import { ChannelMessageReactionRepository } from '../repositories/channel-messag
 import { ChannelMessageQueryService } from './channel-message-query.service';
 import { ChannelMessageValidationService } from './channel-message-validation.service';
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
+import { ChannelMessageCacheService } from './channel-message-cache.service';
 
 @Injectable()
 export class ChannelMessageReactionCommandService {
@@ -16,6 +17,7 @@ export class ChannelMessageReactionCommandService {
     private readonly messageQueryService: ChannelMessageQueryService,
     private readonly validation: ChannelMessageValidationService,
     private readonly memberQueryService: ServerMemberQueryService,
+    private readonly cache: ChannelMessageCacheService,
   ) {}
 
   async addReaction(messageId: string, userId: string, emoji: string) {
@@ -32,7 +34,11 @@ export class ChannelMessageReactionCommandService {
       throw new BadRequestException('Reaction already exists.');
     }
 
-    return this.repository.create(messageId, member.id, emoji);
+    const created = await this.repository.create(messageId, member.id, emoji);
+
+    await this.cache.invalidateChannel(message.channelId);
+
+    return created;
   }
 
   async removeReaction(messageId: string, userId: string, emoji: string) {
@@ -50,6 +56,8 @@ export class ChannelMessageReactionCommandService {
     }
 
     await this.repository.delete(messageId, member.id, emoji);
+
+    await this.cache.invalidateChannel(message.channelId);
 
     return {
       messageId,

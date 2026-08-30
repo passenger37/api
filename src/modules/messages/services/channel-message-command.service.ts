@@ -19,6 +19,7 @@ import { ServerMemberQueryService } from '../../servers/services/server-member-q
 import { OutboxEventRepository } from '../repositories/outbox-event.repository';
 import { MessageAttachmentService } from './message-attachment.service';
 import { MessageSpamControlService } from './message-spam-control.service';
+import { ChannelMessageCacheService } from './channel-message-cache.service';
 
 @Injectable()
 export class ChannelMessageCommandService {
@@ -49,6 +50,8 @@ export class ChannelMessageCommandService {
     private readonly attachmentService: MessageAttachmentService,
 
     private readonly spamControl: MessageSpamControlService,
+
+    private readonly cache: ChannelMessageCacheService,
   ) {}
 
   async createMessage(
@@ -183,6 +186,8 @@ export class ChannelMessageCommandService {
         return message;
       });
 
+      await this.cache.invalidateChannel(channelId);
+
       return {
         message,
         deduplicated: false,
@@ -250,7 +255,7 @@ export class ChannelMessageCommandService {
       userId,
     );
 
-    return this.prisma.$transaction(async (tx) => {
+    const edited = await this.prisma.$transaction(async (tx) => {
       await this.editRepository.create(
         {
           message: {
@@ -315,6 +320,10 @@ export class ChannelMessageCommandService {
 
       return edited;
     });
+
+    await this.cache.invalidateChannel(message.channelId);
+
+    return edited;
   }
 
   private toTransportMessage(message: {
@@ -389,6 +398,8 @@ export class ChannelMessageCommandService {
 
     await this.repository.softDelete(messageId);
 
+    await this.cache.invalidateChannel(message.channelId);
+
     return {
       success: true,
     };
@@ -399,6 +410,8 @@ export class ChannelMessageCommandService {
 
     const pinned = await this.repository.pin(messageId);
 
+    await this.cache.invalidateChannel(pinned.channelId);
+
     return pinned;
   }
 
@@ -406,6 +419,8 @@ export class ChannelMessageCommandService {
     await this.validation.validatePinPermission(serverId, userId);
 
     const unpinned = await this.repository.unpin(messageId);
+
+    await this.cache.invalidateChannel(unpinned.channelId);
 
     return unpinned;
   }
@@ -462,6 +477,9 @@ export class ChannelMessageCommandService {
       channelId,
       state.lastReadAt,
     );
+
+    const version = await this.cache.getChannelVersion(channelId);
+    await this.cache.cacheUnread(channelId, member.id, version, unreadCount);
 
     return {
       channelId,
