@@ -104,12 +104,12 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 - **Message Search — Part 2 (Advanced):** external search engine evaluation, ranking, ships later in §4.6. *(B2 40.64)*
 
 **Attachments — split in two (same kind of conflict):** v1 wants full signed-URL/R2/CDN/AV-scan/thumbnail pipeline early (needed once threads/mentions exist); B2 defers heavy media processing to its Phase 36 background-jobs era. Split:
-- **40.46 Messaging Media/Attachment Backend — Part 1 (Basic upload path):** *(current)* signed URLs, Cloudflare R2, CDN, MIME validation, size limits. *(v1 40.37, B1 concept §49)*
+- **40.46 Messaging Media/Attachment Backend — Part 1 (Basic upload path):** signed URLs, Cloudflare R2, CDN, MIME validation, size limits (completed) *(v1 40.37, B1 concept §49)*
 - **Media Pipeline — Part 2 (Advanced processing):** antivirus scan, thumbnail generation, transcoding, all via BullMQ. Moved to §4.6 with Background Jobs. *(B2 40.65, v1 40.37's AV/transcode detail)*
 
 | # | Lecture | Originally numbered as |
 |---|---|---|
-| 40.47 | Messaging Audit and Moderation — report/block/mute/ban, spam detection, abuse rate limiting, audit logs; explicit note that E2EE (Type C/D) moderation is client-side/metadata-only, never server decryption | v1 40.38, B1 §51 (fuller detail merged in) |
+| 40.47 *(current)* | Messaging Audit and Moderation — report/block/mute/ban, spam detection, abuse rate limiting, audit logs; explicit note that E2EE (Type C/D) moderation is client-side/metadata-only, never server decryption | v1 40.38, B1 §51 (fuller detail merged in) |
 | 40.48 | Advanced Messaging Performance (query/caching pass once full feature set exists) | v1 40.39 |
 
 ### 4.2 Server/Social/Feed/Auth Completion
