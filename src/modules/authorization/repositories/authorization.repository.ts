@@ -91,6 +91,26 @@ export class AuthorizationRepository {
     });
   }
 
+  async incrementPermissionVersions(userIds: string[]): Promise<void> {
+    if (userIds.length === 0) {
+      return;
+    }
+
+    await this.prisma.user.updateMany({
+      where: {
+        id: {
+          in: userIds,
+        },
+      },
+
+      data: {
+        permissionVersion: {
+          increment: 1,
+        },
+      },
+    });
+  }
+
   async findUserWithRoles(userId: string) {
     return this.prisma.user.findUnique({
       where: {

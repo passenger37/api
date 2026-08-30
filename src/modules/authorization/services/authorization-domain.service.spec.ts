@@ -5,7 +5,7 @@ import { PermissionCacheService } from './permission-cache.service';
 describe('AuthorizationDomainService', () => {
   const repository = {
     findUsersByRole: jest.fn(),
-    incrementPermissionVersion: jest.fn(),
+    incrementPermissionVersions: jest.fn(),
     createRolePermission: jest.fn(),
     createManyRolePermissions: jest.fn(),
     deleteRolePermission: jest.fn(),
@@ -27,19 +27,21 @@ describe('AuthorizationDomainService', () => {
   });
 
   describe('bumpPermissionVersionForRoleUsers', () => {
-    it('increments versions and invalidates the cache for every user of the role', async () => {
+    it('increments versions atomically and invalidates the cache for every user of the role', async () => {
       (repository.findUsersByRole as jest.Mock).mockResolvedValue({
         users: [{ userId: 'u1' }, { userId: 'u2' }],
       });
-      (repository.incrementPermissionVersion as jest.Mock).mockResolvedValue(
+      (repository.incrementPermissionVersions as jest.Mock).mockResolvedValue(
         undefined,
       );
       (permissionCacheService.delete as jest.Mock).mockResolvedValue(undefined);
 
       await service.bumpPermissionVersionForRoleUsers('role-1');
 
-      expect(repository.incrementPermissionVersion).toHaveBeenCalledWith('u1');
-      expect(repository.incrementPermissionVersion).toHaveBeenCalledWith('u2');
+      expect(repository.incrementPermissionVersions).toHaveBeenCalledWith([
+        'u1',
+        'u2',
+      ]);
       expect(permissionCacheService.delete).toHaveBeenCalledWith('u1');
       expect(permissionCacheService.delete).toHaveBeenCalledWith('u2');
     });
@@ -49,7 +51,7 @@ describe('AuthorizationDomainService', () => {
 
       await service.bumpPermissionVersionForRoleUsers('missing');
 
-      expect(repository.incrementPermissionVersion).not.toHaveBeenCalled();
+      expect(repository.incrementPermissionVersions).not.toHaveBeenCalled();
       expect(permissionCacheService.delete).not.toHaveBeenCalled();
     });
   });

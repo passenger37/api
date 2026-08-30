@@ -73,10 +73,8 @@ export class AuthorizationDomainService {
       return;
     }
 
-    await Promise.all(
-      role.users.map((userRole) =>
-        this.repository.incrementPermissionVersion(userRole.userId),
-      ),
+    await this.repository.incrementPermissionVersions(
+      role.users.map((userRole) => userRole.userId),
     );
 
     await Promise.all(
