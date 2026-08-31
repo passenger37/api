@@ -1265,6 +1265,8 @@ model E2eeDevice {
 
   signedPreKeys  E2eeSignedPreKey[]
   oneTimePreKeys E2eeOneTimePreKey[]
+  senderSessions   E2eeSession[] @relation("SenderSessions")
+  recipientSessions E2eeSession[] @relation("RecipientSessions")
 
   @@index([userId])
   @@index([userId, isRevoked])
@@ -1319,4 +1321,41 @@ model E2eeOneTimePreKey {
   @@unique([deviceId, preKeyId])
   @@index([deviceId, isConsumed])
   @@map("e2ee_one_time_prekeys")
+}
+
+model E2eeSession {
+  id String @id @default(cuid())
+
+  /// The device that initiated the session (sender)
+  senderDeviceId String
+
+  /// The device that received the session initiation (recipient)
+  recipientDeviceId String
+
+  /// Session version for protocol upgrades
+  version Int @default(1)
+
+  /// Opaque encrypted session state blob (root key, chain keys, message numbers, AD)
+  /// Encrypted with the device's identity key; server never sees plaintext
+  sessionState String
+
+  /// Associated data hash for integrity (e.g., identity keys involved)
+  associatedDataHash String
+
+  /// Whether this session is active (not archived/revoked)
+  isActive Boolean @default(true)
+
+  /// Archived at timestamp
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  senderDevice   E2eeDevice @relation("SenderSessions", fields: [senderDeviceId], references: [id], onDelete: Cascade)
+  recipientDevice E2eeDevice @relation("RecipientSessions", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
+
+  @@unique([senderDeviceId, recipientDeviceId])
+  @@index([senderDeviceId, isActive])
+  @@index([recipientDeviceId, isActive])
+  @@map("e2ee_sessions")
 }

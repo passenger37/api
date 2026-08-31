@@ -21,6 +21,7 @@ import { FeedModule } from './modules/feed/feed.module';
 import { DirectMessagesModule } from './modules/direct-messages/direct-messages.module';
 import { E2eeDevicesModule } from './modules/e2ee-devices/e2ee-devices.module';
 import { E2eeKeyDistributionModule } from './modules/e2ee-key-distribution/e2ee-key-distribution.module';
+import { E2eeSessionsModule } from './modules/e2ee-sessions/e2ee-sessions.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { E2eeKeyDistributionModule } from './modules/e2ee-key-distribution/e2ee-
     DirectMessagesModule,
     E2eeDevicesModule,
     E2eeKeyDistributionModule,
+    E2eeSessionsModule,
   ],
   controllers: [],
   // providers: [AppService],
