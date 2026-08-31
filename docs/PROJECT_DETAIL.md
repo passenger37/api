@@ -148,8 +148,8 @@ B1 numbers E2EE as a separate "E2EE Lecture 1–16" track; B2 folds it into the 
 |---|---|---|
 | 40.62 (completed) | Direct Message Domain (Type B — standard, non-E2EE DMs) | B2 40.54 |
 | 40.63 (completed) | Private E2EE Messaging Foundation — crypto fundamentals, threat model, Signal Protocol architecture; docs under `docs/e2ee/` + library ADR (no dependency locked) | B2 40.55, B1 E2EE-1/2/3 |
-| 40.64 *(current)* | E2EE Device and Key Management — multi-device identity keys | B2 40.56, B1 E2EE-4 |
-| 40.65 | Key Distribution Backend — prekey server | B2 40.57, B1 E2EE-5 |
+| 40.64 (completed) | E2EE Device and Key Management — multi-device identity keys; `src/modules/e2ee-devices/` (register/list, signed-prekey rotation, one-time-prekey refill, revoke) | B2 40.56, B1 E2EE-4 |
+| 40.65 *(current)* | Key Distribution Backend — prekey server | B2 40.57, B1 E2EE-5 |
 | 40.66 | Session Establishment | B2 40.58, B1 E2EE-6 |
 | 40.67 | Double Ratchet | B2 40.59, B1 E2EE-7 |
 | 40.68 | E2EE Message Transport — encryption/decryption + encrypted persistence | B2 40.61, B1 E2EE-8 |
