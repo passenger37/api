@@ -178,6 +178,8 @@ model User {
   directMessageChannelsB  DirectMessageChannel[]   @relation("DirectMessageChannelB")
   directMessages          DirectMessage[]
   directMessageReadStates DirectMessageReadState[]
+
+  e2eeDevices E2eeDevice[]
 }
 
 model Follow {
@@ -1235,4 +1237,86 @@ model DirectMessageReadState {
 
   @@unique([channelId, userId])
   @@index([userId])
+}
+
+model E2eeDevice {
+  id String @id @default(cuid())
+
+  userId String
+
+  /// Human-friendly device label ("iPhone", "Laptop", ...)
+  name String
+
+  /// Client platform identifier supplied at registration ("web", "ios", "android", ...)
+  platform String
+
+  /// Device identity public key (base64 blob). Private key never crosses the wire — not modeled at all.
+  identityKeyPublic String
+
+  isRevoked Boolean  @default(false)
+  revokedAt DateTime?
+
+  lastSeenAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  signedPreKeys  E2eeSignedPreKey[]
+  oneTimePreKeys E2eeOneTimePreKey[]
+
+  @@index([userId])
+  @@index([userId, isRevoked])
+  @@map("e2ee_devices")
+}
+
+model E2eeSignedPreKey {
+  id String @id @default(cuid())
+
+  deviceId String
+
+  /// Library-issued prekey id
+  signedPreKeyId Int
+
+  /// Signed prekey public half (base64 blob)
+  publicKey String
+
+  /// Signature over the signed prekey by the device identity key (base64 blob)
+  signature String
+
+  /// Exactly one active signed prekey per device; previous keys stay queryable for in-flight sessions
+  isActive Boolean  @default(false)
+  rotatedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, signedPreKeyId])
+  @@index([deviceId, isActive])
+  @@map("e2ee_signed_prekeys")
+}
+
+model E2eeOneTimePreKey {
+  id String @id @default(uuid())
+
+  deviceId String
+
+  /// Library-issued one-time prekey id
+  preKeyId Int
+
+  /// One-time prekey public half (base64 blob); consumed exactly once
+  publicKey String
+
+  isConsumed Boolean  @default(false)
+  consumedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, preKeyId])
+  @@index([deviceId, isConsumed])
+  @@map("e2ee_one_time_prekeys")
 }

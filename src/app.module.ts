@@ -19,6 +19,7 @@ import { MessagesModule } from './modules/messages/messages.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
 import { FeedModule } from './modules/feed/feed.module';
 import { DirectMessagesModule } from './modules/direct-messages/direct-messages.module';
+import { E2eeDevicesModule } from './modules/e2ee-devices/e2ee-devices.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { DirectMessagesModule } from './modules/direct-messages/direct-messages.
     ModerationModule,
     FeedModule,
     DirectMessagesModule,
+    E2eeDevicesModule,
   ],
   controllers: [],
   // providers: [AppService],
