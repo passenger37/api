@@ -18,26 +18,23 @@ with server-based collaboration and a hybrid messaging architecture.
 
 ## Current Stage
 
-**Backend --- Messaging Module**
+**Backend --- Private E2EE Messaging (Signal-style track)**
 
 ### Current lecture
 
-**40.39 --- Message Delivery State (Completed)**
+**40.67 --- Double Ratchet (Completed)**
 
 The immediate continuation point is now:
 
 ``` text
-40.39 Completed → verify → 40.40 Presence Foundation
+40.67 Completed → verify → 40.68 E2EE Message Transport
 ```
 
-The project has completed Messaging WebSocket hardening (40.28–40.30),
-cursor-based message pagination (40.31), the query-optimization pass
-(40.32), the composed thread read model (40.33), non-destructive edit
-history (40.34), tombstone delete semantics (40.35), mention
-parsing/authorization with indexed mention records (40.36), per-channel
-read state with a derived unread count (40.37), ephemeral typing
-indicators (40.38), and message delivery state with a created ack and
-realtime read fan-out (40.39) with a passing automated test suite.
+The authoritative position is `PROJECT_DETAIL.md` §4. This file's middle
+sections are historical. The messaging/realtime series through 40.54,
+the Redis/DB/architecture formalization (40.55–40.60), the Redis
+WebSocket adapter (40.61), the Direct Message Domain (40.62), and the
+E2EE track through 40.67 are complete with a green automated test suite.
 
 ------------------------------------------------------------------------
 
@@ -532,57 +529,53 @@ messageId_memberId_emoji
 The latest roadmap position is:
 
 ``` text
-40.35 — Message Delete Semantics (Completed)
+40.67 — Double Ratchet (Completed)
 ```
 
-Soft-deleted messages now follow a tombstone contract:
+`src/modules/e2ee-ratchet/` implements the ratchet layer over the 40.66
+sessions: symmetric KDF chains (HKDF/HMAC-SHA256), X25519 DH ratchet
+step, AES-256-GCM message encryption, skipped-message-key cache for
+out-of-order delivery, first-contact DH adoption, and an explicit
+ratchet-step surface. State persists in `E2eeRatchetState` (migration
+`20260831000003_add_e2ee_ratchet_state`). Verification: tsc clean,
+84 Jest suites / 536 tests green, `nest build` ok.
 
-``` text
-DELETE .../messages/:messageId     → { success: true }
-GET .../messages/:messageId        → 404 (content suppressed)
-GET .../messages/:messageId/replies → message = tombstone
-    { id, channelId, serverId, isDeleted: true, deletedAt, content: null }
-```
+The next objective is **40.68 --- E2EE Message Transport**, which must
+begin with the `@signalapp/libsignal` ADR spike (see
+`docs/e2ee/04-library-selection.md` §5).
 
-Listings already filter `isDeleted: false`; direct reads no longer leak
-deleted content. Verification: tsc clean, 12 Jest suites / 59 tests
-green, build ok.
-
-The next objective is **40.40 --- Presence Foundation**.
-
-------------------------------------------------------------------------
+--------
 
 # Current Task
 
-## 40.39 --- Message Delivery State (Completed)
+## 40.67 --- Double Ratchet (Completed)
 
 Implemented:
 
--   explicit **created ack contract** — `send-message` response now
-    carries `deliveryState: 'created'` alongside the existing
-    `success`/`event`/`data`; the WS ack is the authoritative
-    "server accepted" signal, distinct from delivery and read
--   `message-read` realtime fan-out — new `message-read` WebSocket event
-    `{ channelId, lastReadMessageId? }` (validated, throttled
-    `ws:message-read:{userId}` 20 / 10 s) that routes through the same
-    `markChannelRead` command as the REST read-state route — access
-    check, cross-channel rejection, unknown-cursor rejection, and
-    **forward-only** semantics are all preserved — then broadcasts
-    `message-read` `{ channelId, userId, lastReadMessageId, lastReadAt }`
-    to the channel room so open clients move read markers live
--   `delivered` boundary — the channel broadcast is the delivery
-    emission and is never conflated with read; read receipts are
-    answered by the existing 40.37 cursor (`getChannelReadState`), not
-    by per-message rows
--   out of scope (documented, not built) — single-tick per-recipient
-    delivered marks (write amplification, defer until workload
-    justifies, see 40.55), reconnect/missed-event sync, send
-    idempotency/duplicate dedupe
+-   **symmetric-chain ratchet** — per-message message keys derived from
+    chain keys via HMAC-SHA256; chains advance and persist on every
+    encrypt/decrypt
+-   **DH ratchet step** — real X25519 ECDH against the remote DH public
+    rekeys the root (HKDF-SHA256) and both chains; counters reset;
+    triggered inline on a changed remote key or explicitly via
+    `POST /e2ee/ratchet/step`
+-   **message encryption** — AES-256-GCM under per-message keys, header
+    bound as AAD, `iv||tag||data` envelope
+-   **skipped message keys** — out-of-order delivery supported via a
+    capped (1000) cache keyed by `(remoteDhPublic, messageNumber)`
+-   **bootstrap** — ratchet state bootstraps from the 40.66 session
+    (`E2eeSession.sessionState`), one state row per session; bootstrap
+    chains are symmetric until the real X3DH-derived asymmetric
+    bootstrap arrives with the Signal library (40.68)
+-   out of scope (documented, not built) — asymmetric per-side bootstrap
+    from real X3DH output, sealed sender, on-device ratchet custody
+    (server-orchestrated scaffold until the library lands)
 
-Verification: `Found 0 errors` (tsc), 17 Jest suites / 112 tests passing,
-`nest build` succeeds, app boots with the `message-read` event subscribed.
+Verification: `Found 0 errors` (tsc), 84 Jest suites / 536 tests
+passing (11 new in `e2ee-ratchet-command.service.spec`), `nest build`
+succeeds.
 
-## Next ---- 40.40 Presence Foundation
+## Next ---- 40.68 E2EE Message Transport
 
 ------------------------------------------------------------------------
 

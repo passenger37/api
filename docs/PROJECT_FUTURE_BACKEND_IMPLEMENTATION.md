@@ -2,7 +2,7 @@
 
 > **Purpose:** Master backend implementation roadmap for Nexus. This document preserves the architecture, implementation strategy, lecture flow, technology decisions, security model, messaging/privacy strategy, production tooling, testing strategy, frontend start gate, and future concepts so development can continue without losing context.
 
-> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** The Messaging/Realtime 40.x series through **Lecture 40.62 - Direct Message Domain (Type B - standard, non-E2EE DMs) is IMPLEMENTED and COMPLETED**. This includes cursor pagination/history, read & unread state, typing, presence, idempotent sending, reconnect/missed-event sync, per-channel ordering, the transactional outbox, attachments, mentions, search part 1, negative/security WebSocket tests, repository/CQRS/mapping hardening, security hardening, and Redis usage/connection-limit drafting — plus the channel/DM messaging, WS auth trio relocation to `src/common/websocket/auth/`, and the **Redis adapter for cross-instance broadcast** (B2 40.40/v1 40.40 distribution, done at 40.61). **Current lecture: 40.66 — Session Establishment** (B2 40.58, B1 E2EE-6) — **COMPLETED** (`src/modules/e2ee-sessions/` — X3DH establish/accept, session listing). **Next: 40.67 — Double Ratchet** (B2 40.59, B1 E2EE-7). See the progress table in `PROJECT_DETAIL.md` for the authoritative (completed)/(current) markers; the exact file layout is `src/modules/direct-messages/` + `src/core/redis/redis-io.adapter.ts`.
+> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** The Messaging/Realtime 40.x series through **Lecture 40.62 - Direct Message Domain (Type B - standard, non-E2EE DMs) is IMPLEMENTED and COMPLETED**. This includes cursor pagination/history, read & unread state, typing, presence, idempotent sending, reconnect/missed-event sync, per-channel ordering, the transactional outbox, attachments, mentions, search part 1, negative/security WebSocket tests, repository/CQRS/mapping hardening, security hardening, and Redis usage/connection-limit drafting — plus the channel/DM messaging, WS auth trio relocation to `src/common/websocket/auth/`, and the **Redis adapter for cross-instance broadcast** (B2 40.40/v1 40.40 distribution, done at 40.61). **Current lecture: 40.68 — E2EE Message Transport** (B2 40.61, B1 E2EE-8). **Completed: 40.67 — Double Ratchet** (B2 40.59, B1 E2EE-7) — `src/modules/e2ee-ratchet/` (symmetric KDF chains, X25519 DH ratchet step, AES-256-GCM message encryption, skipped-message-key cache; scaffold library primitives — libsignal ADR spike lands at 40.68). See the progress table in `PROJECT_DETAIL.md` for the authoritative (completed)/(current) markers; the exact file layout is `src/modules/direct-messages/` + `src/core/redis/redis-io.adapter.ts`.
 
 ---
 
@@ -822,7 +822,7 @@ Completed/implemented concepts include:
 - **Redis adapter for cross-instance broadcast** (v1 40.40 / B2 40.40 distribution half)
 - **Direct Message Domain (Type B — standard, non-E2EE DMs)** — `src/modules/direct-messages/`, `/dm` namespace, REST + WS, canonical user-pair channels, `messageSeq` ordering, `clientMessageId` dedupe, rooms `dm:${channelId}`
 
-This progress is current as of **Lecture 40.66 (completed)**; the messaging/private-messaging roadmap continues from **40.67 — Double Ratchet**.
+This progress is current as of **Lecture 40.67 (completed)**; the messaging/private-messaging roadmap continues from **40.68 — E2EE Message Transport**.
 
 ---
 
@@ -3530,8 +3530,8 @@ Recommended next sequence:
 40.64 — E2EE Device and Key Management (multi-device identity keys)                                           (completed)
 40.65 — Key Distribution Backend (prekey server)                                                              (completed)
 40.66 — Session Establishment                                                                                   (completed)
-40.67 — Double Ratchet                                                                                          [NEXT/CURRENT]
-40.68 — E2EE Message Transport (encryption/decryption + encrypted persistence)
+40.67 — Double Ratchet                                                                                          (completed)
+40.68 — E2EE Message Transport (encryption/decryption + encrypted persistence)                                  [NEXT/CURRENT]
 40.69 — E2EE Multi-Device + Key Rotation + Safety-Number Verification
 40.70 — Secret Groups / E2EE Group Messaging
 40.71 — E2EE Attachments

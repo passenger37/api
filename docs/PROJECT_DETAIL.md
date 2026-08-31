@@ -9,8 +9,8 @@
 
 **Merge rule (unchanged):** Implement every feature from all sources. Where a lecture number is claimed by more than one source with **different** content, both intents are implemented — as either a combined lecture or two sequential lectures — scheduled at the point that makes technical sense, not necessarily at the original number. Where sources describe the **same** feature under different numbers, they are treated as one lecture and deduplicated. Every renumbering is cross-referenced back to its original source/number below so nothing is silently dropped.
 
-**Current backend position:** Lecture 40.40 — Presence Foundation (next)
-**Completed:** 40.9–40.27 (foundational messaging/gateway lectures, see §3), 40.28 (WebSocket security hardening), 40.29 (WebSocket security/error-contract completion), 40.30 (Messaging Integration Test Boundary + WebSocket Connection Lifecycle), 40.31 (Cursor-Based Message Pagination), 40.32 (Message Query Optimization — composite indexes + batched reaction counts), 40.33 (Message Thread / Reply Queries — composed thread read model), 40.34 (Message Edit History — non-destructive snapshot trail), 40.35 (Message Delete Semantics — tombstones/suppressed content), 40.36 (Mentions — parsing, authorization, anti-abuse cap, indexed mention records), 40.37 (Read / Unread State — per-channel moving cursor + derived unread count), 40.38 (Typing Indicators — ephemeral Redis presence + throttled typing-start/stop), 40.39 (Message Delivery State — created ack contract + realtime message-read fan-out via the read cursor)
+**Current backend position:** Lecture 40.68 — E2EE Message Transport (next)
+**Completed:** 40.9–40.39 (see §3 and §4.1), 40.40 (Presence Foundation), 40.41 (Message/Event Idempotency), 40.42 (WebSocket Reconnection & Missed-Event Sync), 40.43 (Event Ordering & Consistency), 40.44 (Outbox Pattern / Reliable Event Delivery), 40.45 (Message Search — Part 1), 40.46 (Messaging Media/Attachment Backend — Part 1), 40.47 (Messaging Audit and Moderation), 40.48 (Advanced Messaging Performance), 40.49 (Server Module Completion), 40.50 (Social Graph Backend), 40.51 (Feed Backend), 40.52 (Authentication and Session Hardening), 40.53 (Advanced RBAC / Permission Optimization), 40.54 (Security Hardening), 40.55 (Redis Usage Strategy), 40.56 (PostgreSQL Index Strategy), 40.57 (Transaction Boundaries), 40.58 (Formalize Command/Query CQRS), 40.59 (Repository Boundary Hardening), 40.60 (Domain/Data Mapping), 40.61 (Distributed WebSocket Scaling — Redis adapter), 40.62 (Direct Message Domain), 40.63 (Private E2EE Messaging Foundation), 40.64 (E2EE Device and Key Management), 40.65 (Key Distribution Backend), 40.66 (Session Establishment — X3DH), 40.67 (Double Ratchet)
 
 ---
 
@@ -151,8 +151,8 @@ B1 numbers E2EE as a separate "E2EE Lecture 1–16" track; B2 folds it into the 
 | 40.64 (completed) | E2EE Device and Key Management — multi-device identity keys; `src/modules/e2ee-devices/` (register/list, signed-prekey rotation, one-time-prekey refill, revoke) | B2 40.56, B1 E2EE-4 |
 | 40.65 (completed) | Key Distribution Backend — prekey server; `src/modules/e2ee-key-distribution/` (fetch key bundles, claim one-time prekeys) | B2 40.57, B1 E2EE-5 |
 | 40.66 (completed) | Session Establishment — X3DH handshake orchestration; `src/modules/e2ee-sessions/` (establish/accept sessions, list per device) | B2 40.58, B1 E2EE-6 |
-| 40.67 *(current)* | Double Ratchet | B2 40.59, B1 E2EE-7 |
-| 40.68 | E2EE Message Transport — encryption/decryption + encrypted persistence | B2 40.61, B1 E2EE-8 |
+| 40.67 (completed) | Double Ratchet — `src/modules/e2ee-ratchet/` (symmetric KDF chains, X25519 DH ratchet step, AES-256-GCM message encryption, skipped-message-key cache for out-of-order delivery, bootstrap from the 40.66 session state; scaffold library primitives — libsignal ADR spike lands at 40.68) | B2 40.59, B1 E2EE-7 |
+| 40.68 *(current)* | E2EE Message Transport — encryption/decryption + encrypted persistence | B2 40.61, B1 E2EE-8 |
 | 40.69 | E2EE Multi-Device Support + Key Rotation + Safety-Number Verification | B1 E2EE-9/10/11 (**not broken out in B2 — inserted here**) |
 | 40.70 | Secret Groups / E2EE Group Messaging | B2 40.60, B1 E2EE-12 |
 | 40.71 | E2EE Attachments | B2 40.62, B1 E2EE-13 |
@@ -263,8 +263,9 @@ PHASE 17 React Native (Mobile)
 7. **40.37** Read / Unread State — completed (`ChannelReadState` cursor per channel/member + forward-only `markChannelRead`; derived `unreadCount`; `GET`/`POST .../read-state` routes; no Redis).
 8. **40.38** Typing Indicators — completed (ephemeral Redis presence with 10 s TTL; throttled `typing-start`/`typing-stop`; per-channel broadcast excluding the sender; no DB writes, no schema change).
 9. **40.39** Message Delivery State — completed (explicit `created` ack on send; `message-read` WS fan-out routed through the 40.37 read cursor; broadcast never conflated with read; no per-message read rows).
-10. **40.40** Presence Foundation — current.
-7. Continue sequentially through **§4.1–§4.8** as tabulated above.
+10. **40.40** Presence Foundation — completed (Redis `user:{id}:presence`, online/idle/offline/dnd/invisible, socket-lifecycle driven).
+11. **40.41–40.67** — completed sequentially through §4.1–§4.5 as tabulated above, ending with the Double Ratchet (`src/modules/e2ee-ratchet/`).
+12. Continue sequentially through **§4.5–§4.8**; next is **40.68 — E2EE Message Transport**.
 8. Satisfy the Backend Completion Gate (§4, end).
 9. Open frontend start gate → Phase F0 onward.
 
@@ -288,11 +289,11 @@ For each lecture: briefing before coding (why, how, drawbacks, fit, alternatives
 
 ## 9. Next Immediate Action
 
-**Lecture 40.40 — Presence Foundation.**
+**Lecture 40.68 — E2EE Message Transport.**
 
 Briefing required before implementation:
-- **Why:** the roadmap's presence intent (B1 40.27, B2 40.39, B1 concept §43) wants per-user lifecycle state — online / idle / offline / dnd / invisible + last seen — visible across the app, driven by socket lifecycle, not by PostgreSQL writes on every heartbeat.
-- **How:** Redis-backed presence keys (`user:{id}:presence` with TTL + `last_seen`) set on gateway connection and refreshed on activity/heartbeat; broadcast `presence-change` to shared rooms; offline derived from TTL expiry rather than stored. Typing (40.38) and connection state compose with the same Redis instance.
-- **Drawbacks/Alternatives:** socket-state-only presence (flaky across devices), PostgreSQL presence rows (write amplification), Redis TTL presence (cheap, self-correcting — chosen). Distinct from typing (40.38) and delivery state (40.39).
+- **Why:** 40.64–40.67 produced device keys, key distribution, X3DH sessions and the Double Ratchet; message transport is the layer that actually carries encrypted envelopes end-to-end and persists ciphertext (B2 40.61, B1 E2EE-8).
+- **How:** envelope send/fetch surface in `src/modules/e2ee-transport/` (or folded into `direct-messages` per existing DM plumbing), one envelope per recipient device (per `docs/e2ee/02-protocol-architecture.md` §7), offline delivery queue keyed by device, ciphertext-only persistence — plaintext never reaches the server; ratchet state stays in `e2ee-ratchet`.
+- **ADR obligation:** run the `@signalapp/libsignal` WASM/Node spike **before locking any dependency** (see `docs/e2ee/04-library-selection.md` §5); record a superseding ADR if the spike fails portability criteria.
 
-Proceed after briefing approval. **Next lecture after this: 40.41 — Message/Event Idempotency (`clientMessageId`, dedupe on retry).**
+Proceed after briefing approval. **Next lecture after this: 40.69 — E2EE Multi-Device Support + Key Rotation + Safety-Number Verification.**
