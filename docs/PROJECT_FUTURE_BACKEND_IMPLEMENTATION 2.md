@@ -4,7 +4,7 @@
 
 > **Purpose:** This document is the standalone backend engineering roadmap for Nexus. It is intended to allow development to continue without depending on the original ChatGPT conversation.
 
-> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** Implementation has advanced well beyond the low lecture numbers described below. The messaging/realtime series is **COMPLETED through Lecture 40.62 - Direct Message Domain (Type B — standard, non-E2EE DMs)** (equals B2 40.54 / PHASE 25 in this document). Implemented and shipped: the `/messages` gateway suite, WS error contract + exception filter, connection/auth guard + rate limiting, cursor pagination & history, read/unread state, typing, Redis-backed presence, reconnect/missed-event sync, idempotent sending, attachments, mentions, search part 1, transactional outbox, negative/security tests, CQRS/repository/mapper hardening, security hardening, the **Redis socket.io adapter foundation** (equals B2 40.71 / PHASE 42 in this document), and the full Direct Message Domain (`src/modules/direct-messages/` — `/dm` REST + `dm-open|send|sync|read` WS events, rooms `dm:${channelId}`). **Current lecture: 40.63 — Private E2EE Messaging Foundation** (B2 40.55 / B1 E2EE-1/2/3). The lecture-lists and status sections (18, 19, 20) below are updated accordingly; per-lecture feature bodies above them remain reference notes.
+> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** Implementation has advanced well beyond the low lecture numbers described below. The messaging/realtime series is **COMPLETED through Lecture 40.62 - Direct Message Domain (Type B — standard, non-E2EE DMs)** (equals B2 40.54 / PHASE 25 in this document). Implemented and shipped: the `/messages` gateway suite, WS error contract + exception filter, connection/auth guard + rate limiting, cursor pagination & history, read/unread state, typing, Redis-backed presence, reconnect/missed-event sync, idempotent sending, attachments, mentions, search part 1, transactional outbox, negative/security tests, CQRS/repository/mapper hardening, security hardening, the **Redis socket.io adapter foundation** (equals B2 40.71 / PHASE 42 in this document), and the full Direct Message Domain (`src/modules/direct-messages/` — `/dm` REST + `dm-open|send|sync|read` WS events, rooms `dm:${channelId}`). **Current lecture: 40.63 — Private E2EE Messaging Foundation** (B2 40.55 / B1 E2EE-1/2/3) — **COMPLETED** (foundation docs under `docs/e2ee/` + Signal-library ADR, no dependency locked). **Next: 40.64 — E2EE Device and Key Management** (B2 40.56 / B1 E2EE-4). The lecture-lists and status sections (18, 19, 20) below are updated accordingly; per-lecture feature bodies above them remain reference notes.
 
 ---
 
@@ -2826,10 +2826,10 @@ The immediate sequence toward direct messaging + E2EE is now:
 Direct Message Domain (Type B)   (completed)
         ↓
 40.63
-Private E2EE Messaging Foundation [CURRENT]
+Private E2EE Messaging Foundation (completed)
         ↓
 40.64
-E2EE Device and Key Management
+E2EE Device and Key Management [NEXT/CURRENT]
         ↓
 40.65
 Key Distribution Backend

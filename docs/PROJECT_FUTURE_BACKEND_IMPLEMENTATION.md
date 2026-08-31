@@ -2,7 +2,7 @@
 
 > **Purpose:** Master backend implementation roadmap for Nexus. This document preserves the architecture, implementation strategy, lecture flow, technology decisions, security model, messaging/privacy strategy, production tooling, testing strategy, frontend start gate, and future concepts so development can continue without losing context.
 
-> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** The Messaging/Realtime 40.x series through **Lecture 40.62 - Direct Message Domain (Type B - standard, non-E2EE DMs) is IMPLEMENTED and COMPLETED**. This includes cursor pagination/history, read & unread state, typing, presence, idempotent sending, reconnect/missed-event sync, per-channel ordering, the transactional outbox, attachments, mentions, search part 1, negative/security WebSocket tests, repository/CQRS/mapping hardening, security hardening, and Redis usage/connection-limit drafting — plus the channel/DM messaging, WS auth trio relocation to `src/common/websocket/auth/`, and the **Redis adapter for cross-instance broadcast** (B2 40.40/v1 40.40 distribution, done at 40.61). **Current lecture: 40.63 — Private E2EE Messaging Foundation** (B2 40.55, B1 E2EE-1/2/3). See the progress table in `PROJECT_DETAIL.md` for the authoritative (completed)/(current) markers; the exact file layout is `src/modules/direct-messages/` + `src/core/redis/redis-io.adapter.ts`.
+> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** The Messaging/Realtime 40.x series through **Lecture 40.62 - Direct Message Domain (Type B - standard, non-E2EE DMs) is IMPLEMENTED and COMPLETED**. This includes cursor pagination/history, read & unread state, typing, presence, idempotent sending, reconnect/missed-event sync, per-channel ordering, the transactional outbox, attachments, mentions, search part 1, negative/security WebSocket tests, repository/CQRS/mapping hardening, security hardening, and Redis usage/connection-limit drafting — plus the channel/DM messaging, WS auth trio relocation to `src/common/websocket/auth/`, and the **Redis adapter for cross-instance broadcast** (B2 40.40/v1 40.40 distribution, done at 40.61). **Current lecture: 40.63 — Private E2EE Messaging Foundation** (B2 40.55, B1 E2EE-1/2/3) — **COMPLETED** (foundation docs under `docs/e2ee/` + Signal-library ADR, no dependency locked). **Next: 40.64 — E2EE Device and Key Management** (B2 40.56, B1 E2EE-4). See the progress table in `PROJECT_DETAIL.md` for the authoritative (completed)/(current) markers; the exact file layout is `src/modules/direct-messages/` + `src/core/redis/redis-io.adapter.ts`.
 
 ---
 
@@ -3526,8 +3526,8 @@ The prior immediate sequence is now complete through **40.62 Direct Message Doma
 Recommended next sequence:
 
 ```text
-40.63 — Private E2EE Messaging Foundation (crypto fundamentals, threat model, Signal Protocol architecture)   [CURRENT]
-40.64 — E2EE Device and Key Management (multi-device identity keys)
+40.63 — Private E2EE Messaging Foundation (crypto fundamentals, threat model, Signal Protocol architecture)   (completed)
+40.64 — E2EE Device and Key Management (multi-device identity keys)                                           [NEXT/CURRENT]
 40.65 — Key Distribution Backend (prekey server)
 40.66 — Session Establishment
 40.67 — Double Ratchet
