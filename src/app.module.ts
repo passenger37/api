@@ -22,6 +22,7 @@ import { DirectMessagesModule } from './modules/direct-messages/direct-messages.
 import { E2eeDevicesModule } from './modules/e2ee-devices/e2ee-devices.module';
 import { E2eeKeyDistributionModule } from './modules/e2ee-key-distribution/e2ee-key-distribution.module';
 import { E2eeSessionsModule } from './modules/e2ee-sessions/e2ee-sessions.module';
+import { E2eeRatchetModule } from './modules/e2ee-ratchet/e2ee-ratchet.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { E2eeSessionsModule } from './modules/e2ee-sessions/e2ee-sessions.module
     E2eeDevicesModule,
     E2eeKeyDistributionModule,
     E2eeSessionsModule,
+    E2eeRatchetModule,
   ],
   controllers: [],
   // providers: [AppService],

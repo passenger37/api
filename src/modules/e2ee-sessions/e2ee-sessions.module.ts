@@ -17,6 +17,10 @@ import { E2eeOneTimePreKeyRepository } from '../e2ee-devices/repositories/e2ee-o
     E2eeSessionQueryService,
     E2eeOneTimePreKeyRepository,
   ],
-  exports: [E2eeSessionQueryService, E2eeSessionCommandService],
+  exports: [
+    E2eeSessionQueryService,
+    E2eeSessionCommandService,
+    E2eeSessionRepository,
+  ],
 })
 export class E2eeSessionsModule {}

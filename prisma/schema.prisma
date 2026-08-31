@@ -1353,9 +1353,54 @@ model E2eeSession {
 
   senderDevice   E2eeDevice @relation("SenderSessions", fields: [senderDeviceId], references: [id], onDelete: Cascade)
   recipientDevice E2eeDevice @relation("RecipientSessions", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
+  ratchetState E2eeRatchetState?
 
   @@unique([senderDeviceId, recipientDeviceId])
   @@index([senderDeviceId, isActive])
   @@index([recipientDeviceId, isActive])
   @@map("e2ee_sessions")
+}
+
+model E2eeRatchetState {
+  id String @id @default(cuid())
+
+  sessionId String @unique
+
+  /// Current root key (base64, encrypted with device identity key)
+  rootKey String
+
+  /// Sending chain key (base64)
+  sendingChainKey String
+
+  /// Receiving chain key (base64)
+  receivingChainKey String
+
+  /// Current sending message number
+  sendingMessageNumber Int @default(0)
+
+  /// Current receiving message number
+  receivingMessageNumber Int @default(0)
+
+  /// Local ephemeral DH ratchet public key (base64, SPKI DER)
+  nextDhPublicKey String?
+
+  /// Local ephemeral DH ratchet private key (base64, PKCS8 DER) — server-orchestrated scaffold until the Signal library lands (40.68)
+  currentDhPrivateKey String?
+
+  /// Previous receiving chain length (for skipped message keys tracking)
+  previousReceivingChainLength Int @default(0)
+
+  /// Skipped message keys map (JSON: messageNumber -> base64 message key)
+  /// Used for out-of-order decryption
+  skippedMessageKeys String @default("{}")
+
+  /// Remote DH public key for pending ratchet step (base64)
+  remoteDhPublicKey String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session E2eeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("e2ee_ratchet_states")
 }
