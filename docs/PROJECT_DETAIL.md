@@ -138,7 +138,7 @@ This is the real merge point: **B1's compressed 40.23–40.40 list**, **B2's gra
 
 | # | Lecture | Originally numbered as |
 |---|---|---|
-| 40.61 *(current)* | Distributed WebSocket Scaling — Redis adapter foundation | v1 40.40 (**this is the other half of the 40.44/40.40 conflict noted above**) |
+| 40.61 | Distributed WebSocket Scaling — Redis adapter foundation (completed) | v1 40.40 (**this is the other half of the 40.44/40.40 conflict noted above**) |
 
 ### 4.5 Private Messaging & E2EE (dedup B2 Phase 24–34 with B1's 16-lecture E2EE sequence)
 
@@ -146,7 +146,7 @@ B1 numbers E2EE as a separate "E2EE Lecture 1–16" track; B2 folds it into the 
 
 | # | Lecture | Originally numbered as |
 |---|---|---|
-| 40.62 | Direct Message Domain (Type B — standard, non-E2EE DMs) | B2 40.54 |
+| 40.62 *(current)* | Direct Message Domain (Type B — standard, non-E2EE DMs) | B2 40.54 |
 | 40.63 | Private E2EE Messaging Foundation — crypto fundamentals, threat model, Signal Protocol architecture | B2 40.55, B1 E2EE-1/2/3 |
 | 40.64 | E2EE Device and Key Management — multi-device identity keys | B2 40.56, B1 E2EE-4 |
 | 40.65 | Key Distribution Backend — prekey server | B2 40.57, B1 E2EE-5 |
