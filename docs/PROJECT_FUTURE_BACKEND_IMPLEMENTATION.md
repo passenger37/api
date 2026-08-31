@@ -2,6 +2,8 @@
 
 > **Purpose:** Master backend implementation roadmap for Nexus. This document preserves the architecture, implementation strategy, lecture flow, technology decisions, security model, messaging/privacy strategy, production tooling, testing strategy, frontend start gate, and future concepts so development can continue without losing context.
 
+> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** The Messaging/Realtime 40.x series through **Lecture 40.62 - Direct Message Domain (Type B - standard, non-E2EE DMs) is IMPLEMENTED and COMPLETED**. This includes cursor pagination/history, read & unread state, typing, presence, idempotent sending, reconnect/missed-event sync, per-channel ordering, the transactional outbox, attachments, mentions, search part 1, negative/security WebSocket tests, repository/CQRS/mapping hardening, security hardening, and Redis usage/connection-limit drafting — plus the channel/DM messaging, WS auth trio relocation to `src/common/websocket/auth/`, and the **Redis adapter for cross-instance broadcast** (B2 40.40/v1 40.40 distribution, done at 40.61). **Current lecture: 40.63 — Private E2EE Messaging Foundation** (B2 40.55, B1 E2EE-1/2/3). See the progress table in `PROJECT_DETAIL.md` for the authoritative (completed)/(current) markers; the exact file layout is `src/modules/direct-messages/` + `src/core/redis/redis-io.adapter.ts`.
+
 ---
 
 # 1. Executive Direction
@@ -801,6 +803,26 @@ Completed/implemented concepts include:
 - reaction query service
 - reaction WebSocket events
 - reaction broadcasting
+- WebSocket error contract + exception filter (40.29 equivalent)
+- connection auth guard + connection-rate limiting (40.30 equivalent)
+- cursor pagination / message history REST + WS queries (40.23/40.24 equivalent)
+- read state + per-channel read/unread tracking (40.25 equivalent)
+- typing indicators (40.26 equivalent)
+- presence (online/idle/offline/dnd/invisible via Redis) (40.27 equivalent)
+- reconnect / missed-event sync (`sync-channel` replay with cursor gap detection) (40.29 equivalent)
+- idempotent message sending (`clientMessageId` dedupe) (40.30 equivalent)
+- media/attachment upload backend (signed URLs, MIME/size validation) (40.31 equivalent)
+- mentions (40.33 equivalent)
+- message search part 1 (Postgres `tsvector` + GIN, keyset cursor) (40.34 equivalent)
+- transactional outbox + polling dispatcher (40.36 equivalent)
+- messaging test suite + negative/security WS tests (40.37 equivalent)
+- messaging security hardening (40.39 equivalent)
+- formalized CQRS repositories/services + mapper boundary (B2 40.49/40.50/40.51)
+- Redis usage strategy + WS connection limits (B2 40.46)
+- **Redis adapter for cross-instance broadcast** (v1 40.40 / B2 40.40 distribution half)
+- **Direct Message Domain (Type B — standard, non-E2EE DMs)** — `src/modules/direct-messages/`, `/dm` namespace, REST + WS, canonical user-pair channels, `messageSeq` ordering, `clientMessageId` dedupe, rooms `dm:${channelId}`
+
+This progress is current as of **Lecture 40.62 (completed)**; the messaging/private-messaging roadmap continues from **40.63 — Private E2EE Messaging Foundation**.
 
 ---
 
@@ -3126,27 +3148,27 @@ Known sequence:
 40.22 Broadcast Reaction Events to Channel Rooms
 ```
 
-Subsequent logical topics:
+Subsequent logical topics (status marks reflect the merged master roadmap in `PROJECT_DETAIL.md`):
 
 ```text
-40.23 Message Pagination
-40.24 Cursor-Based History
-40.25 Read State
-40.26 Typing Indicators
-40.27 Presence
-40.28 Delivery State
-40.29 Reconnect / Missed Events
-40.30 Idempotent Message Sending
-40.31 Message Attachments
-40.32 Message Threads
-40.33 Mentions
-40.34 Message Search
-40.35 Realtime Abstraction
-40.36 Outbox / Domain Events
-40.37 Messaging Tests
-40.38 Load Testing
-40.39 Messaging Security Hardening
-40.40 Messaging Vertical-Slice Completion
+40.23 Message Pagination          (completed)
+40.24 Cursor-Based History        (completed)
+40.25 Read State                  (completed)
+40.26 Typing Indicators           (completed)
+40.27 Presence                    (completed)
+40.28 Delivery State              (partial — read/receipt events only)
+40.29 Reconnect / Missed Events   (completed)
+40.30 Idempotent Message Sending  (completed)
+40.31 Message Attachments         (completed)
+40.32 Message Threads             (partial — parentMessageId field exists; thread UX/REST future)
+40.33 Mentions                    (completed)
+40.34 Message Search              (completed — part 1; part 2 is master 40.74)
+40.35 Realtime Abstraction        (later phase — gateway broadcasts are still direct)
+40.36 Outbox / Domain Events      (completed)
+40.37 Messaging Tests             (completed)
+40.38 Load Testing                (future)
+40.39 Messaging Security Hardening (completed)
+40.40 Messaging Vertical-Slice Completion (completed)
 ```
 
 ---
@@ -3474,32 +3496,47 @@ React Native
 
 Do not jump to frontend yet.
 
-Continue the Messaging 40.x series.
+Continue the messaging/private-messaging roadmap in the master sequence (`PROJECT_DETAIL.md`).
+
+The prior immediate sequence is now complete through **40.62 Direct Message Domain (Type B)**:
+
+```text
+40.23 — Cursor-Based Message Pagination        (completed)
+40.24 — Message History API                    (completed)
+40.25 — Read / Unread State                    (completed)
+40.26 — Typing Indicators                      (completed)
+40.27 — Presence                               (completed)
+40.28 — Delivery State                         (partial — read/receipt events)
+40.29 — Reconnect / Missed Events              (completed)
+40.30 — Idempotent Message Sending             (completed)
+40.31 — Message Attachments                    (completed)
+40.32 — Message Threads                        (partial — foundation only)
+40.33 — Mentions                               (completed)
+40.34 — Message Search                         (completed — part 1)
+40.35 — Realtime Abstraction                   (later phase)
+40.36 — Domain Events / Outbox                 (completed)
+40.37 — Messaging Automated Tests              (completed)
+40.38 — Messaging Load Testing                 (future)
+40.39 — Messaging Security Hardening           (completed)
+40.40 — Messaging Vertical-Slice Completion    (completed)
+40.61 — Distributed WebSocket Scaling (Redis adapter foundation) (completed)
+40.62 — Direct Message Domain (Type B)         (completed)
+```
 
 Recommended next sequence:
 
 ```text
-40.23 — Cursor-Based Message Pagination
-40.24 — Message History API
-40.25 — Read / Unread State
-40.26 — Typing Indicators
-40.27 — Presence
-40.28 — Delivery State
-40.29 — Reconnect / Missed Events
-40.30 — Idempotent Message Sending
-40.31 — Message Attachments
-40.32 — Message Threads
-40.33 — Mentions
-40.34 — Message Search
-40.35 — Realtime Abstraction
-40.36 — Domain Events / Outbox
-40.37 — Messaging Automated Tests
-40.38 — Messaging Load Testing
-40.39 — Messaging Security Hardening
-40.40 — Messaging Vertical-Slice Completion
+40.63 — Private E2EE Messaging Foundation (crypto fundamentals, threat model, Signal Protocol architecture)   [CURRENT]
+40.64 — E2EE Device and Key Management (multi-device identity keys)
+40.65 — Key Distribution Backend (prekey server)
+40.66 — Session Establishment
+40.67 — Double Ratchet
+40.68 — E2EE Message Transport (encryption/decryption + encrypted persistence)
+40.69 — E2EE Multi-Device + Key Rotation + Safety-Number Verification
+40.70 — Secret Groups / E2EE Group Messaging
+40.71 — E2EE Attachments
+40.73 — E2EE Metadata Minimization
 ```
-
-Then move to the next major backend phase.
 
 ---
 
@@ -3537,16 +3574,18 @@ Authentication                  ████████████████
 Authorization                   ████████████████████  Implemented foundation
 Users                           ████████████████████  Progressed
 Servers                         ████████████████████  Progressed
-Messaging                       █████████████████░░░  Active
+Messaging                       ████████████████████  Implemented through 40.62
 WebSocket Authentication        ████████████████████  Done
 Channel Authorization           ████████████████████  Done
 Message CRUD                    ████████████████████  Done/foundation
 Pin/Unpin                       ████████████████████  Done/foundation
-Reactions                       ████████████████████  Active/done foundation
-Pagination                      ░░░░░░░░░░░░░░░░░░░░  Next
-Typing                          ░░░░░░░░░░░░░░░░░░░░  Future
-Presence                        ░░░░░░░░░░░░░░░░░░░░  Future
-E2EE                            ░░░░░░░░░░░░░░░░░░░░  Future phase
+Reactions                       ████████████████████  Done/foundation
+Pagination                      ████████████████████  Done (cursor-based)
+Typing                          ████████████████████  Done
+Presence                        ████████████████████  Done (Redis-backed)
+Direct Messages (Type B)        ████████████████████  Done (40.62)
+Distributed WebSocket Scaling   █████████████░░░░░░░  Redis adapter foundation (40.61)
+E2EE                            ░░░░░░░░░░░░░░░░░░░░  Current phase (40.63)
 Frontend                        ░░░░░░░░░░░░░░░░░░░░  After backend gate
 Mobile                          ░░░░░░░░░░░░░░░░░░░░  Later
 Production hardening            ░░░░░░░░░░░░░░░░░░░░  Future

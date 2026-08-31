@@ -4,6 +4,8 @@
 
 > **Purpose:** This document is the standalone backend engineering roadmap for Nexus. It is intended to allow development to continue without depending on the original ChatGPT conversation.
 
+> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** Implementation has advanced well beyond the low lecture numbers described below. The messaging/realtime series is **COMPLETED through Lecture 40.62 - Direct Message Domain (Type B — standard, non-E2EE DMs)** (equals B2 40.54 / PHASE 25 in this document). Implemented and shipped: the `/messages` gateway suite, WS error contract + exception filter, connection/auth guard + rate limiting, cursor pagination & history, read/unread state, typing, Redis-backed presence, reconnect/missed-event sync, idempotent sending, attachments, mentions, search part 1, transactional outbox, negative/security tests, CQRS/repository/mapper hardening, security hardening, the **Redis socket.io adapter foundation** (equals B2 40.71 / PHASE 42 in this document), and the full Direct Message Domain (`src/modules/direct-messages/` — `/dm` REST + `dm-open|send|sync|read` WS events, rooms `dm:${channelId}`). **Current lecture: 40.63 — Private E2EE Messaging Foundation** (B2 40.55 / B1 E2EE-1/2/3). The lecture-lists and status sections (18, 19, 20) below are updated accordingly; per-lecture feature bodies above them remain reference notes.
+
 ---
 
 # 1. Project Direction
@@ -303,6 +305,22 @@ WebSocketRateLimitService
 ```
 
 The current code therefore already establishes the foundation for the production WebSocket architecture.
+
+Since this section was written, the architecture has grown (all shipped as of **40.62**, completed):
+
+```text
+PresenceService          Redis-backed presence (online/idle/offline/dnd/invisible)
+TypingService            typing indicators per channel
+OutboxService            transactional outbox + 500ms polling dispatcher
+MessageSequenceService   per-channel messageSeq + ServerChannel.lastMessageSeq counter
+MessagesQueryService     cursor pagination, history, read-state, search part 1
+DmGateway (namespace /dm)  dm-open | dm-send | dm-sync | dm-read
+DmCommandService/DmQueryService   open, send, edit, delete, markRead, list, history, sync
+DirectMessageRepositories         canonical pair (userAId < userBId), clientMessageId dedupe
+RedisIoAdapter           cross-instance socket.io broadcast adapter (Redis adapter foundation)
+```
+
+Existing broadcast/events now also include `messageSeq`, message `version` (optimistic concurrency editing), `sync-channel` replay, `typing-*`, presence updates, and the `/dm` namespace events listed above.
 
 ---
 
@@ -1211,6 +1229,8 @@ are part of the planned messaging architecture.
 
 ## Lecture 40.54 — Direct Message Domain
 
+> **Status: COMPLETED** — shipped as master Lecture **40.62** in `src/modules/direct-messages/` (models `DirectMessageChannel` / `DirectMessage` / `DirectMessageReadState`; canonical `orderPair` user-pair channels; `dm-command` / `dm-query` services; `/dm` gateway namespace with `dm-open|send|sync|read`; REST controller; `clientMessageId` dedupe; per-channel `messageSeq`; rooms `dm:${channelId}`).
+
 Build cloud-backed direct messaging separately from channel messaging.
 
 Study:
@@ -1657,6 +1677,8 @@ Must be defined using expected product usage.
 # PHASE 42 — WEBSOCKET HORIZONTAL SCALING
 
 ## Lecture 40.71 — Multi-Instance WebSocket Architecture
+
+> **Status: FOUNDATION IMPLEMENTED** — the Redis socket.io adapter was shipped as master Lecture **40.61** (`src/core/redis/redis-io.adapter.ts`, `RedisIoAdapter` extends stock `IoAdapter`). Full multi-instance rollout (connection affinity, per-instance room/emit routing, load-tested scale-out) remains a future phase.
 
 Current:
 
@@ -2758,10 +2780,11 @@ Do not:
 ## Current messaging milestone
 
 ```text
-40.28 — WebSocket Gateway Validation & Hardening
+40.62 — Direct Message Domain (Type B — standard, non-E2EE DMs)   (completed)
+Next: 40.63 — Private E2EE Messaging Foundation                  (current)
 ```
 
-The current gateway already contains:
+The backend now contains everything listed in the original milestone plus all subsequent shipped work:
 
 ```text
 authentication guard
@@ -2773,46 +2796,69 @@ message queries
 reaction commands
 reaction queries
 room-based broadcasting
+cursor pagination & history queries (REST + WS)
+read/unread state
+typing indicators
+Redis-backed presence
+reconnect / missed-event sync (sync-channel replay)
+idempotent message sending (clientMessageId dedupe)
+media/attachment upload backend
+mentions
+message search part 1
+transactional outbox + dispatcher
+negative/security WebSocket tests
+CQRS repositories/services + mapper boundary
+Redis usage strategy + WS connection limits
+Redis socket.io adapter (cross-instance broadcast foundation)
+Direct Message Domain (canonical pair channels, /dm namespace, DM + REST)
 ```
 
-The uploaded gateway confirms the current `/messages` namespace and the existing message/reaction events.
+The uploaded gateways confirm both the `/messages` namespace and the `/dm` namespace, along with the channel/DM message, reaction, sync, and read events.
 
 ---
 
 # 19. Immediate Roadmap
 
-The immediate sequence is:
+The immediate sequence toward direct messaging + E2EE is now:
 
 ```text
-40.28.9
-Gateway-Wide Validation
+40.62
+Direct Message Domain (Type B)   (completed)
         ↓
-40.28.10
-Negative & Security Tests
+40.63
+Private E2EE Messaging Foundation [CURRENT]
         ↓
-40.29
-WebSocket Error Contract
+40.64
+E2EE Device and Key Management
         ↓
-40.30
-Connection Lifecycle
+40.65
+Key Distribution Backend
         ↓
-40.31
-Cursor Pagination
+40.66
+Session Establishment
         ↓
-40.32
-Message Query Optimization
+40.67
+Double Ratchet
         ↓
-40.33
-Threads / Replies
+40.68
+E2EE Message Transport
         ↓
-40.34
-Edit History
+40.69
+Multi-Device / Key Rotation / Safety Verification
         ↓
-40.35
-Delete Semantics
+40.70
+Secret Groups / E2EE Group Messaging
+        ↓
+40.71
+E2EE Attachments
+        ↓
+40.73
+E2EE Metadata Minimization
 ```
 
-Then continue through the reliability, notification, Redis, scaling, E2EE, testing, and production phases defined above.
+Then continue through the media pipeline, background jobs, observability, database optimization, and production phases defined above.
+
+The earlier immediate sequence (40.28.9 → 40.30 connection lifecycle, 40.31 pagination, 40.32 query optimization → 40.35 delete semantics) has been **superseded by the merged master roadmap in `PROJECT_DETAIL.md` and is fully implemented in renumbered form (40.40-40.62 completed).**
 
 ---
 
@@ -2821,22 +2867,22 @@ Then continue through the reliability, notification, Redis, scaling, E2EE, testi
 The backend should not be declared complete until:
 
 ```text
-[ ] Authentication complete
-[ ] Authorization complete
-[ ] Users complete
-[ ] Social graph complete
-[ ] Organizations complete
-[ ] Servers complete
-[ ] Channels complete
-[ ] Cloud messaging complete
-[ ] Direct messaging complete
-[ ] Private E2EE architecture complete
+[x] Authentication complete
+[x] Authorization complete
+[x] Users complete
+[x] Social graph complete
+[x] Organizations complete
+[x] Servers complete
+[x] Channels complete
+[x] Cloud messaging complete
+[x] Direct messaging complete
+[ ] Private E2EE architecture complete  (current phase — 40.63+)
 [ ] Secret groups complete
 [ ] Notifications complete
-[ ] Redis architecture complete
-[ ] WebSocket scaling complete
+[~] Redis architecture complete        (usage strategy + adapter foundation done; remaining Redis work pending)
+[~] WebSocket scaling complete          (Redis adapter foundation done at 40.61)
 [ ] Database optimization complete
-[ ] Security hardening complete
+[ ] Security hardening complete         (foundation done at 40.54; ongoing review remains)
 [ ] Integration tests complete
 [ ] E2E tests complete
 [ ] Load tests complete
