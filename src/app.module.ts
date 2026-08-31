@@ -20,6 +20,7 @@ import { ModerationModule } from './modules/moderation/moderation.module';
 import { FeedModule } from './modules/feed/feed.module';
 import { DirectMessagesModule } from './modules/direct-messages/direct-messages.module';
 import { E2eeDevicesModule } from './modules/e2ee-devices/e2ee-devices.module';
+import { E2eeKeyDistributionModule } from './modules/e2ee-key-distribution/e2ee-key-distribution.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { E2eeDevicesModule } from './modules/e2ee-devices/e2ee-devices.module';
     FeedModule,
     DirectMessagesModule,
     E2eeDevicesModule,
+    E2eeKeyDistributionModule,
   ],
   controllers: [],
   // providers: [AppService],
