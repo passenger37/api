@@ -161,7 +161,7 @@ model User {
   circleMembers UserCircle[] @relation("UserCircleOwner")
   circlesOf     UserCircle[] @relation("UserCircleMember")
 
-  ownedServers           Server[]        @relation("OwnedServers")
+  ownedServers Server[] @relation("OwnedServers")
 
   serverMemberships ServerMember[]
   ServerInvite      ServerInvite[]
@@ -173,6 +173,11 @@ model User {
   bansIssued ServerBan[] @relation("UserBansIssued")
 
   reportedInServers UserReport[] @relation("UserReportedTargets")
+
+  directMessageChannelsA  DirectMessageChannel[]   @relation("DirectMessageChannelA")
+  directMessageChannelsB  DirectMessageChannel[]   @relation("DirectMessageChannelB")
+  directMessages          DirectMessage[]
+  directMessageReadStates DirectMessageReadState[]
 }
 
 model Follow {
@@ -389,7 +394,7 @@ model UserCircle {
   ownerId  String
   memberId String
 
-  owner  User @relation("UserCircleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  owner User @relation("UserCircleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
 
   member User @relation("UserCircleMember", fields: [memberId], references: [id], onDelete: Cascade)
 
@@ -470,7 +475,7 @@ model ServerMember {
   channelPermissionOverwrites ServerChannelPermissionOverwrite[]
   ChannelMessage              ChannelMessage[]
 
-messageReactions ChannelMessageReaction[]
+  messageReactions ChannelMessageReaction[]
 
   messageEdits ChannelMessageEdit[]
 
@@ -501,14 +506,14 @@ model ServerRole {
   serverId String
   server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
 
-  name     String
+  name String
 
   position Int
 
   createdAt DateTime @default(now())
 
-  updatedAt DateTime @updatedAt
-  members ServerMemberRole[]
+  updatedAt DateTime           @updatedAt
+  members   ServerMemberRole[]
 
   permissions ServerRolePermission[]
 
@@ -802,6 +807,7 @@ model ChannelMessage {
 
   reports MessageReport[]
 
+  @@unique([clientMessageId, authorMemberId])
   @@index([channelId, createdAt, id])
   @@index([channelId, messageSeq])
   @@index([authorMemberId])
@@ -809,7 +815,6 @@ model ChannelMessage {
   @@index([serverId])
   @@index([isPinned])
   @@index([isDeleted])
-  @@unique([clientMessageId, authorMemberId])
 }
 
 model ChannelMessageEdit {
@@ -1043,9 +1048,9 @@ model ServerBan {
 model MessageReport {
   id String @id @default(cuid())
 
-  serverId String
-  channelId String
-  messageId String
+  serverId         String
+  channelId        String
+  messageId        String
   reporterMemberId String
 
   reason MessageReportReason
@@ -1082,9 +1087,9 @@ model MessageReport {
 model UserReport {
   id String @id @default(cuid())
 
-  serverId String
+  serverId         String
   reporterMemberId String
-  targetUserId String
+  targetUserId     String
 
   reason UserReportReason
 
@@ -1117,7 +1122,7 @@ model UserReport {
 model ModerationAuditLog {
   id String @id @default(cuid())
 
-  serverId String
+  serverId      String
   actorMemberId String
 
   action ModerationAction
@@ -1139,4 +1144,95 @@ model ModerationAuditLog {
   @@index([serverId, createdAt])
   @@index([actorMemberId])
   @@index([action])
+}
+
+model DirectMessageChannel {
+  id String @id @default(cuid())
+
+  userAId String
+  userBId String
+
+  messageCounter Int @default(0)
+
+  lastMessageAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  userA User @relation("DirectMessageChannelA", fields: [userAId], references: [id], onDelete: Cascade)
+
+  userB User @relation("DirectMessageChannelB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  messages DirectMessage[]
+
+  readStates DirectMessageReadState[]
+
+  @@unique([userAId, userBId])
+  @@index([userBId])
+  @@index([lastMessageAt])
+}
+
+model DirectMessage {
+  id String @id @default(cuid())
+
+  channelId String
+
+  authorUserId String
+
+  content String @db.Text
+
+  clientMessageId String?
+
+  isEdited Boolean @default(false)
+
+  editedAt DateTime?
+
+  isDeleted Boolean @default(false)
+
+  deletedAt DateTime?
+
+  version Int @default(1)
+
+  messageSeq Int
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  channel DirectMessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  author User @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+
+  readStates DirectMessageReadState[] @relation("DirectMessageReadCursor")
+
+  @@unique([clientMessageId, authorUserId])
+  @@index([channelId, messageSeq])
+  @@index([channelId, createdAt, id])
+  @@index([authorUserId])
+}
+
+model DirectMessageReadState {
+  id String @id @default(cuid())
+
+  channelId String
+
+  userId String
+
+  lastReadMessageId String?
+
+  lastReadAt DateTime?
+
+  unreadCount Int @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  channel DirectMessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  lastReadMessage DirectMessage? @relation("DirectMessageReadCursor", fields: [lastReadMessageId], references: [id], onDelete: SetNull)
+
+  @@unique([channelId, userId])
+  @@index([userId])
 }

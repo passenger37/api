@@ -26,7 +26,7 @@ import { SendChannelMessageRequest } from '../dto/request/send-channel-message.r
 import { JoinChannelRequest } from '../dto/request/join-channel.request';
 import { LeaveChannelRequest } from '../dto/request/leave-channel.request';
 import { ChannelMessageQueryService } from '../services/channel-message-query.service';
-import { WebSocketJwtGuard } from '../gaurds/websocket-jwt.guard';
+import { WebSocketJwtGuard } from '../../../common/websocket/auth/websocket-jwt.guard';
 import { EditChannelMessageRequest } from '../dto/request/edit-channel-message.request';
 import { PinChannelMessageRequest } from '../dto/request/pin-channel-message.request';
 import { UnpinChannelMessageRequest } from '../dto/request/unpin-channel-message.request';
@@ -43,8 +43,8 @@ import {
   WEB_SOCKET_ALLOWED_ORIGINS,
   WS_MAX_BUFFER_BYTES,
 } from '../../../common/websocket/websocket-origins';
-import { WebSocketConnectionAuthService } from '../gaurds/websocket-connection-auth.service';
-import { WebSocketConnectionLimitService } from '../gaurds/websocket-connection-limit.service';
+import { WebSocketConnectionAuthService } from '../../../common/websocket/auth/websocket-connection-auth.service';
+import { WebSocketConnectionLimitService } from '../../../common/websocket/auth/websocket-connection-limit.service';
 import { ServerMemberQueryService } from '../../servers/services/server-member-query.service';
 import { TypingStartRequest } from '../dto/request/typing-start.request';
 import { TypingStopRequest } from '../dto/request/typing-stop.request';

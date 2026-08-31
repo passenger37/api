@@ -18,9 +18,9 @@ import { ChannelMessageQueryService } from './services/channel-message-query.ser
 import { ChannelMessageValidationService } from './services/channel-message-validation.service';
 import { ChannelMessageGateway } from './gateways/channel-message.gateway';
 import { ChannelMessageController } from './controllers/channel-message.controller';
-import { WebSocketJwtGuard } from './gaurds/websocket-jwt.guard';
-import { WebSocketConnectionAuthService } from './gaurds/websocket-connection-auth.service';
-import { WebSocketConnectionLimitService } from './gaurds/websocket-connection-limit.service';
+import { WebSocketJwtGuard } from '../../common/websocket/auth/websocket-jwt.guard';
+import { WebSocketConnectionAuthService } from '../../common/websocket/auth/websocket-connection-auth.service';
+import { WebSocketConnectionLimitService } from '../../common/websocket/auth/websocket-connection-limit.service';
 import { ChannelMessageReactionCommandService } from './services/channel-message-reaction-command.service';
 import { ChannelMessageReactionRepository } from './repositories/channel-message-reaction.repository';
 import { ChannelMessageReactionQueryService } from './services/channel-message-reaction-query.service';

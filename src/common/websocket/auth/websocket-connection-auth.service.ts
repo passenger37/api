@@ -6,7 +6,7 @@ import { Socket } from 'socket.io';
 
 import { UserStatus } from '@prisma/client';
 
-import { UserQueryService } from '../../users/services/user-query.service';
+import { UserQueryService } from '../../../modules/users/services/user-query.service';
 
 @Injectable()
 export class WebSocketConnectionAuthService {

@@ -2,7 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 
 import { UserStatus } from '@prisma/client';
 
-import { UserQueryService } from '../../users/services/user-query.service';
+import { UserQueryService } from '../../../modules/users/services/user-query.service';
 import { WebSocketConnectionAuthService } from './websocket-connection-auth.service';
 
 describe('WebSocketConnectionAuthService', () => {

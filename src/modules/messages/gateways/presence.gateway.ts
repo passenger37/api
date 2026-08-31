@@ -11,9 +11,9 @@ import {
 import { UseGuards, UseFilters, UsePipes } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 
-import { WebSocketJwtGuard } from '../gaurds/websocket-jwt.guard';
-import { WebSocketConnectionAuthService } from '../gaurds/websocket-connection-auth.service';
-import { WebSocketConnectionLimitService } from '../gaurds/websocket-connection-limit.service';
+import { WebSocketJwtGuard } from '../../../common/websocket/auth/websocket-jwt.guard';
+import { WebSocketConnectionAuthService } from '../../../common/websocket/auth/websocket-connection-auth.service';
+import { WebSocketConnectionLimitService } from '../../../common/websocket/auth/websocket-connection-limit.service';
 import { WebSocketExceptionFilter } from '../../../common/filters/websocket-exception.filter';
 import { redisKeys } from '../../../core/redis/redis-keys';
 import { WebSocketValidationPipe } from '../../../common/websocket/pipes/websocket-validation.pipe';

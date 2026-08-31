@@ -18,6 +18,7 @@ import { ServersModule } from './modules/servers/servers.module';
 import { MessagesModule } from './modules/messages/messages.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
 import { FeedModule } from './modules/feed/feed.module';
+import { DirectMessagesModule } from './modules/direct-messages/direct-messages.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { FeedModule } from './modules/feed/feed.module';
     MessagesModule,
     ModerationModule,
     FeedModule,
+    DirectMessagesModule,
   ],
   controllers: [],
   // providers: [AppService],
