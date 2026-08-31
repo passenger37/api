@@ -2,7 +2,7 @@
 
 > **Purpose:** Master backend implementation roadmap for Nexus. This document preserves the architecture, implementation strategy, lecture flow, technology decisions, security model, messaging/privacy strategy, production tooling, testing strategy, frontend start gate, and future concepts so development can continue without losing context.
 
-> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** The Messaging/Realtime 40.x series through **Lecture 40.62 - Direct Message Domain (Type B - standard, non-E2EE DMs) is IMPLEMENTED and COMPLETED**. This includes cursor pagination/history, read & unread state, typing, presence, idempotent sending, reconnect/missed-event sync, per-channel ordering, the transactional outbox, attachments, mentions, search part 1, negative/security WebSocket tests, repository/CQRS/mapping hardening, security hardening, and Redis usage/connection-limit drafting — plus the channel/DM messaging, WS auth trio relocation to `src/common/websocket/auth/`, and the **Redis adapter for cross-instance broadcast** (B2 40.40/v1 40.40 distribution, done at 40.61). **Current lecture: 40.64 — E2EE Device and Key Management** (B2 40.56, B1 E2EE-4) — **COMPLETED** (`src/modules/e2ee-devices/` — device register/list, signed-prekey rotation, one-time-prekey refill/claim, revoke). **Next: 40.65 — Key Distribution Backend** (B2 40.57, B1 E2EE-5). See the progress table in `PROJECT_DETAIL.md` for the authoritative (completed)/(current) markers; the exact file layout is `src/modules/direct-messages/` + `src/core/redis/redis-io.adapter.ts`.
+> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** The Messaging/Realtime 40.x series through **Lecture 40.62 - Direct Message Domain (Type B - standard, non-E2EE DMs) is IMPLEMENTED and COMPLETED**. This includes cursor pagination/history, read & unread state, typing, presence, idempotent sending, reconnect/missed-event sync, per-channel ordering, the transactional outbox, attachments, mentions, search part 1, negative/security WebSocket tests, repository/CQRS/mapping hardening, security hardening, and Redis usage/connection-limit drafting — plus the channel/DM messaging, WS auth trio relocation to `src/common/websocket/auth/`, and the **Redis adapter for cross-instance broadcast** (B2 40.40/v1 40.40 distribution, done at 40.61). **Current lecture: 40.65 — Key Distribution Backend** (B2 40.57, B1 E2EE-5) — **COMPLETED** (`src/modules/e2ee-key-distribution/` — fetch key bundles, claim one-time prekeys). **Next: 40.66 — Session Establishment** (B2 40.58, B1 E2EE-6). See the progress table in `PROJECT_DETAIL.md` for the authoritative (completed)/(current) markers; the exact file layout is `src/modules/direct-messages/` + `src/core/redis/redis-io.adapter.ts`.
 
 ---
 
@@ -822,7 +822,7 @@ Completed/implemented concepts include:
 - **Redis adapter for cross-instance broadcast** (v1 40.40 / B2 40.40 distribution half)
 - **Direct Message Domain (Type B — standard, non-E2EE DMs)** — `src/modules/direct-messages/`, `/dm` namespace, REST + WS, canonical user-pair channels, `messageSeq` ordering, `clientMessageId` dedupe, rooms `dm:${channelId}`
 
-This progress is current as of **Lecture 40.64 (completed)**; the messaging/private-messaging roadmap continues from **40.65 — Key Distribution Backend**.
+This progress is current as of **Lecture 40.65 (completed)**; the messaging/private-messaging roadmap continues from **40.66 — Session Establishment**.
 
 ---
 
@@ -3528,8 +3528,8 @@ Recommended next sequence:
 ```text
 40.63 — Private E2EE Messaging Foundation (crypto fundamentals, threat model, Signal Protocol architecture)   (completed)
 40.64 — E2EE Device and Key Management (multi-device identity keys)                                           (completed)
-40.65 — Key Distribution Backend (prekey server)                                                              [NEXT/CURRENT]
-40.66 — Session Establishment
+40.65 — Key Distribution Backend (prekey server)                                                              (completed)
+40.66 — Session Establishment                                                                                   [NEXT/CURRENT]
 40.67 — Double Ratchet
 40.68 — E2EE Message Transport (encryption/decryption + encrypted persistence)
 40.69 — E2EE Multi-Device + Key Rotation + Safety-Number Verification
@@ -3585,7 +3585,7 @@ Typing                          ████████████████
 Presence                        ████████████████████  Done (Redis-backed)
 Direct Messages (Type B)        ████████████████████  Done (40.62)
 Distributed WebSocket Scaling   █████████████░░░░░░░  Redis adapter foundation (40.61)
-E2EE                            ██████░░░░░░░░░░░░░░  Foundation + device/key management (40.63–40.64)
+E2EE                            ████████░░░░░░░░░░░░  Foundation + device/key mgmt + key dist (40.63–40.65)
 Frontend                        ░░░░░░░░░░░░░░░░░░░░  After backend gate
 Mobile                          ░░░░░░░░░░░░░░░░░░░░  Later
 Production hardening            ░░░░░░░░░░░░░░░░░░░░  Future
