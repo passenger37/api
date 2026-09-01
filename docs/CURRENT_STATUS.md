@@ -27,10 +27,10 @@ with server-based collaboration and a hybrid messaging architecture.
 The immediate continuation point is now:
 
 ``` text
-40.83 Completed → verify → 40.84 (next Scale-phase step: API Versioning / Evolution)
+40.84 Completed → verify → 40.85 (next Scale-phase step: OpenAPI/Swagger Hardening)
 ```
 
-The authoritative position is `PROJECT_DETAIL.md` §4. The messaging/realtime series through 40.83 (incl. E2EE, search Pt.2, media Pt.2, background jobs, structured logging, distributed tracing, production metrics, the 1M-user load model, multi-instance WebSocket hardening, load-model-driven DB/query optimisation, and the Redis-backed cache architecture) are complete with a green automated test suite. This advances the Scale phase (40.80–40.100).
+The authoritative position is `PROJECT_DETAIL.md` §4. The messaging/realtime series through 40.84 (incl. E2EE, search Pt.2, media Pt.2, background jobs, structured logging, distributed tracing, production metrics, the 1M-user load model, multi-instance WebSocket hardening, load-model-driven DB/query optimisation, the Redis-backed cache architecture, and API versioning/evolution) are complete with a green automated test suite. This advances the Scale phase (40.80–40.100).
 
 ------------------------------------------------------------------------
 
@@ -134,7 +134,9 @@ Full-horizontal-scaling readiness for the WebSocket layer, hardening the 40.61 R
 
 ## Next Task
 
-## 40.83 --- Cache Architecture --- COMPLETED (`src/core/cache/` — `DbCacheService` + `CacheArchitectureService`, `GET /load-model/cache`, Redis cache keys/TTLs, server-member-count wiring with write-through invalidation, runner captures in `scripts/load/query-optimiser.mjs` / `scripts/load/load-baseline.mjs`). Next task: 40.84 (API Versioning / Evolution).
+## The cache architecture and API versioning / evolution are COMPLETE.
+
+## 40.84 --- API Versioning / Evolution --- COMPLETED (`src/core/api-versioning/` — data-driven `ApiVersionControlService` + registry, `DeprecationHeaderInterceptor` app-wide, `GET /v1/api` & `GET /v2/api` co-existence, backward-compatible `ws-envelope.ts`). Next task: 40.85 (OpenAPI/Swagger Hardening).
 
 ------------------------------------------------------------------------
 
@@ -155,7 +157,8 @@ After 40.68–40.73 (E2EE series), the sequence continues:
 - 40.81 Multi-Instance WebSocket Scaling (node registry + adapter hardening) ✅
 - 40.82 Load-model-driven DB/query optimisation (`src/core/db/query-optimizer/`, `GET /load-model/optimiser`) ✅
 - 40.83 Cache Architecture (`src/core/cache/`, `GET /load-model/cache`) ✅
-- 40.84–40.100 Scale, Performance, Testing, Production, Backend Feature Freeze (next: 40.84 — API Versioning / Evolution)
+- 40.84 API Versioning / Evolution (`src/core/api-versioning/`, `GET /v1/api` & `GET /v2/api`, `ws-envelope`) ✅
+- 40.85–40.100 Scale, Performance, Testing, Production, Backend Feature Freeze (next: 40.85 — OpenAPI/Swagger Hardening)
 - 40.101–40.104 Admin / Feature Flags / AI
 - **FRONTEND START GATE**
 
@@ -264,6 +267,6 @@ The next commit should describe the actual completed change rather than claiming
 
 ## Immediate Continuation
 
-**Next task: 40.84 — (API Versioning / Evolution, next Scale-phase step).** 40.83 is complete.
+**Next task: 40.85 — (OpenAPI/Swagger Hardening, next Scale-phase step).** 40.84 is complete.
 
-The scale/performance/testing/production phase (40.80–40.100) has progressed: **40.80 1M-User Load Model** (`src/core/load-model/`, `GET /load-model` + `GET /load-model/baseline`, `scripts/load/load-baseline.mjs`), **40.81 Multi-Instance WebSocket Scaling** (`RedisNodeRegistry` + per-instance named adapter clients + graceful shutdown, `GET /instances`), **40.82 Load-model-driven DB/query optimisation** (`src/core/db/query-optimizer/` + `GET /load-model/optimiser` + `add_query_index_strategy_phase3` partial indexes), and **40.83 Cache Architecture** (`src/core/cache/` — `DbCacheService` Redis cache-aside with TTL + hit/miss metrics, `CacheArchitectureService` deciding what/why/TTL/invalidation/consistency from the load model's `db` read/write split, `GET /load-model/cache`; cache keys + `CACHE_TTL` in `redis-keys.ts`; server-member-count read path wired with write-through invalidation on join; runner captures in `scripts/load/query-optimiser.mjs` / `scripts/load/load-baseline.mjs`) are complete at 92 suites / 600 tests. Every 40.82+ change keeps the 40.77 redaction, 40.78 trace-id propagation, the 40.79 `/metrics` endpoint, the 40.80 load model, and the 40.81 node registry intact, and is confirmed by re-running `scripts/load/load-baseline.mjs` / `scripts/load/query-optimiser.mjs`.
+The scale/performance/testing/production phase (40.80–40.100) has progressed: **40.80 1M-User Load Model** (`src/core/load-model/`, `GET /load-model` + `GET /load-model/baseline`, `scripts/load/load-baseline.mjs`), **40.81 Multi-Instance WebSocket Scaling** (`RedisNodeRegistry` + per-instance named adapter clients + graceful shutdown, `GET /instances`), **40.82 Load-model-driven DB/query optimisation** (`src/core/db/query-optimizer/` + `GET /load-model/optimiser` + `add_query_index_strategy_phase3` partial indexes), **40.83 Cache Architecture** (`src/core/cache/` — `DbCacheService` Redis cache-aside with TTL + hit/miss metrics, `CacheArchitectureService` deciding what/why/TTL/invalidation/consistency from the load model's `db` read/write split, `GET /load-model/cache`; cache keys + `CACHE_TTL` in `redis-keys.ts`; server-member-count read path wired with write-through invalidation on join; runner captures in `scripts/load/query-optimiser.mjs` / `scripts/load/load-baseline.mjs`), and **40.84 API Versioning / Evolution** (`src/core/api-versioning/` — data-driven `ApiVersionControlService` + registry, app-wide `DeprecationHeaderInterceptor` attaching `Deprecation`/`Sunset`/`Link` to `/v1`, `GET /v1/api` & `GET /v2/api` co-existence, backward-compatible `ws-envelope.ts` for WS event evolution) are complete at 95 suites / 615 tests. Every 40.82+ change keeps the 40.77 redaction, 40.78 trace-id propagation, the 40.79 `/metrics` endpoint, the 40.80 load model, and the 40.81 node registry intact, and is confirmed by re-running `scripts/load/load-baseline.mjs` / `scripts/load/query-optimiser.mjs`.
