@@ -1,0 +1,14 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "src",
+  "testRegex": ".*\\.red-is\\.spec\\.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "transformIgnorePatterns": ["node_modules/(?!(@signalapp|\\.pnpm.*@signalapp)/)"],
+  "moduleNameMapper": {
+    "^@signalapp/libsignal-client$": "<rootDir>/../test/__mocks__/libsignal-client.ts"
+  },
+  "testEnvironment": "node",
+  "testTimeout": 30000
+}

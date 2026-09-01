@@ -18,7 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:db": "jest --config ./jest-db.json --runInBand"
+    "test:db": "jest --config ./jest-db.json --runInBand",
+    "test:redis": "jest --config ./jest-redis.json --runInBand"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
@@ -103,7 +104,8 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "testPathIgnorePatterns": [
-      ".*\\.db-int\\.spec\\.ts$"
+      ".*\\.db-int\\.spec\\.ts$",
+      ".*\\.red-is\\.spec\\.ts$"
     ],
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
