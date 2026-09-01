@@ -27,10 +27,10 @@ with server-based collaboration and a hybrid messaging architecture.
 The immediate continuation point is now:
 
 ``` text
-40.82 Completed → verify → 40.83 (next Scale-phase step, e.g. cache architecture / further query optimisation)
+40.83 Completed → verify → 40.84 (next Scale-phase step: API Versioning / Evolution)
 ```
 
-The authoritative position is `PROJECT_DETAIL.md` §4. The messaging/realtime series through 40.82 (incl. E2EE, search Pt.2, media Pt.2, background jobs, structured logging, distributed tracing, production metrics, the 1M-user load model, multi-instance WebSocket hardening, and load-model-driven DB/query optimisation) are complete with a green automated test suite. This advances the Scale phase (40.80–40.100).
+The authoritative position is `PROJECT_DETAIL.md` §4. The messaging/realtime series through 40.83 (incl. E2EE, search Pt.2, media Pt.2, background jobs, structured logging, distributed tracing, production metrics, the 1M-user load model, multi-instance WebSocket hardening, load-model-driven DB/query optimisation, and the Redis-backed cache architecture) are complete with a green automated test suite. This advances the Scale phase (40.80–40.100).
 
 ------------------------------------------------------------------------
 
@@ -134,7 +134,7 @@ Full-horizontal-scaling readiness for the WebSocket layer, hardening the 40.61 R
 
 ## Next Task
 
-## 40.82 --- Load-model-driven DB/query optimisation --- COMPLETED (`src/core/db/query-optimizer/`, `GET /load-model/optimiser`, partial-index migration, `scripts/load/query-optimiser.mjs`). Next task: 40.83 (next Scale-phase step).
+## 40.83 --- Cache Architecture --- COMPLETED (`src/core/cache/` — `DbCacheService` + `CacheArchitectureService`, `GET /load-model/cache`, Redis cache keys/TTLs, server-member-count wiring with write-through invalidation, runner captures in `scripts/load/query-optimiser.mjs` / `scripts/load/load-baseline.mjs`). Next task: 40.84 (API Versioning / Evolution).
 
 ------------------------------------------------------------------------
 
@@ -154,7 +154,8 @@ After 40.68–40.73 (E2EE series), the sequence continues:
 - 40.80 1M-User Load Model ✅
 - 40.81 Multi-Instance WebSocket Scaling (node registry + adapter hardening) ✅
 - 40.82 Load-model-driven DB/query optimisation (`src/core/db/query-optimizer/`, `GET /load-model/optimiser`) ✅
-- 40.83–40.100 Scale, Performance, Testing, Production, Backend Feature Freeze (next: 40.83 — cache architecture / testing)
+- 40.83 Cache Architecture (`src/core/cache/`, `GET /load-model/cache`) ✅
+- 40.84–40.100 Scale, Performance, Testing, Production, Backend Feature Freeze (next: 40.84 — API Versioning / Evolution)
 - 40.101–40.104 Admin / Feature Flags / AI
 - **FRONTEND START GATE**
 
@@ -263,6 +264,6 @@ The next commit should describe the actual completed change rather than claiming
 
 ## Immediate Continuation
 
-**Next task: 40.83 — (next Scale-phase step, e.g. cache architecture / further query optimisation).** 40.82 is complete.
+**Next task: 40.84 — (API Versioning / Evolution, next Scale-phase step).** 40.83 is complete.
 
-The scale/performance/testing/production phase (40.80–40.100) has progressed: **40.80 1M-User Load Model** (`src/core/load-model/`, `GET /load-model` + `GET /load-model/baseline`, `scripts/load/load-baseline.mjs`), **40.81 Multi-Instance WebSocket Scaling** (`RedisNodeRegistry` + per-instance named adapter clients + graceful shutdown, `GET /instances`), and **40.82 Load-model-driven DB/query optimisation** (`src/core/db/query-optimizer/` — a load-model-driven `DbQueryOptimizerService` that selects the cheapest index/access path per hot query path and exposes `GET /load-model/optimiser`; additive raw-SQL partial indexes in `add_query_index_strategy_phase3` for the E2EE delivery queue, E2EE envelope pickup, and background-job ready pickup; `scripts/load/query-optimiser.mjs` plus a `load-model/optimiser` capture in `scripts/load/load-baseline.mjs`) are complete at 90 suites / 587 tests. Every 40.82+ change keeps the 40.77 redaction, 40.78 trace-id propagation, the 40.79 `/metrics` endpoint, the 40.80 load model, and the 40.81 node registry intact, and is confirmed by re-running `scripts/load/load-baseline.mjs` / `scripts/load/query-optimiser.mjs`.
+The scale/performance/testing/production phase (40.80–40.100) has progressed: **40.80 1M-User Load Model** (`src/core/load-model/`, `GET /load-model` + `GET /load-model/baseline`, `scripts/load/load-baseline.mjs`), **40.81 Multi-Instance WebSocket Scaling** (`RedisNodeRegistry` + per-instance named adapter clients + graceful shutdown, `GET /instances`), **40.82 Load-model-driven DB/query optimisation** (`src/core/db/query-optimizer/` + `GET /load-model/optimiser` + `add_query_index_strategy_phase3` partial indexes), and **40.83 Cache Architecture** (`src/core/cache/` — `DbCacheService` Redis cache-aside with TTL + hit/miss metrics, `CacheArchitectureService` deciding what/why/TTL/invalidation/consistency from the load model's `db` read/write split, `GET /load-model/cache`; cache keys + `CACHE_TTL` in `redis-keys.ts`; server-member-count read path wired with write-through invalidation on join; runner captures in `scripts/load/query-optimiser.mjs` / `scripts/load/load-baseline.mjs`) are complete at 92 suites / 600 tests. Every 40.82+ change keeps the 40.77 redaction, 40.78 trace-id propagation, the 40.79 `/metrics` endpoint, the 40.80 load model, and the 40.81 node registry intact, and is confirmed by re-running `scripts/load/load-baseline.mjs` / `scripts/load/query-optimiser.mjs`.

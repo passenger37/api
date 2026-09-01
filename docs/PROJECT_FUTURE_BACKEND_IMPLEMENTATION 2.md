@@ -4,7 +4,7 @@
 
 > **Purpose:** This document is the standalone backend engineering roadmap for Nexus. It is intended to allow development to continue without depending on the original ChatGPT conversation.
 
-> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** Implementation has advanced well beyond the low lecture numbers described below. The messaging/realtime series is **COMPLETED through Lecture 40.81 - Multi-Instance WebSocket Scaling** (master B2 40.71 / PHASE 40 in this document), advancing the Scale phase (40.80–40.100). Implemented and shipped: the `/messages` gateway suite, WS error contract + exception filter, connection/auth guard + rate limiting, cursor pagination & history, read/unread state, typing, Redis-backed presence, reconnect/missed-event sync, idempotent sending, attachments, mentions, search part 1 & part 2 (MeiliSearch), transactional outbox, negative/security tests, CQRS/repository/mapper hardening, security hardening, the **Redis socket.io adapter foundation**, the full Direct Message Domain (`src/modules/direct-messages/` — `/dm` REST + `dm-open|send|sync|read` WS events, rooms `dm:${channelId}`), the E2EE series (40.63–40.73), Message Search Part 2 (`src/modules/search/`), Media Pipeline Part 2 (`src/modules/media/`), Background Jobs (`src/modules/jobs/`), Structured Logging (`src/core/logger/`), Distributed Tracing (`src/core/tracing/`), Production Metrics (`src/core/metrics/`), the 1M-User Load Model (`src/core/load-model/` + `scripts/load/load-baseline.mjs`), and Multi-Instance WebSocket Scaling (`src/core/redis/redis-node-registry.ts` + `RedisIoAdapter` per-instance named clients + graceful shutdown). **Current lecture: 40.83 — (next Scale-phase step, e.g. cache architecture / testing)** (B2 40.73). **Completed: 40.82 — Load-model-driven DB/query optimisation** — `src/core/db/query-optimizer/` (`DbQueryOptimizerService` driven by the 40.80 load-model targets, hot-path plan selection, pre→post rows-per-second improvement, `GET /load-model/optimiser`) + raw-SQL partial indexes (`add_query_index_strategy_phase3`: E2EE delivery queue, E2EE envelope pickup, background-job ready pickup) + `scripts/load/query-optimiser.mjs` and a `load-model/optimiser` capture in `scripts/load/load-baseline.mjs` (90 suites / 587 tests green). The lecture-lists and status sections (18, 19, 20) below are updated accordingly; per-lecture feature bodies above them remain reference notes.
+> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** Implementation has advanced well beyond the low lecture numbers described below. The messaging/realtime series is **COMPLETED through Lecture 40.81 - Multi-Instance WebSocket Scaling** (master B2 40.71 / PHASE 40 in this document), advancing the Scale phase (40.80–40.100). Implemented and shipped: the `/messages` gateway suite, WS error contract + exception filter, connection/auth guard + rate limiting, cursor pagination & history, read/unread state, typing, Redis-backed presence, reconnect/missed-event sync, idempotent sending, attachments, mentions, search part 1 & part 2 (MeiliSearch), transactional outbox, negative/security tests, CQRS/repository/mapper hardening, security hardening, the **Redis socket.io adapter foundation**, the full Direct Message Domain (`src/modules/direct-messages/` — `/dm` REST + `dm-open|send|sync|read` WS events, rooms `dm:${channelId}`), the E2EE series (40.63–40.73), Message Search Part 2 (`src/modules/search/`), Media Pipeline Part 2 (`src/modules/media/`), Background Jobs (`src/modules/jobs/`), Structured Logging (`src/core/logger/`), Distributed Tracing (`src/core/tracing/`), Production Metrics (`src/core/metrics/`), the 1M-User Load Model (`src/core/load-model/` + `scripts/load/load-baseline.mjs`), and Multi-Instance WebSocket Scaling (`src/core/redis/redis-node-registry.ts` + `RedisIoAdapter` per-instance named clients + graceful shutdown). **Current lecture: 40.84 (API Versioning / Evolution, next Scale-phase step)** (B2 40.74). **Completed: 40.83 Cache Architecture** `src/core/cache/` (DbCacheService Redis cache-aside with TTL + cache_hits/cache_misses metrics, CacheArchitectureService driven by the load model db read/write split, GET /load-model/cache) + cache keys/CACHE_TTL in redis-keys.ts + server-member-count wiring with write-through invalidation (92 suites / 600 tests green). The lecture-lists and status sections (18, 19, 20) below are updated accordingly; per-lecture feature bodies above them remain reference notes.
 
 ---
 
@@ -2800,7 +2800,8 @@ Do not:
 40.80 — Scale, Performance, Testing, Production (1M-User Load Model)  (completed)
 40.81 — Multi-Instance WebSocket Scaling (node registry + adapter hardening)  (completed)
 40.82 — Load-model-driven DB/query optimisation (`src/core/db/query-optimizer/`, `GET /load-model/optimiser`, partial index migration)  (completed)
-40.83 — next Scale-phase step (e.g. cache architecture / testing)  (current)
+40.83 — Cache Architecture (`src/core/cache/`, `GET /load-model/cache`)  (completed)
+40.84 — API Versioning / Evolution  (current)
 ```
 
 The backend now contains everything listed in the original milestone plus all subsequent shipped work:
@@ -2906,7 +2907,10 @@ Multi-Instance WebSocket Scaling — node registry + adapter hardening (complete
 Load-model-driven DB/query optimisation, next Scale-phase step (completed)
         ↓
 40.83
-Next Scale-phase step (cache architecture / testing) [NEXT/CURRENT]
+Cache Architecture (completed)
+        ↓
+40.84
+API Versioning / Evolution [NEXT/CURRENT]
 ```
 
 Continue through the scale/perf/testing/production phases (40.80 onward) defined above — re-run `scripts/load/load-baseline.mjs` after each 40.82+ optimisation to confirm improvement against the 40.80 baseline.
