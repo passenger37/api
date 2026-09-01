@@ -4,21 +4,22 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
-  Logger,
 } from '@nestjs/common';
 
 import { Request, Response } from 'express';
 
+import { StructuredLogger } from '../../../core/logger/structured-logger';
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(GlobalExceptionFilter.name);
+  constructor(private readonly structuredLogger: StructuredLogger) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
 
     const response = ctx.getResponse<Response>();
 
-    const request = ctx.getRequest<Request>();
+    const request = ctx.getRequest<Request & { user?: { id?: string }; id?: string }>();
 
     const status =
       exception instanceof HttpException
@@ -40,11 +41,21 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     if (!(exception instanceof HttpException)) {
-      this.logger.error(
-        `Unhandled exception on ${request.method} ${request.url}: ${
-          exception instanceof Error ? exception.stack : String(exception)
-        }`,
-      );
+      this.structuredLogger.error({
+        module: 'global-exception',
+        operation: 'unhandled-exception',
+        reqId: request.id,
+        userId: request.user?.id,
+        errorCode: status,
+        message: `Unhandled exception on ${request.method} ${request.url}`,
+        details: {
+          method: request.method,
+          path: request.url,
+          statusCode: status,
+          stack:
+            exception instanceof Error ? exception.stack : String(exception),
+        },
+      });
     }
 
     response.status(status).json({

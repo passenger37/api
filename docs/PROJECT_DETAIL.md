@@ -9,8 +9,8 @@
 
 **Merge rule (unchanged):** Implement every feature from all sources. Where a lecture number is claimed by more than one source with **different** content, both intents are implemented — as either a combined lecture or two sequential lectures — scheduled at the point that makes technical sense, not necessarily at the original number. Where sources describe the **same** feature under different numbers, they are treated as one lecture and deduplicated. Every renumbering is cross-referenced back to its original source/number below so nothing is silently dropped.
 
-**Current backend position:** Lecture 40.68 — E2EE Message Transport (next)
-**Completed:** 40.9–40.39 (see §3 and §4.1), 40.40 (Presence Foundation), 40.41 (Message/Event Idempotency), 40.42 (WebSocket Reconnection & Missed-Event Sync), 40.43 (Event Ordering & Consistency), 40.44 (Outbox Pattern / Reliable Event Delivery), 40.45 (Message Search — Part 1), 40.46 (Messaging Media/Attachment Backend — Part 1), 40.47 (Messaging Audit and Moderation), 40.48 (Advanced Messaging Performance), 40.49 (Server Module Completion), 40.50 (Social Graph Backend), 40.51 (Feed Backend), 40.52 (Authentication and Session Hardening), 40.53 (Advanced RBAC / Permission Optimization), 40.54 (Security Hardening), 40.55 (Redis Usage Strategy), 40.56 (PostgreSQL Index Strategy), 40.57 (Transaction Boundaries), 40.58 (Formalize Command/Query CQRS), 40.59 (Repository Boundary Hardening), 40.60 (Domain/Data Mapping), 40.61 (Distributed WebSocket Scaling — Redis adapter), 40.62 (Direct Message Domain), 40.63 (Private E2EE Messaging Foundation), 40.64 (E2EE Device and Key Management), 40.65 (Key Distribution Backend), 40.66 (Session Establishment — X3DH), 40.67 (Double Ratchet)
+**Current backend position:** Lecture 40.81 — Multi-Instance WebSocket Scaling (completed) — Scale phase (40.80–40.100) advancing past the observability track (40.77–40.79)
+**Completed:** 40.9–40.39 (see §3 and §4.1), 40.40 (Presence Foundation), 40.41 (Message/Event Idempotency), 40.42 (WebSocket Reconnection & Missed-Event Sync), 40.43 (Event Ordering & Consistency), 40.44 (Outbox Pattern / Reliable Event Delivery), 40.45 (Message Search — Part 1), 40.46 (Messaging Media/Attachment Backend — Part 1), 40.47 (Messaging Audit and Moderation), 40.48 (Advanced Messaging Performance), 40.49 (Server Module Completion), 40.50 (Social Graph Backend), 40.51 (Feed Backend), 40.52 (Authentication and Session Hardening), 40.53 (Advanced RBAC / Permission Optimization), 40.54 (Security Hardening), 40.55 (Redis Usage Strategy), 40.56 (PostgreSQL Index Strategy), 40.57 (Transaction Boundaries), 40.58 (Formalize Command/Query CQRS), 40.59 (Repository Boundary Hardening), 40.60 (Domain/Data Mapping), 40.61 (Distributed WebSocket Scaling — Redis adapter), 40.62 (Direct Message Domain), 40.63 (Private E2EE Messaging Foundation), 40.64 (E2EE Device and Key Management), 40.65 (Key Distribution Backend), 40.66 (Session Establishment — X3DH), 40.67 (Double Ratchet), 40.68 (E2EE Message Transport), 40.69 (E2EE Multi-Device Support + Key Rotation + Safety-Number Verification), 40.70 (Secret Groups / E2EE Group Messaging), 40.71 (E2EE Attachments), 40.72 (E2EE Offline Delivery + Device Revocation + Encrypted Backup/Recovery Tradeoffs), 40.73 (E2EE Metadata Minimization), 40.74 (Message Search — Part 2: external engine), 40.75 (Media Pipeline — Part 2: AV scan, thumbnails, transcoding via BullMQ), 40.76 (Background Jobs — BullMQ full set), 40.77 (Structured Logging), 40.78 (Distributed Tracing), 40.79 (Production Metrics), 40.80 (1M-User Load Model), 40.81 (Multi-Instance WebSocket Scaling)
 
 ---
 
@@ -152,11 +152,11 @@ B1 numbers E2EE as a separate "E2EE Lecture 1–16" track; B2 folds it into the 
 | 40.65 (completed) | Key Distribution Backend — prekey server; `src/modules/e2ee-key-distribution/` (fetch key bundles, claim one-time prekeys) | B2 40.57, B1 E2EE-5 |
 | 40.66 (completed) | Session Establishment — X3DH handshake orchestration; `src/modules/e2ee-sessions/` (establish/accept sessions, list per device) | B2 40.58, B1 E2EE-6 |
 | 40.67 (completed) | Double Ratchet — `src/modules/e2ee-ratchet/` (symmetric KDF chains, X25519 DH ratchet step, AES-256-GCM message encryption, skipped-message-key cache for out-of-order delivery, bootstrap from the 40.66 session state; scaffold library primitives — libsignal ADR spike lands at 40.68) | B2 40.59, B1 E2EE-7 |
-| 40.68 *(current)* | E2EE Message Transport — encryption/decryption + encrypted persistence | B2 40.61, B1 E2EE-8 |
-| 40.69 | E2EE Multi-Device Support + Key Rotation + Safety-Number Verification | B1 E2EE-9/10/11 (**not broken out in B2 — inserted here**) |
-| 40.70 | Secret Groups / E2EE Group Messaging | B2 40.60, B1 E2EE-12 |
-| 40.71 | E2EE Attachments | B2 40.62, B1 E2EE-13 |
-| 40.72 | E2EE Offline Delivery + Device Revocation + Encrypted Backup/Recovery Tradeoffs | B1 E2EE-14/15/16 (**not broken out in B2 — inserted here**) |
+| 40.68 (completed) | E2EE Message Transport — `src/modules/e2ee-transport/` envelope send/fetch, offline delivery queue, ciphertext-only persistence | B2 40.61, B1 E2EE-8 |
+| 40.69 (completed) | E2EE Multi-Device Support + Key Rotation + Safety-Number Verification — `src/modules/e2ee-devices/` device verification, signed prekey rotation, OTK refill, scheduled tasks, Fingerprint API | B1 E2EE-9/10/11 (**not broken out in B2 — inserted here**) |
+| 40.70 (completed) | Secret Groups / E2EE Group Messaging — `src/modules/e2ee-groups/` sender keys protocol, group membership, group sessions, fan-out envelopes | B2 40.60, B1 E2EE-12 |
+| 40.71 (completed) | E2EE Attachments — `src/modules/e2ee-attachments/` encrypted metadata, client-side encryption, R2/MinIO storage, signed URLs, thumbnails | B2 40.62, B1 E2EE-13 |
+| 40.72 (completed) | E2EE Offline Delivery + Device Revocation + Encrypted Backup/Recovery Tradeoffs — `src/modules/e2ee-delivery/`, `src/modules/e2ee-revocation/`, `src/modules/e2ee-backup/`, `src/modules/e2ee-key-transparency/` delivery queues, revocation flow, encrypted backups, key transparency | B1 E2EE-14/15/16 (**not broken out in B2 — inserted here**) |
 | 40.73 | E2EE Metadata Minimization | B2 40.63 |
 
 ### 4.6 Search Pt.2, Media Pt.2, Background Jobs, Observability
@@ -264,8 +264,8 @@ PHASE 17 React Native (Mobile)
 8. **40.38** Typing Indicators — completed (ephemeral Redis presence with 10 s TTL; throttled `typing-start`/`typing-stop`; per-channel broadcast excluding the sender; no DB writes, no schema change).
 9. **40.39** Message Delivery State — completed (explicit `created` ack on send; `message-read` WS fan-out routed through the 40.37 read cursor; broadcast never conflated with read; no per-message read rows).
 10. **40.40** Presence Foundation — completed (Redis `user:{id}:presence`, online/idle/offline/dnd/invisible, socket-lifecycle driven).
-11. **40.41–40.67** — completed sequentially through §4.1–§4.5 as tabulated above, ending with the Double Ratchet (`src/modules/e2ee-ratchet/`).
-12. Continue sequentially through **§4.5–§4.8**; next is **40.68 — E2EE Message Transport**.
+11. **40.41–40.81** — completed sequentially through §4.1–§4.7 as tabulated above, ending with E2EE Metadata Minimization (`src/modules/e2ee-metadata/`), Message Search Pt.2 (`src/modules/search/` MeiliSearch), Media Pipeline Pt.2 (`src/modules/media/`), Background Jobs (`src/modules/jobs/` BullMQ full set), Structured Logging (`src/core/logger/` pino redaction + `StructuredLogger` helper), Distributed Tracing (`src/core/tracing/` ALS `TraceService` + `TraceMiddleware`), Production Metrics (`src/core/metrics/` `MetricsService` + `GET /metrics`), the 1M-User Load Model (`src/core/load-model/` + `scripts/load/load-baseline.mjs`), and Multi-Instance WebSocket Scaling (`src/core/redis/redis-node-registry.ts` + adapter hardening), advancing the Scale phase (40.80–40.100).
+12. Continue sequentially through **§4.8**; next is **40.82 — (Load-model-driven DB/query optimisation, next Scale-phase step)**.
 8. Satisfy the Backend Completion Gate (§4, end).
 9. Open frontend start gate → Phase F0 onward.
 
@@ -289,11 +289,11 @@ For each lecture: briefing before coding (why, how, drawbacks, fit, alternatives
 
 ## 9. Next Immediate Action
 
-**Lecture 40.68 — E2EE Message Transport.**
+**Lecture 40.82 — Load-model-driven DB/query optimisation (next Scale-phase step).**
 
 Briefing required before implementation:
-- **Why:** 40.64–40.67 produced device keys, key distribution, X3DH sessions and the Double Ratchet; message transport is the layer that actually carries encrypted envelopes end-to-end and persists ciphertext (B2 40.61, B1 E2EE-8).
-- **How:** envelope send/fetch surface in `src/modules/e2ee-transport/` (or folded into `direct-messages` per existing DM plumbing), one envelope per recipient device (per `docs/e2ee/02-protocol-architecture.md` §7), offline delivery queue keyed by device, ciphertext-only persistence — plaintext never reaches the server; ratchet state stays in `e2ee-ratchet`.
-- **ADR obligation:** run the `@signalapp/libsignal` WASM/Node spike **before locking any dependency** (see `docs/e2ee/04-library-selection.md` §5); record a superseding ADR if the spike fails portability criteria.
+- **Why:** 40.80 (1M-User Load Model) and 40.81 (Multi-Instance WebSocket Scaling, `src/core/redis/redis-node-registry.ts` + adapter hardening) are complete at 89 Jest suites / 578 tests, with the 40.80 load model + `/load-model/baseline` as the measurement harness. The Scale phase continues by applying targeted optimisations and proving them against that baseline.
+- **How:** pick the next bottleneck the 40.80 baseline suggests (e.g. PostgreSQL index/query tuning, connection pooling, or pagination depth) and re-run `scripts/load/load-baseline.mjs` to confirm measured improvement. This is the horizontal-scaling follow-on to the multi-instance WS work in 40.81.
+- **Integration:** keep the 40.77 "never log" redaction, the 40.78 trace-id propagation, the 40.79 `/metrics` endpoint, the 40.80 load model, and the 40.81 node registry intact; every 40.82+ change is validated by re-running `scripts/load/load-baseline.mjs`.
 
-Proceed after briefing approval. **Next lecture after this: 40.69 — E2EE Multi-Device Support + Key Rotation + Safety-Number Verification.**
+Proceed after briefing approval. **Next lecture after this: 40.83 (further Scale-phase step / testing).**

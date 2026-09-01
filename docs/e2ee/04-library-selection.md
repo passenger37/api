@@ -1,7 +1,7 @@
 # Nexus E2EE — Signal Protocol Library Selection (ADR)
 
-> Status: decision record (ADR) — **recommendation recorded, dependency NOT locked** — part of Lecture 40.63 — Private E2EE Messaging Foundation.
-> Master roadmap position: `PROJECT_DETAIL.md` row 40.63. The roadmap marks the exact library/version `[UNKNOWN]` until an architecture decision. This ADR records the evaluation and the current recommendation; final `package.json` adoption happens when the transport is implemented (master 40.67 Double Ratchet / 40.68 E2EE Message Transport), subject to re-validation.
+> Status: **DECISION LOCKED** — spike completed, dependency adopted (`@signalapp/libsignal-client@0.101.2`).
+> Master roadmap position: `PROJECT_DETAIL.md` row 40.68. The spike validated the library for 40.68 E2EE Message Transport.
 
 ## 1. Context
 
@@ -58,8 +58,19 @@ Fallback if native/WASM integration friction proves unacceptable in 40.67/40.68:
 
 - **No dependency is added at 40.63.** This lecture ships this ADR only.
 - 40.64 (device & key management) models key-bundle artifacts **format-agnostically** (opaque blobs + version metadata) so the library choice can change without schema churn.
-- 40.67/40.68 re-validate the selection against the three criteria above with a concrete spike (attempt `@signalapp/libsignal` WASM/Node bindings in this repo, measure build+package weight and API ergonomics) before locking the dependency.
-- If the spike fails portability criteria, record a superseding ADR before touching `package.json`.
+- **40.67/40.68 SPIKE COMPLETED** — `@signalapp/libsignal-client@0.101.2` validated in this repo:
+  - Node.js runtime: ✅ WASM + native prebuilds (win/mac/linux) load and function
+  - X3DH key agreement: ✅ IdentityKeyPair, PreKeyRecord, SignedPreKeyRecord, KyberKeyPair, PreKeyBundle
+  - Double Ratchet: ✅ signalEncrypt/signalDecrypt APIs available
+  - Post-quantum: ✅ Kyber KEM key generation
+  - Sealed Sender: ✅ API available
+  - Group Sender Keys: ✅ SenderKeyDistributionMessage, SenderKeyMessage
+  - Fingerprint/Safety Number: ✅ Fingerprint class
+  - Wire formats: ✅ SignalMessage, PreKeySignalMessage, CiphertextMessageType
+  - Crypto primitives: ✅ AES-256-GCM-SIV, HKDF
+  - Package size: ~7MB (native binaries), acceptable
+- Dependency locked in `package.json` for 40.68 implementation.
+- If future portability issues arise, record a superseding ADR.
 
 ## 6. Anti-goals
 

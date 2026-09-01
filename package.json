@@ -22,6 +22,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
     "@aws-sdk/s3-request-presigner": "3.1075.0",
+    "@nestjs/bullmq": "^12.0.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
@@ -29,9 +30,11 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.28",
+    "@nestjs/schedule": "^12.0.1",
     "@nestjs/swagger": "^11.4.4",
     "@nestjs/websockets": "^11.1.28",
     "@prisma/client": "6.16.3",
+    "@signalapp/libsignal-client": "^0.101.2",
     "@socket.io/redis-adapter": "^8.3.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.79.1",
@@ -44,6 +47,7 @@
     "ioredis": "^5.11.1",
     "joi": "^18.2.3",
     "jsonwebtoken": "^9.0.3",
+    "meilisearch": "^0.60.0",
     "nestjs-pino": "^4.6.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -99,6 +103,12 @@
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(@signalapp|\\.pnpm.*@signalapp)/)"
+    ],
+    "moduleNameMapper": {
+      "^@signalapp/libsignal-client$": "<rootDir>/../test/__mocks__/libsignal-client.ts"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

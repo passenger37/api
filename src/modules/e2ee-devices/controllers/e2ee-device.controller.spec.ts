@@ -11,6 +11,13 @@ describe('E2eeDeviceController', () => {
   let queryService: {
     listMyDevices: jest.Mock;
   };
+  let safetyNumberService: {
+    verifySafetyNumber: jest.Mock;
+    getVerificationStatus: jest.Mock;
+  };
+  let keyRotationService: {
+    notifyClientOfNeededRotation: jest.Mock;
+  };
 
   const createdAt = new Date('2026-01-01T00:00:00.000Z');
 
@@ -45,9 +52,18 @@ describe('E2eeDeviceController', () => {
     queryService = {
       listMyDevices: jest.fn(),
     };
+    safetyNumberService = {
+      verifySafetyNumber: jest.fn(),
+      getVerificationStatus: jest.fn(),
+    };
+    keyRotationService = {
+      notifyClientOfNeededRotation: jest.fn(),
+    };
     controller = new E2eeDeviceController(
       commandService as any,
       queryService as any,
+      safetyNumberService as any,
+      keyRotationService as any,
     );
   });
 

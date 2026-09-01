@@ -2,6 +2,10 @@ import { Module } from '@nestjs/common';
 import { AppConfigModule } from './config/index';
 import { PrismaModule } from './core/database';
 import { AppLoggerModule } from './core/logger/logger.module';
+import { TracingModule } from './core/tracing/tracing.module';
+import { MetricsModule } from './core/metrics/metrics.module';
+import { HttpMetricsInterceptor } from './core/metrics/metrics.interceptor';
+import { LoadModelModule } from './core/load-model/load-model.module';
 import { HealthModule } from './modules/health/heath.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptors/reesponse.interceptor';
@@ -23,12 +27,16 @@ import { E2eeDevicesModule } from './modules/e2ee-devices/e2ee-devices.module';
 import { E2eeKeyDistributionModule } from './modules/e2ee-key-distribution/e2ee-key-distribution.module';
 import { E2eeSessionsModule } from './modules/e2ee-sessions/e2ee-sessions.module';
 import { E2eeRatchetModule } from './modules/e2ee-ratchet/e2ee-ratchet.module';
+import { JobsModule } from './modules/jobs/jobs.module';
 
 @Module({
   imports: [
     AppConfigModule,
     PrismaModule,
+    TracingModule,
     AppLoggerModule,
+    MetricsModule,
+    LoadModelModule,
     HealthModule,
     UsersModule,
     AuthModule,
@@ -47,10 +55,15 @@ import { E2eeRatchetModule } from './modules/e2ee-ratchet/e2ee-ratchet.module';
     E2eeKeyDistributionModule,
     E2eeSessionsModule,
     E2eeRatchetModule,
+    JobsModule,
   ],
   controllers: [],
   // providers: [AppService],
   providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpMetricsInterceptor,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,

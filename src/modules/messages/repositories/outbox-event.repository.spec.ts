@@ -4,6 +4,7 @@ import {
   OutboxEventRepository,
 } from './outbox-event.repository';
 import { PrismaService } from '../../../core/database/prisma.service';
+import { TraceService } from '../../../core/tracing/trace.service';
 
 describe('OutboxEventRepository', () => {
   let repository: OutboxEventRepository;
@@ -25,7 +26,7 @@ describe('OutboxEventRepository', () => {
         update: jest.fn(),
       },
     };
-    repository = new OutboxEventRepository(prisma as any);
+    repository = new OutboxEventRepository(prisma as any, new TraceService());
   });
 
   it('should create a pending outbox event', async () => {

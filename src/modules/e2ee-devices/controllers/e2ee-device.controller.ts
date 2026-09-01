@@ -1,21 +1,26 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { RegisterDeviceRequest } from '../dto/request/register-device.request';
 import { RefillOneTimePreKeysRequest } from '../dto/request/refill-one-time-prekeys.request';
 import { RotateSignedPreKeyRequest } from '../dto/request/rotate-signed-prekey.request';
+import { VerifySafetyNumberRequest, DeviceVerificationStatusRequest } from '../dto/request/safety-number.request';
 import {
   serializeE2eeDevice,
   serializeSignedPreKey,
 } from '../serializers/e2ee-device.serializer';
 import { E2eeDeviceCommandService } from '../services/e2ee-device-command.service';
 import { E2eeDeviceQueryService } from '../services/e2ee-device-query.service';
+import { E2eeSafetyNumberService } from '../services/e2ee-safety-number.service';
+import { E2eeKeyRotationService } from '../services/e2ee-key-rotation.service';
 
 @Controller('e2ee/devices')
 export class E2eeDeviceController {
   constructor(
     private readonly commandService: E2eeDeviceCommandService,
     private readonly queryService: E2eeDeviceQueryService,
+    private readonly safetyNumberService: E2eeSafetyNumberService,
+    private readonly keyRotationService: E2eeKeyRotationService,
   ) {}
 
   @Post()
@@ -65,5 +70,32 @@ export class E2eeDeviceController {
     await this.commandService.revoke(userId, deviceId);
 
     return { revoked: true };
+  }
+
+  @Post('safety-number/verify')
+  async verifySafetyNumber(
+    @CurrentUser('id') userId: string,
+    @Body() dto: VerifySafetyNumberRequest,
+  ) {
+    return this.safetyNumberService.verifySafetyNumber(userId, dto);
+  }
+
+  @Get('safety-number/status')
+  async getVerificationStatus(
+    @CurrentUser('id') userId: string,
+    @Query() query: DeviceVerificationStatusRequest,
+  ) {
+    return this.safetyNumberService.getVerificationStatus(
+      query.localDeviceId,
+      query.remoteDeviceId,
+    );
+  }
+
+  @Get(':deviceId/rotation-status')
+  async getRotationStatus(
+    @CurrentUser('id') userId: string,
+    @Param('deviceId') deviceId: string,
+  ) {
+    return this.keyRotationService.notifyClientOfNeededRotation(deviceId);
   }
 }

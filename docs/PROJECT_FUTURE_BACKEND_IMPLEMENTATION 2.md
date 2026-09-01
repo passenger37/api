@@ -4,7 +4,7 @@
 
 > **Purpose:** This document is the standalone backend engineering roadmap for Nexus. It is intended to allow development to continue without depending on the original ChatGPT conversation.
 
-> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** Implementation has advanced well beyond the low lecture numbers described below. The messaging/realtime series is **COMPLETED through Lecture 40.62 - Direct Message Domain (Type B — standard, non-E2EE DMs)** (equals B2 40.54 / PHASE 25 in this document). Implemented and shipped: the `/messages` gateway suite, WS error contract + exception filter, connection/auth guard + rate limiting, cursor pagination & history, read/unread state, typing, Redis-backed presence, reconnect/missed-event sync, idempotent sending, attachments, mentions, search part 1, transactional outbox, negative/security tests, CQRS/repository/mapper hardening, security hardening, the **Redis socket.io adapter foundation** (equals B2 40.71 / PHASE 42 in this document), and the full Direct Message Domain (`src/modules/direct-messages/` — `/dm` REST + `dm-open|send|sync|read` WS events, rooms `dm:${channelId}`). **Current lecture: 40.68 — E2EE Message Transport** (B2 40.61 / PHASE 32 / B1 E2EE-8). **Completed: 40.67 — Double Ratchet** (B2 40.59 / PHASE 30 / B1 E2EE-7) — `src/modules/e2ee-ratchet/` (symmetric KDF chains, X25519 DH ratchet step, AES-256-GCM message encryption, skipped-message-key cache; scaffold library primitives — libsignal ADR spike lands at 40.68). The lecture-lists and status sections (18, 19, 20) below are updated accordingly; per-lecture feature bodies above them remain reference notes.
+> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** Implementation has advanced well beyond the low lecture numbers described below. The messaging/realtime series is **COMPLETED through Lecture 40.81 - Multi-Instance WebSocket Scaling** (master B2 40.71 / PHASE 40 in this document), advancing the Scale phase (40.80–40.100). Implemented and shipped: the `/messages` gateway suite, WS error contract + exception filter, connection/auth guard + rate limiting, cursor pagination & history, read/unread state, typing, Redis-backed presence, reconnect/missed-event sync, idempotent sending, attachments, mentions, search part 1 & part 2 (MeiliSearch), transactional outbox, negative/security tests, CQRS/repository/mapper hardening, security hardening, the **Redis socket.io adapter foundation**, the full Direct Message Domain (`src/modules/direct-messages/` — `/dm` REST + `dm-open|send|sync|read` WS events, rooms `dm:${channelId}`), the E2EE series (40.63–40.73), Message Search Part 2 (`src/modules/search/`), Media Pipeline Part 2 (`src/modules/media/`), Background Jobs (`src/modules/jobs/`), Structured Logging (`src/core/logger/`), Distributed Tracing (`src/core/tracing/`), Production Metrics (`src/core/metrics/`), the 1M-User Load Model (`src/core/load-model/` + `scripts/load/load-baseline.mjs`), and Multi-Instance WebSocket Scaling (`src/core/redis/redis-node-registry.ts` + `RedisIoAdapter` per-instance named clients + graceful shutdown). **Current lecture: 40.82 — (Load-model-driven DB/query optimisation, next Scale-phase step)** (B2 40.72). **Completed: 40.81 — Multi-Instance WebSocket Scaling** — `src/core/redis/redis-node-registry.ts` (Redis-backed node registry, heartbeat TTL, deregistration, `GET /instances` cluster view) + `RedisIoAdapter` per-instance named pub/sub clients (`redisIoClientName`), `instanceId()`, and graceful `disconnect()` + `main.ts` shutdown hooks (89 suites / 578 tests green). The lecture-lists and status sections (18, 19, 20) below are updated accordingly; per-lecture feature bodies above them remain reference notes.
 
 ---
 
@@ -2786,7 +2786,20 @@ Do not:
 40.65 — Key Distribution Backend                                  (completed)
 40.66 — Session Establishment                                     (completed)
 40.67 — Double Ratchet                                            (completed)
-40.68 — E2EE Message Transport                                    (current)
+40.68 — E2EE Message Transport                                    (completed)
+40.69 — E2EE Multi-Device / Key Rotation / Safety Verification    (completed)
+40.70 — Secret Groups / E2EE Group Messaging                      (completed)
+40.71 — E2EE Attachments                                          (completed)
+40.73 — E2EE Metadata Minimization                                (completed)
+40.74 — Message Search — Part 2 (MeiliSearch)                     (completed)
+40.75 — Media Pipeline — Part 2 (BullMQ)                          (completed)
+40.76 — Background Jobs (BullMQ full set)                         (completed)
+40.77 — Structured Logging                                        (completed)
+40.78 — Distributed Tracing                                       (completed)
+40.79 — Production Metrics                                        (completed)
+40.80 — Scale, Performance, Testing, Production (1M-User Load Model)  (completed)
+40.81 — Multi-Instance WebSocket Scaling (node registry + adapter hardening)  (completed)
+40.82 — (Load-model-driven DB/query optimisation, next Scale-phase step)  (current)
 ```
 
 The backend now contains everything listed in the original milestone plus all subsequent shipped work:
@@ -2816,6 +2829,10 @@ CQRS repositories/services + mapper boundary
 Redis usage strategy + WS connection limits
 Redis socket.io adapter (cross-instance broadcast foundation)
 Direct Message Domain (canonical pair channels, /dm namespace, DM + REST)
+E2EE series (40.63–40.73: foundation, device/key mgmt, key dist, session, ratchet, transport, multi-device, groups, attachments, metadata minimization)
+Message Search Part 2 (MeiliSearch, BM25 ranking) (`src/modules/search/`)
+Media Pipeline Part 2 (BullMQ AV scan/thumbnails/transcoding) (`src/modules/media/`)
+Background Jobs (BullMQ full set) (`src/modules/jobs/`)
 ```
 
 The uploaded gateways confirm both the `/messages` namespace and the `/dm` namespace, along with the channel/DM message, reaction, sync, and read events.
@@ -2846,22 +2863,49 @@ Session Establishment   (completed)
 Double Ratchet   (completed)
         ↓
 40.68
-E2EE Message Transport [NEXT/CURRENT]
+E2EE Message Transport (completed)
         ↓
 40.69
-Multi-Device / Key Rotation / Safety Verification
+Multi-Device / Key Rotation / Safety Verification (completed)
         ↓
 40.70
-Secret Groups / E2EE Group Messaging
+Secret Groups / E2EE Group Messaging (completed)
         ↓
 40.71
-E2EE Attachments
+E2EE Attachments (completed)
         ↓
 40.73
-E2EE Metadata Minimization
+E2EE Metadata Minimization (completed)
+        ↓
+40.74
+Message Search — Part 2 (completed)
+        ↓
+40.75
+Media Pipeline — Part 2 (completed)
+        ↓
+40.76
+Background Jobs (BullMQ full set) (completed)
+        ↓
+40.77
+Structured Logging (completed)
+        ↓
+40.78
+Distributed Tracing (completed)
+        ↓
+40.79
+Production Metrics (completed)
+        ↓
+40.80
+Scale, Performance, Testing, Production (1M-User Load Model) (completed)
+        ↓
+40.81
+Multi-Instance WebSocket Scaling — node registry + adapter hardening (completed)
+        ↓
+40.82
+Load-model-driven DB/query optimisation, next Scale-phase step [NEXT/CURRENT]
 ```
 
-Then continue through the media pipeline, background jobs, observability, database optimization, and production phases defined above.
+Continue through the scale/perf/testing/production phases (40.80 onward) defined above — re-run `scripts/load/load-baseline.mjs` after each 40.82+ optimisation to confirm improvement against the 40.80 baseline.
 
 The earlier immediate sequence (40.28.9 → 40.30 connection lifecycle, 40.31 pagination, 40.32 query optimization → 40.35 delete semantics) has been **superseded by the merged master roadmap in `PROJECT_DETAIL.md` and is fully implemented in renumbered form (40.40-40.62 completed).**
 

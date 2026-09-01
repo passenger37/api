@@ -4,6 +4,7 @@ import {
 } from '../repositories/outbox-event.repository';
 import { OutboxPublisherService } from './outbox-publisher.service';
 import { ChannelMessageGateway } from '../gateways/channel-message.gateway';
+import { TraceService } from '../../../core/tracing/trace.service';
 
 describe('OutboxPublisherService', () => {
   let service: OutboxPublisherService;
@@ -20,7 +21,11 @@ describe('OutboxPublisherService', () => {
       broadcastMessageCreated: jest.fn(),
       broadcastMessageUpdated: jest.fn(),
     };
-    service = new OutboxPublisherService(outboxRepository, gateway);
+    service = new OutboxPublisherService(
+      outboxRepository,
+      gateway,
+      new TraceService(),
+    );
   });
 
   afterEach(() => {

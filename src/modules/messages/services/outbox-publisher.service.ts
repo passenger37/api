@@ -4,8 +4,9 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { OutboxEventRepository } from '../repositories/outbox-event.repository';
+import { OutboxEventRepository, OUTBOX_TRACE_KEY } from '../repositories/outbox-event.repository';
 import { ChannelMessageGateway } from '../gateways/channel-message.gateway';
+import { TraceService } from '../../../core/tracing/trace.service';
 
 @Injectable()
 export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
@@ -20,6 +21,7 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly outboxRepository: OutboxEventRepository,
     private readonly gateway: ChannelMessageGateway,
+    private readonly traceService: TraceService,
   ) {}
 
   onModuleInit() {
@@ -44,7 +46,16 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
 
       for (const event of events) {
         try {
-          await this.publish(event);
+          const payload = event.payload as Record<string, unknown> ?? {};
+          const traceBlob = payload[OUTBOX_TRACE_KEY];
+          const traceId =
+            (traceBlob as { traceId?: string } | undefined)?.traceId ?? '';
+
+          // Restore the originating trace context for downstream delivery.
+          await this.traceService.run({ traceId }, async () => {
+            await this.publish(event);
+          });
+
           await this.outboxRepository.markProcessed([event.id]);
         } catch (error) {
           await this.outboxRepository.recordFailure(
@@ -66,18 +77,22 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
     channelId: string | null;
     payload: unknown;
   }) {
+    const payload = (event.payload as Record<string, unknown> ?? {}) as Record<string, unknown>;
+    // Strip the internal trace marker before broadcasting to clients.
+    const { [OUTBOX_TRACE_KEY]: _trace, ...publicPayload } = payload;
+
     switch (event.eventType) {
       case 'message-created':
         this.gateway.broadcastMessageCreated(
           event.channelId as string,
-          event.payload,
+          publicPayload,
         );
         return;
 
       case 'message-updated':
         this.gateway.broadcastMessageUpdated(
           event.channelId as string,
-          event.payload,
+          publicPayload,
         );
         return;
 

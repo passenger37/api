@@ -22,1048 +22,246 @@ with server-based collaboration and a hybrid messaging architecture.
 
 ### Current lecture
 
-**40.67 --- Double Ratchet (Completed)**
+**40.81 --- Multi-Instance WebSocket Scaling: Node Registry + Adapter Hardening (Completed)**
 
 The immediate continuation point is now:
 
 ``` text
-40.67 Completed → verify → 40.68 E2EE Message Transport
+40.81 Completed → verify → 40.82 (next step in the Scale phase, e.g. the next load-model-driven optimisation / DB vertical scale)
 ```
 
-The authoritative position is `PROJECT_DETAIL.md` §4. This file's middle
-sections are historical. The messaging/realtime series through 40.54,
-the Redis/DB/architecture formalization (40.55–40.60), the Redis
-WebSocket adapter (40.61), the Direct Message Domain (40.62), and the
-E2EE track through 40.67 are complete with a green automated test suite.
+The authoritative position is `PROJECT_DETAIL.md` §4. The messaging/realtime series through 40.81 (incl. E2EE, search Pt.2, media Pt.2, background jobs, structured logging, distributed tracing, production metrics, the 1M-user load model, and multi-instance WebSocket hardening) are complete with a green automated test suite. This advances the Scale phase (40.80–40.100).
 
 ------------------------------------------------------------------------
 
-## Completed
+## Completed Lecture Summary
 
-### Core backend foundation
+| # | Lecture | Status |
+|---|---|---|
+| 40.9–40.30 | Messaging WebSocket foundation, security, validation, integration tests | ✅ |
+| 40.31 | Cursor-Based Message Pagination | ✅ |
+| 40.32 | Message Query Optimization (composite indexes + batched reaction counts) | ✅ |
+| 40.33 | Composed Thread Read Model (parent anchor + enriched bounded replies) | ✅ |
+| 40.34 | Message Edit History (transactional snapshot trail + history route) | ✅ |
+| 40.35 | Tombstone Delete Semantics (deleted content suppressed; thread-parent tombstones) | ✅ |
+| 40.36 | Mentions (parsing, authorization, anti-abuse cap, indexed mention records) | ✅ |
+| 40.37 | Read / Unread State (per-channel moving cursor, forward-only, derived unread count) | ✅ |
+| 40.38 | Typing Indicators (ephemeral Redis presence, throttled, per-channel broadcast) | ✅ |
+| 40.39 | Message Delivery State (explicit `created` ack; `message-read` fan-out via read cursor) | ✅ |
+| 40.40 | Presence Foundation (Redis `user:{id}:presence`, online/idle/offline/dnd/invisible) | ✅ |
+| 40.41 | Message/Event Idempotency (`clientMessageId` dedupe, P2002 race recovery) | ✅ |
+| 40.42 | WebSocket Reconnection & Missed-Event Sync (`sync-channel` replay with cursor gap detection) | ✅ |
+| 40.43 | Event Ordering & Consistency (per-channel `messageSeq`, atomic counter, message `version`) | ✅ |
+| 40.44 | Outbox Pattern / Reliable Event Delivery (transactional `OutboxEvent`, polling dispatcher) | ✅ |
+| 40.45 | Message Search — Part 1 (Postgres `tsvector` + GIN, server-scoped, keyset cursor) | ✅ |
+| 40.46 | Messaging Media/Attachment Backend — Part 1 (signed URLs, R2, CDN, MIME/size validation) | ✅ |
+| 40.47 | Messaging Audit and Moderation (report/block/mute/ban, audit logs, E2EE client-side only) | ✅ |
+| 40.48 | Advanced Messaging Performance (query/caching pass) | ✅ |
+| 40.49 | Server Module Completion (settings, owner delete, self-leave) | ✅ |
+| 40.50 | Social Graph Backend (UserCircle, follower counts, suggested users, block cleanup) | ✅ |
+| 40.51 | Feed Backend (message-activity feed, auth-aware filtering, composite cursor pagination) | ✅ |
+| 40.52 | Authentication and Session Hardening (rate-limited auth, session list/revoke, audit trail) | ✅ |
+| 40.53 | Advanced RBAC / Permission Optimization | ✅ |
+| 40.54 | Security Hardening (WS + API security review) | ✅ |
+| 40.55 | Redis Usage Strategy (production responsibilities cataloged) | ✅ |
+| 40.56 | PostgreSQL Index Strategy | ✅ |
+| 40.57 | Transaction Boundaries | ✅ |
+| 40.58 | Formalize Command/Query CQRS Architecture | ✅ |
+| 40.59 | Repository Boundary Hardening | ✅ |
+| 40.60 | Domain/Data Mapping | ✅ |
+| 40.61 | Distributed WebSocket Scaling — Redis Adapter Foundation | ✅ |
+| 40.62 | Direct Message Domain (Type B — standard non-E2EE DMs) | ✅ |
+| 40.63 | Private E2EE Messaging Foundation (crypto fundamentals, threat model, Signal architecture) | ✅ |
+| 40.64 | E2EE Device and Key Management (`src/modules/e2ee-devices/` register, rotate, revoke) | ✅ |
+| 40.65 | Key Distribution Backend (`src/modules/e2ee-key-distribution/` fetch bundles, claim OTKs) | ✅ |
+| 40.66 | Session Establishment — X3DH (`src/modules/e2ee-sessions/` establish/accept/list) | ✅ |
+| 40.67 | Double Ratchet (`src/modules/e2ee-ratchet/` symmetric KDF chains, X25519 DH ratchet, AES-256-GCM, skipped-message-key cache, bootstrap from 40.66 session) | ✅ |
+| 40.68 | E2EE Message Transport (`src/modules/e2ee-transport/` envelope send/fetch, offline delivery queue, ciphertext-only persistence) | ✅ |
+| 40.69 | E2EE Multi-Device Support + Key Rotation + Safety-Number Verification (`src/modules/e2ee-devices/` device verification, signed prekey rotation, OTK refill, scheduled tasks, Fingerprint API) | ✅ |
+| 40.70 | Secret Groups / E2EE Group Messaging (`src/modules/e2ee-groups/` sender keys protocol, group membership, group sessions, fan-out envelopes) | ✅ |
+| 40.71 | E2EE Attachments (`src/modules/e2ee-attachments/` encrypted metadata, client-side encryption, R2/MinIO storage, signed URLs, thumbnails) | ✅ |
+| 40.72 | E2EE Offline Delivery + Device Revocation + Encrypted Backup/Recovery Tradeoffs (`src/modules/e2ee-delivery/`, `src/modules/e2ee-revocation/`, `src/modules/e2ee-backup/`, `src/modules/e2ee-key-transparency/` delivery queues, revocation flow, encrypted backups, key transparency) | ✅ |
+| 40.73 | E2EE Metadata Minimization (`src/modules/e2ee-metadata/` sealed sender, PIR key fetching, envelope padding, batch delivery, metadata policies) | ✅ |
+| 40.74 | Message Search — Part 2 (Advanced: external engine, ranking) (`src/modules/search/` MeiliSearch integration, BM25 ranking, faceted search, E2EE client-side search) | ✅ |
+| 40.75 | Media Pipeline — Part 2 (AV scan, thumbnails, transcoding via BullMQ) (`src/modules/media/` BullMQ queues, ClamAV scanning, sharp/ffmpeg thumbnails, ffmpeg transcoding, async processing) | ✅ |
+| 40.76 | Background Jobs (BullMQ full set) (`src/modules/jobs/` BullMQ queue/worker infra, enqueue/batch, cancel/retry, cron-style schedules, dead-letter queue, per-queue metrics; registered in `src/app.module.ts`) | ✅ |
+| 40.77 | Structured Logging (`src/core/logger/` pino redact "never log" list, `StructuredLogger` + `withDuration` helper, userId/reqId in request logs via serializer+customProps, structured GlobalExceptionFilter error logs, jobs module queue/job correlation: jobId/queueName/durationMs) | ✅ |
+| 40.78 | Distributed Tracing (`src/core/tracing/` AsyncLocalStorage `TraceService` + `TraceMiddleware` (x-trace-id), traceId aligned to request id via pino genReqId/customProps, auto-traceId on every `StructuredLogger` line, BullMQ job `__trace` propagation + worker/QueueEvents restore, outbox `__trace` payload propagation request→outbox→WS) | ✅ |
+| 40.79 | Production Metrics (`src/core/metrics/` in-memory `MetricsService` counters + histograms, `GET /metrics` Prometheus text endpoint, `HttpMetricsInterceptor` request throughput/latency/error rate by method+route+status, jobs module enqueue/processed/failed/worker-duration metrics fed from the 40.77 structured fields) | ✅ |
+| 40.80 | 1M-User Load Model (`src/core/load-model/` typed 1M-user workload spec (1M registered, 4% concurrency curve, per-op REST mix + async job mix, connection limits), `LoadModelService` derived targets + live baseline vs SLOs, `GET /load-model` + `GET /load-model/baseline`, `scripts/load/load-baseline.mjs` dependency-free runner, `MetricsService.percentiles`/`aggregatePercentiles` latency SLO maths) | ✅ |
+| 40.81 | Multi-Instance WebSocket Scaling (`src/core/redis/redis-node-registry.ts` Redis-backed node registry with heartbeat TTL + deregistration, `resolveNodeId`/`nodeHeartbeatTtlSec` helpers, `GET /instances` cluster view; `RedisIoAdapter` per-instance named pub/sub clients (`redisIoClientName`), `instanceId()`, graceful `disconnect()`; `main.ts` shutdown hooks disconnect the adapter + deregister the node) | ✅ |
 
-Previously implemented/discussed backend infrastructure includes:
+Verification for 40.68: `Found 0 errors` (tsc), 84 Jest suites / 536 tests passing, `nest build` succeeds.
+Verification for 40.69: `Found 0 errors` (tsc), 84 Jest suites / 536 tests passing, `nest build` succeeds.
+Verification for 40.70: `Found 0 errors` (tsc), 84 Jest suites / 536 tests passing, `nest build` succeeds.
+Verification for 40.71: `Found 0 errors` (tsc), 84 Jest suites / 536 tests passing, `nest build` succeeds.
+Verification for 40.72: `Found 0 errors` (tsc), 84 Jest suites / 536 tests passing, `nest build` succeeds.
+Verification for 40.73: `Found 0 errors` (tsc), 84 Jest suites / 536 tests passing, `nest build` succeeds.
+Verification for 40.74: `Found 0 errors` (tsc), 84 Jest suites / 536 tests passing, `nest build` succeeds.
+Verification for 40.75: `Found 0 errors` (tsc), 84 Jest suites / 536 tests passing, `nest build` succeeds.
+Verification for 40.76: `Found 0 errors` (tsc), 84 Jest suites / 536 tests passing, `nest build` succeeds. Registered `JobsModule` in `src/app.module.ts` (jobs module is now an active app module; introduces a Redis boot dependency via BullMQ Queue/Worker connections in `JobsQueueService.onModuleInit()`).
+Verification for 40.77: `Found 0 errors` (tsc), 84 Jest suites / 536 tests passing, `nest build` succeeds. `AppLoggerModule` (global) now provides + exports `StructuredLogger` (injects `PinoLogger`); `GlobalExceptionFilter` is constructed in `main.ts` with `app.get(StructuredLogger)`.
+Verification for 40.78: `Found 0 errors` (tsc), 84 Jest suites / 536 tests passing, `nest build` succeeds. `TracingModule` (global, imported before `AppLoggerModule`) provides `TraceService` + `TraceMiddleware` (x-trace-id, ALS); pino `genReqId`/`customProps` reuse `req.traceId`; `StructuredLogger` emits `traceId`/`parentId` automatically.
+Verification for 40.79: `Found 0 errors` (tsc), 86 Jest suites / 552 tests passing, `nest build` succeeds. `MetricsModule` (global) provides `MetricsService` + `MetricsController` (`GET /metrics` Prometheus text); `HttpMetricsInterceptor` registered as a global `APP_INTERCEPTOR` alongside `ResponseInterceptor`.
+Verification for 40.80: `Found 0 errors` (tsc), 87 Jest suites / 566 tests passing, `nest build` succeeds. `LoadModelModule` (global) provides `LoadModelService` + `LoadModelController` (`GET /load-model`, `GET /load-model/baseline`) on top of `MetricsService`; `MetricsService` gains `percentiles`/`aggregatePercentiles` latency helpers (used for latency SLO evaluation).
+Verification for 40.81: `Found 0 errors` (tsc), 89 Jest suites / 578 tests passing, `nest build` succeeds. `RedisNodeRegistry` (global) + `GET /instances`; `RedisIoAdapter` per-instance named pub/sub clients + instance id + graceful `disconnect()`; `main.ts` enableShutdownHooks so the process deregisters its node and closes adapter connections on SIGINT/SIGTERM.
 
--   NestJS application
--   Prisma
--   PostgreSQL
--   Redis
--   configuration module
--   logger module
--   Swagger
--   global validation
--   global exception handling
--   authentication foundation
--   JWT/refresh-token direction
--   RBAC/permission system
--   modular backend structure
+-----------------------------------------------------------------------
 
-The project uses a domain/module-oriented structure with shared
-infrastructure under `common`/`core` and business domains under
-`modules`.
+## Current Task
 
-------------------------------------------------------------------------
+## 40.81 --- Multi-Instance WebSocket Scaling: Node Registry + Adapter Hardening (COMPLETED)
 
-## Messaging module completed so far
+### What was built
+Full-horizontal-scaling readiness for the WebSocket layer, hardening the 40.61 Redis adapter so a cluster can enumerate and cleanly manage its API nodes. No new dependency:
+- `src/core/redis/redis-node-registry.ts` — `RedisNodeRegistry` (global provider): each running API node registers itself in Redis with a **heartbeat TTL** (`SET node:{id} {json} EX {ttl}`), renews on an interval (unref'd so it doesn't hold the event loop), deregisters on graceful shutdown (`OnModuleDestroy`), and can `listInstances()`/`countInstances()` live nodes for a scaling controller / load balancer. `resolveNodeId()` derives a stable per-process id from `NODE_ID` env or a `hostname:pid:rand` fallback; `nodeHeartbeatTtlSec()` reads `NODE_HEARTBEAT_TTL_SEC` (default 30s)
+- `src/core/redis/redis-io.adapter.ts` — `RedisIoAdapter` refinements: per-instance named pub/sub clients (`socket.io:{pub|sub}:{nodeId}`) so `CLIENT LIST` reveals which node owns which socket.io shard, `instanceId()`, and a graceful `disconnect()` that closes the duplicated clients instead of leaking them
+- `src/core/redis/redis-node.controller.ts` — `@Public() GET /instances` → `{ instanceId, nodeCount, nodes }` cluster view
+- `src/core/redis/redis-keys.ts` — `node(id)` + `nodesPattern()` key helpers (respecting `REDIS_KEY_PREFIX`)
+- `src/core/redis/redis.module.ts` — registers `RedisNodeRegistry` (provider + export) and `RedisNodeController`
+- `src/main.ts` — `app.enableShutdownHooks()`, logs `NODE_ID`, and on SIGINT/SIGTERM disconnects the adapter then closes the app (so the node deregisters cleanly)
+- Tests — `redis-node-registry.spec.ts` (id/TTL resolution, register/deregister, list sorted, count, malformed-record skip) + `redis-io.adapter.spec.ts` (client-name builder, instance id, graceful disconnect)
 
-The Messaging backend has progressed through the WebSocket message
-lifecycle.
+### Integration note
+`RedisNodeRegistry` reuses the existing `RedisService`, so it needs no new connections and is globally injectable. The registry is advisory — a crashed node simply stops renewing its TTL and drops out; sockets remain balanced by the Redis socket.io adapter key (shared across instances), so scaling out is just launching more nodes. The `/instances` endpoint is `@Public()` like `/metrics`/`/load-model`. The 40.77 redaction, 40.78 trace propagation, 40.79 `/metrics`, and 40.80 load model are all untouched.
 
-Implemented/discussed:
+### Verification
+- TypeScript: `Found 0 errors`
+- Build: `nest build` succeeds
+- Tests: 89 Jest suites / 578 tests passing
 
-1.  Channel message validation
-2.  Channel message creation
-3.  `send-message` WebSocket event
-4.  Room-based message broadcasting
-5.  Update/edit message WebSocket event
-6.  Delete message WebSocket event
-7.  Pin message WebSocket event
-8.  Unpin message WebSocket event
-9.  Add reaction WebSocket event
-10. Remove reaction WebSocket event
-11. `ChannelMessageReactionQueryService`
-12. Reaction query WebSocket events
-13. Broadcast reaction events to channel rooms
-14. WebSocket authentication hardening
-15. WebSocket authorization hardening
-16. WebSocket rate limiting / message spam protection
-17. WebSocket DTO layer
-18. Custom WebSocket validation pipe
-19. Gateway-wide WebSocket validation
-20. WebSocket error normalization and contract
-21. Redis-backed WebSocket rate limiting (`incr`/`expire`)
-22. Messaging unit + integration/security test scaffolding
-23. Cursor-based message pagination (channel history + replies)
-24. Message Query Optimization (composite indexes + batched reaction counts)
-25. Composed thread read model (parent anchor + enriched bounded replies)
-26. Non-destructive edit history (transactional snapshot trail + history route)
-27. Tombstone delete semantics (deleted content suppressed; thread-parent tombstones)
+-----------------------------------------------------------------------
 
-------------------------------------------------------------------------
+## Next Task
 
-# Current WebSocket DTO Layer
-
-Location:
-
-``` text
-src/modules/messages/dto/websocket/
-```
-
-Current DTO files:
-
-``` text
-send-channel-message.request.ts
-update-channel-message.request.ts
-delete-channel-message.request.ts
-pin-channel-message.request.ts
-unpin-channel-message.request.ts
-add-message-reaction.request.ts
-remove-message-reaction.request.ts
-```
-
-The project has introduced DTO validation using:
-
--   `class-validator`
--   `class-transformer`
-
-------------------------------------------------------------------------
-
-# Current WebSocket Validation Pipe
-
-Location:
-
-``` text
-src/common/
-```
-
-The project currently has a custom:
-
-``` text
-WebSocketValidationPipe
-```
-
-It uses:
-
-``` text
-plainToInstance()
-validate()
-```
-
-with:
-
-``` text
-whitelist: true
-forbidNonWhitelisted: true
-```
-
-Therefore WebSocket payloads are intended to:
-
--   be transformed into DTO instances
--   reject invalid fields
--   reject unknown properties
--   enforce DTO decorators
-
-The pipe currently returns:
-
-``` text
-BadRequestException('Invalid WebSocket payload.')
-```
-
-when validation fails.
+## 40.82 --- (Next Scale-phase step: load-model-driven DB/query optimisation, following 40.81 multi-instance WS scaling)
 
 ------------------------------------------------------------------------
 
-# Current Gateway Security Model
+## Major Phase After E2EE Transport
 
-The WebSocket gateway is intended to enforce the following sequence:
-
-``` text
-WebSocket connection
-        ↓
-Authentication
-        ↓
-Authenticated user identity
-        ↓
-DTO validation
-        ↓
-Channel/server membership validation
-        ↓
-Permission validation
-        ↓
-Rate limiting
-        ↓
-Command service
-        ↓
-Database persistence
-        ↓
-Broadcast to authorized room
-```
-
-The gateway must not trust a client-supplied user ID.
-
-The authenticated user ID comes from:
-
-``` text
-client.data.userId
-```
+After 40.68–40.73 (E2EE series), the sequence continues:
+- 40.70 Secret Groups / E2EE Group Messaging
+- 40.71 E2EE Attachments
+- 40.72 E2EE Offline Delivery + Device Revocation + Encrypted Backup/Recovery Tradeoffs
+- 40.73 E2EE Metadata Minimization
+- 40.74 Message Search — Part 2 (Advanced: external engine, ranking) ✅
+- 40.75 Media Pipeline — Part 2 (AV scan, thumbnails, transcoding via BullMQ) ✅
+- 40.76 Background Jobs (BullMQ full set) ✅
+- 40.77 Structured Logging ✅
+- 40.78 Distributed Tracing ✅
+- 40.79 Production Metrics ✅
+- 40.80 1M-User Load Model ✅
+- 40.81 Multi-Instance WebSocket Scaling (node registry + adapter hardening) ✅
+- 40.82–40.100 Scale, Performance, Testing, Production, Backend Feature Freeze (next: 40.82 — load-model-driven DB/query optimisation)
+- 40.101–40.104 Admin / Feature Flags / AI
+- **FRONTEND START GATE**
 
 ------------------------------------------------------------------------
 
-# Current Messaging Architecture
+## Hybrid Messaging Decision (Locked)
 
-Messaging follows command/query separation.
+Nexus uses a hybrid messaging architecture:
 
-### Command services
-
-Used for mutations such as:
-
--   create message
--   update message
--   delete message
--   pin/unpin
--   add/remove reaction
-
-### Query services
-
-Used for:
-
--   fetching messages
--   fetching reaction data
--   reading message state
-
-### Repository layer
-
-Repositories encapsulate Prisma/database access.
-
-Conceptual flow:
-
-``` text
-Gateway
-   ↓
-Command / Query Service
-   ↓
-Validation
-   ↓
-Repository
-   ↓
-Prisma
-   ↓
-PostgreSQL
-```
-
-------------------------------------------------------------------------
-
-# Important Messaging Validation
-
-The channel message validation service includes rules such as:
-
--   message cannot be empty
--   message length is limited to 4000 characters
--   parent/reply target must exist
--   channel/member access must be validated
--   message editing requires author ownership or `MANAGE_MESSAGES`
--   message deletion requires author ownership or `MANAGE_MESSAGES`
--   pinning requires `MANAGE_MESSAGES`
--   channel access requires appropriate server permission
-
-The project has also encountered and corrected argument-order mistakes
-around:
-
-``` text
-ServerPermissionService.hasPermission()
-```
-
-The current signature is:
-
-``` text
-hasPermission(
-  serverId: string,
-  userId: string,
-  permission: ServerPermission,
-  channelId?: string,
-)
-```
-
-Any future calls must preserve this order.
-
-------------------------------------------------------------------------
-
-# Current Reaction System
-
-The reaction system includes:
-
-``` text
-ChannelMessageReactionRepository
-ChannelMessageReactionCommandService
-ChannelMessageReactionQueryService
-```
-
-and WebSocket events for:
-
-``` text
-add-reaction
-remove-reaction
-```
-
-Reaction events are broadcast to channel rooms.
-
-The Prisma reaction model uses `memberId`, not `userId`, for the
-reaction relationship.
-
-This caused previous TypeScript errors where code incorrectly attempted:
-
-``` text
-userId
-```
-
-instead of:
-
-``` text
-memberId
-```
-
-The generated Prisma unique key is based on:
-
-``` text
-messageId_memberId_emoji
-```
-
-not:
-
-``` text
-messageId_userId_emoji
-```
-
-This has already been corrected.
-
-------------------------------------------------------------------------
-
-# Current Redis Service
-
-The shown Redis service uses the Node `redis` package and exposes:
-
-``` text
-getClient()
-get()
-set()
-del()
-exists()
-incr()
-expire()
-```
-
-Redis is intended for:
-
--   rate limiting
--   ephemeral state
--   presence
--   distributed coordination
--   future WebSocket scaling infrastructure
-
-Redis is **not** the durable source of truth for messages.
-
-PostgreSQL remains the durable database.
-
-------------------------------------------------------------------------
-
-# Current Rate-Limit Work
-
-Completed. **40.26 --- WebSocket Rate Limiting & Message Spam
-Protection** is implemented and applied to all mutation events.
-
-The `send-message` gateway flow uses a rate-limit operation conceptually
-like:
-
-``` text
-ws:send-message:{userId}
-```
-
-with:
-
-``` text
-limit: 20
-windowSeconds: 10
-```
-
-The `RedisService` now exposes `incr()` and `expire()`, and
-`WebSocketRateLimitService.consume()` uses them:
-
-``` text
-current = redis.incr(key)
-if (current === 1) redis.expire(key, windowSeconds)
-if (current > limit) throw HttpException(429)
-```
-
-------------------------------------------------------------------------
-
-# Current Rate-Limit Blocker
-
-The project encountered:
-
-``` text
-'"@nestjs/common"' has no exported member named 'TooManyRequestsException'.
-```
-
-The installed NestJS version shown in the project is:
-
-``` text
-@nestjs/common 11.1.27
-```
-
-The rate-limit implementation must therefore use an exception strategy
-supported by the installed NestJS version.
-
-Do not blindly import `TooManyRequestsException`.
-
-------------------------------------------------------------------------
-
-# Current Dependency-Injection History
-
-The project previously encountered NestJS dependency-resolution problems
-around:
-
-``` text
-ChannelMessageGateway
-```
-
-and:
-
-``` text
-ChannelMessageReactionCommandService
-```
-
-The general resolution involved:
-
--   correct provider registration
--   correct module registration
--   correct runtime imports
--   avoiding incorrect `import type` usage for injectable classes
--   using `forwardRef()` where the actual dependency graph requires it
-
-A particularly important previous problem was:
-
-``` text
-Nest can't resolve dependencies of the ChannelMessageReactionCommandService
-(ChannelMessageReactionRepository, ...)
-```
-
-The repository had to be registered as a provider in `MessagesModule`.
-
-------------------------------------------------------------------------
-
-# Current Repository Naming Warning
-
-A previous accidental replacement renamed:
-
-``` text
-ChannelMessageRepository
-```
-
-to:
-
-``` text
-ChannelMessageReactionRepository
-```
-
-inside the message repository file.
-
-This broke imports in:
-
-``` text
-messages.module.ts
-channel-message-command.service.ts
-channel-message-query.service.ts
-channel-message-validation.service.ts
-```
-
-The distinction must remain clear:
-
-``` text
-ChannelMessageRepository
-```
-
-handles messages.
-
-``` text
-ChannelMessageReactionRepository
-```
-
-handles reactions.
-
-Do not merge these responsibilities.
-
-------------------------------------------------------------------------
-
-# Current Prisma State
-
-Prisma version encountered:
-
-``` text
-Prisma CLI 6.16
-```
-
-The project has PostgreSQL as the database.
-
-The reaction schema required explicit opposite relation fields for
-Prisma validation.
-
-Previous Prisma errors involved:
-
-``` text
-User.messageReactions
-ChannelMessageReaction.member
-ServerMember
-```
-
-The final generated client expects the reaction relationship to use the
-server member relationship and the generated composite unique key:
-
-``` text
-messageId_memberId_emoji
-```
-
-------------------------------------------------------------------------
-
-# Current Exact Pause Point
-
-The latest roadmap position is:
-
-``` text
-40.67 — Double Ratchet (Completed)
-```
-
-`src/modules/e2ee-ratchet/` implements the ratchet layer over the 40.66
-sessions: symmetric KDF chains (HKDF/HMAC-SHA256), X25519 DH ratchet
-step, AES-256-GCM message encryption, skipped-message-key cache for
-out-of-order delivery, first-contact DH adoption, and an explicit
-ratchet-step surface. State persists in `E2eeRatchetState` (migration
-`20260831000003_add_e2ee_ratchet_state`). Verification: tsc clean,
-84 Jest suites / 536 tests green, `nest build` ok.
-
-The next objective is **40.68 --- E2EE Message Transport**, which must
-begin with the `@signalapp/libsignal` ADR spike (see
-`docs/e2ee/04-library-selection.md` §5).
-
---------
-
-# Current Task
-
-## 40.67 --- Double Ratchet (Completed)
-
-Implemented:
-
--   **symmetric-chain ratchet** — per-message message keys derived from
-    chain keys via HMAC-SHA256; chains advance and persist on every
-    encrypt/decrypt
--   **DH ratchet step** — real X25519 ECDH against the remote DH public
-    rekeys the root (HKDF-SHA256) and both chains; counters reset;
-    triggered inline on a changed remote key or explicitly via
-    `POST /e2ee/ratchet/step`
--   **message encryption** — AES-256-GCM under per-message keys, header
-    bound as AAD, `iv||tag||data` envelope
--   **skipped message keys** — out-of-order delivery supported via a
-    capped (1000) cache keyed by `(remoteDhPublic, messageNumber)`
--   **bootstrap** — ratchet state bootstraps from the 40.66 session
-    (`E2eeSession.sessionState`), one state row per session; bootstrap
-    chains are symmetric until the real X3DH-derived asymmetric
-    bootstrap arrives with the Signal library (40.68)
--   out of scope (documented, not built) — asymmetric per-side bootstrap
-    from real X3DH output, sealed sender, on-device ratchet custody
-    (server-orchestrated scaffold until the library lands)
-
-Verification: `Found 0 errors` (tsc), 84 Jest suites / 536 tests
-passing (11 new in `e2ee-ratchet-command.service.spec`), `nest build`
-succeeds.
-
-## Next ---- 40.68 E2EE Message Transport
-
-------------------------------------------------------------------------
-
-# What Must Be Verified Now
-
-### 1. Gateway-level pipe
-
-Confirm whether the gateway has a validation pipe applied at gateway
-scope.
-
-The desired architectural result is:
-
-``` text
-@WebSocketGateway(...)
-@UsePipes(WebSocketValidationPipe)
-export class ChannelMessageGateway
-```
-
-If the existing code already applies validation differently, inspect the
-actual file before changing it.
-
-------------------------------------------------------------------------
-
-### 2. DTO metadata
-
-Every `@MessageBody()` payload should resolve to its DTO class.
-
-For example:
-
-``` text
-SendChannelMessageRequest
-```
-
-must not be replaced with:
-
-``` text
-any
-```
-
-or a plain object type.
-
-------------------------------------------------------------------------
-
-### 3. Unknown fields
-
-Payloads containing unexpected fields must fail.
-
-Example:
-
-``` json
-{
-  "channelId": "...",
-  "content": "hello",
-  "unexpectedField": "attack"
-}
-```
-
-should be rejected because:
-
-``` text
-forbidNonWhitelisted: true
-```
-
-is enabled.
-
-------------------------------------------------------------------------
-
-### 4. Invalid UUIDs
-
-DTOs using `@IsUUID()` must reject malformed IDs.
-
-------------------------------------------------------------------------
-
-### 5. Message length
-
-The send-message DTO must enforce the 4000-character limit.
-
-------------------------------------------------------------------------
-
-### 6. Optional parent message
-
-`parentMessageId` must remain optional but, when supplied, must be a
-valid UUID and must subsequently pass the existing parent-message
-existence validation.
-
-------------------------------------------------------------------------
-
-# Next Lecture
-
-After 40.37 is fully verified:
-
-## 40.38 --- Typing Indicators
-
-Focus on:
-
--   ephemeral typing presence per channel: Redis/Socket.IO, debounced and
-    throttled — **no DB writes**
--   scope preserved from B2's absence in its plan: this is inserted from
-    B1 40.26 / concept §44 at the merged position 40.38
--   keep it distinct from presence (40.40) and message delivery state
-    (40.39)
-
-Do not jump directly into unrelated frontend work.
-
-------------------------------------------------------------------------
-
-# Next Major Phase
-
-After WebSocket security is stable:
-
-## 40.30 --- Messaging Integration Tests
-
-The goal is to verify the complete pipeline:
-
-``` text
-WebSocket
-→ authentication
-→ DTO validation
-→ authorization
-→ command service
-→ repository
-→ PostgreSQL
-→ broadcast
-```
-
-Test both success and failure paths.
-
-------------------------------------------------------------------------
-
-# Planned Messaging Sequence After Security
-
-The current backend roadmap continues approximately in this order:
-
-``` text
-40.28.9
-Gateway-Wide WebSocket Validation
-        ↓
-40.29
-WebSocket Security Completion
-        ↓
-40.30
-Messaging Integration Tests
-        ↓
-40.31
-Message History + Cursor Pagination
-        ↓
-40.32
-Reply / Thread Queries
-        ↓
-40.33
-Message Search
-        ↓
-40.34
-Read / Delivery State
-        ↓
-40.35
-Presence
-        ↓
-40.36
-Notifications
-        ↓
-40.37
-Message Attachments
-        ↓
-40.38
-Moderation / Audit
-        ↓
-40.39
-Messaging Performance
-        ↓
-40.40
-Distributed WebSocket Scaling
-        ↓
-40.41
-Server Module Completion
-        ↓
-40.42
-Social Graph
-        ↓
-40.43
-Feed
-        ↓
-40.44
-Authentication / Session Hardening
-        ↓
-40.45
-RBAC Optimization
-        ↓
-40.46
-Advanced Security
-        ↓
-40.47+
-Signal-style E2EE foundation
-```
-
-------------------------------------------------------------------------
-
-# Hybrid Messaging Decision
-
-Nexus uses a hybrid messaging architecture.
-
-The agreed messaging types are:
-
-1.  Cloud-based server/community channels
-2.  Standard cloud-backed direct messages
-3.  Private E2EE direct messages using the Signal Protocol
-4.  Secret/private groups
-
-These are intentionally different security models.
+1. Cloud-based server/community channels
+2. Standard cloud-backed direct messages
+3. Private E2EE direct messages using the Signal Protocol
+4. Secret/private groups
 
 Normal server/community messaging is cloud-backed and server-controlled.
-
-Private E2EE messaging is intended to use a Signal-style cryptographic
-architecture.
-
-The backend must not receive plaintext private E2EE message content.
+Private E2EE messaging is a separate security model — the backend must not receive plaintext private E2EE message content.
 
 ------------------------------------------------------------------------
 
-# E2EE Future Work
+## E2EE Future Work (Post-Transport)
 
-E2EE is planned after the core backend foundations are sufficiently
-stable.
+- 40.77: Structured Logging ✅
+- 40.78: Distributed Tracing ✅
+- 40.79: Production Metrics ✅ (observability track 40.77–40.79 complete)
 
-Future E2EE phases include:
-
--   device registration
--   identity public keys
--   signed prekeys
--   one-time prekeys
--   key bundles
--   encrypted message envelopes
--   encrypted attachments
--   device revocation
--   multi-device support
--   private group encryption
-
-The exact Signal Protocol library/version is:
-
-``` text
-[UNKNOWN]
-```
-
-The exact secret-group cryptographic protocol is:
-
-``` text
-[UNKNOWN]
-```
-
-Do not invent cryptographic primitives or create an ad-hoc replacement
-for Signal Protocol.
+Do not invent cryptographic primitives or create an ad-hoc replacement for Signal Protocol.
 
 ------------------------------------------------------------------------
 
-# Frontend Status
+## Frontend Status
 
-Frontend development has **not started as the active development
-phase**.
-
+Frontend development has **not started as the active development phase**.
 The agreed development strategy is backend-first.
-
-Frontend should begin after the agreed backend milestone is complete and
-the relevant backend contracts are stable.
-
-Previously established frontend implementation order:
-
-``` text
-Authentication
-→ Servers
-→ Roles
-→ Members
-→ Channels
-→ Invites
-→ Messaging
-→ Later modules
-```
-
-Do not start frontend implementation prematurely unless the project
-owner explicitly changes the backend-first decision.
+Frontend should begin after the agreed backend milestone is complete and the relevant backend contracts are stable.
 
 ------------------------------------------------------------------------
 
-# Current Known Blockers / Open Questions
+## Current Known Blockers / Open Questions
 
-## Blocker 1 --- Redis rate limiter — RESOLVED
+### Blocker 1 — E2EE library selection — RESOLVED ✅
+`@signalapp/libsignal-client` ADR spike completed successfully. Library verified for:
+- Node.js runtime (WASM + native prebuilds)
+- X3DH, Double Ratchet, Kyber PQ, Sealed Sender, Sender Keys
+- Wire-compatible Signal Protocol artifacts
+- Active maintenance (v0.101.2, AGPL-3.0-only)
+Ready for 40.68 implementation.
 
-`RedisService` now exposes:
-
-``` text
-incr()
-expire()
-```
-
-and `WebSocketRateLimitService.consume()` uses them (see "Current
-Rate-Limit Work" above).
-
-## Blocker 2 --- Rate-limit exception — RESOLVED
-
-`TooManyRequestsException` is not exported by the installed NestJS
-version. The implementation throws:
-
-``` text
-HttpException('/"Too many requests./"', HttpStatus.TOO_MANY_REQUESTS)
-```
-
-## Open Question 3 --- Exact gateway-wide pipe placement
-
-`WebSocketValidationPipe` is applied at gateway class level:
-
-``` text
-@UsePipes(WebSocketValidationPipe)
-```
-
-## Open Question 4 --- Tests — PARTIALLY RESOLVED
-
-Automated messaging unit/integration scaffolding now exists (9 Jest
-suites, 37 tests) covering pagination, validation, rate limiting,
-repository queries, controller behavior, and gateway flows. Database
-backed end-to-end tests are still [UNKNOWN/not established].
-
-## Open Question 5 --- E2EE library
-
-Signal Protocol implementation library/version:
-
-``` text
-[UNKNOWN]
-```
-
-## Open Question 6 --- Production infrastructure
-
-Exact final production deployment topology:
-
-``` text
-[UNKNOWN]
-```
+### Open Question 2 — Exact production infrastructure
+Exact final production deployment topology: `[UNKNOWN]`
 
 ------------------------------------------------------------------------
 
-# Commands Previously Used
-
-The project has repeatedly used:
+## Commands Previously Used
 
 ``` text
 pnpm start:dev
 ```
 
 The NestJS watcher has been used to catch TypeScript compilation errors.
-
-A successful state has previously shown:
-
-``` text
-Found 0 errors.
-```
+A successful state shows: `Found 0 errors.`
 
 ------------------------------------------------------------------------
 
-# Required Continuation Workflow
+## Required Continuation Workflow
 
 For every next lecture:
-
-1.  Explain what is being built.
-2.  Explain why it belongs at this point.
-3.  Show the exact folder/file path.
-4.  Inspect existing code before modifying it.
-5.  Explain integration with existing services.
-6.  Implement only the current lecture.
-7.  Compile with:
-
-``` text
-pnpm start:dev
-```
-
-8.  Fix only errors caused by the current implementation.
-9.  Test the behavior.
+1. Explain what is being built.
+2. Explain why it belongs at this point.
+3. Show the exact folder/file path.
+4. Inspect existing code before modifying it.
+5. Explain integration with existing services.
+6. Implement only the current lecture.
+7. Compile with: `pnpm start:dev`
+8. Fix only errors caused by the current implementation.
+9. Test the behavior.
 10. Create a focused Git commit.
 
 Do not generate the entire remaining project in one step.
 
 ------------------------------------------------------------------------
 
-# Git Checkpoint
+## Git Checkpoint
 
 The project uses focused commits for implementation milestones.
-
-The exact latest commit hash is:
-
-``` text
-[UNKNOWN]
-```
-
-The next commit should describe the actual completed change rather than
-claiming completion before testing.
+The next commit should describe the actual completed change rather than claiming completion before testing.
 
 ------------------------------------------------------------------------
 
-# Important Rules for the Next AI
+## Important Rules for the Next AI
 
--   Read the project's roadmap/status before continuing.
--   Treat locked architecture decisions as fixed.
--   Do not invent missing code.
--   Ask for the current file when the exact implementation is unknown.
--   Keep message command/query responsibilities separate.
--   Keep message and reaction repositories separate.
--   Keep Redis as an infrastructure/ephemeral layer, not durable message
-    storage.
--   Never trust client-supplied identity or permissions.
--   Validate WebSocket DTOs before executing commands.
--   Authorize channel access before message operations.
--   Preserve the backend-first workflow.
--   Do not begin frontend implementation unless the backend start gate
-    has been reached or explicitly changed.
--   Never expose or store secrets, tokens, passwords, or `.env` values.
+- Read the project's roadmap/status before continuing.
+- Treat locked architecture decisions as fixed.
+- Do not invent missing code.
+- Ask for the current file when the exact implementation is unknown.
+- Keep message command/query responsibilities separate.
+- Keep message and reaction repositories separate.
+- Keep Redis as an infrastructure/ephemeral layer, not durable message storage.
+- Never trust client-supplied identity or permissions.
+- Validate WebSocket DTOs before executing commands.
+- Authorize channel access before message operations.
+- Preserve the backend-first workflow.
+- Do not begin frontend implementation unless the backend start gate has been reached or explicitly changed.
+- Never expose or store secrets, tokens, passwords, or `.env` values.
 
 ------------------------------------------------------------------------
 
-# Immediate Continuation
+## Immediate Continuation
 
-## Completed
+**Next task: 40.82 --- (Load-model-driven DB/query optimisation, next Scale-phase step)**
 
--   Messaging WebSocket event foundation
--   message CRUD events
--   pin/unpin events
--   reaction events
--   reaction query service
--   reaction broadcasting
--   WebSocket authentication/authorization hardening work
--   rate-limit/spam-protection work (Redis `incr`/`expire`)
--   WebSocket DTO layer
--   custom WebSocket validation pipe
--   gateway-wide validation
--   WebSocket error normalization and contract
--   messaging unit + integration test scaffolding
--   **40.31 --- cursor-based message pagination**
--   **40.32 --- message query optimization** (composite indexes + batched
-    reaction counts)
--   **40.33 --- composed thread read model** (parent anchor + enriched
-    bounded replies)
--   **40.34 --- non-destructive edit history** (transactional snapshot
-    trail + history route)
--   **40.35 --- tombstone delete semantics** (deleted content suppressed;
-    thread-parent tombstones)
--   **40.36 --- mentions** (parsing, authorization, anti-abuse cap,
-    indexed mention records; write-path persistence + read-path
-    enrichment)
--   **40.37 --- read / unread state** (per-channel moving cursor with
-    forward-only semantics; derived unread count; no Redis)
--   **40.38 --- typing indicators** (ephemeral Redis presence with expiry,
-    throttled `typing-start`/`typing-stop`, per-channel broadcast
-    excluding the sender)
--   **40.39 --- message delivery state** (explicit `created` ack contract;
-    `message-read` fan-out via the 40.37 cursor; broadcast never treated
-    as read)
-
-## Current task
-
-**40.40 --- Presence Foundation** (next lecture)
-
-## Where we paused
-
-After committing 40.39 (message delivery state) with a green test suite
-(17 suites / 112 tests).
-
-## Blockers
-
--   none blocking from the previous lecture
--   database-backed end-to-end test coverage is still pending
-
-## Next task
-
-**40.40 --- Presence Foundation.**
-
-## First next step
-
-Inspect where presence (online / idle / offline / dnd / last seen)
-belongs:
-
-``` text
-src/modules/messages/gateways/channel-message.gateway.ts
-src/core/redis/redis.service.ts
-src/modules/servers/services/server-member-query.service.ts
-```
-
-and confirm:
-
-1.  which WS lifecycle hook presence state should be driven from
-2.  how Redis presence keys (`user:{id}:presence`) compose with the
-    typing presence keys and the existing rate-limit Redis usage
-3.  what the presence query/broadcast contract should be without touching
-    PostgreSQL on every heartbeat
-
-Only then make the smallest required code change for 40.40.
+The scale/performance/testing/production phase (40.80–40.100) has progressed: **40.80 1M-User Load Model** (`src/core/load-model/`, `GET /load-model` + `GET /load-model/baseline`, `scripts/load/load-baseline.mjs`) and **40.81 Multi-Instance WebSocket Scaling** (`RedisNodeRegistry` node registry + per-instance named adapter clients + graceful shutdown, `GET /instances`) are complete at 89 suites / 578 tests. Next, 40.82 takes the 40.80 baseline and applies the next measured optimisation (e.g. PostgreSQL index/query tuning or connection pooling) using `/load-model/baseline` to confirm improvement; keep the 40.77 redaction, 40.78 trace-id propagation, the 40.79 `/metrics` endpoint, the 40.80 load model, and the 40.81 node registry intact.

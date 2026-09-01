@@ -180,6 +180,17 @@ model User {
   directMessageReadStates DirectMessageReadState[]
 
   e2eeDevices E2eeDevice[]
+  e2eeGroupsCreated E2eeGroup[] @relation("GroupCreator")
+  e2eeGroupMemberships E2eeGroupMember[]
+  e2eeDeviceRevocations E2eeDeviceRevocation[]
+  e2eeEncryptedBackups E2eeEncryptedBackup[]
+  e2eeKeyTransparencyEntries E2eeKeyTransparencyEntry[]
+  e2eeSealedSenderKeys E2eeSealedSenderKey[]
+  e2eePirRequests E2eePirRequest[]
+  e2eeMetadataPolicy E2eeMetadataPolicy?
+  searchQueries SearchQuery[]
+  backgroundJobs BackgroundJob[]
+  backgroundJobSchedules BackgroundJobSchedule[]
 }
 
 model Follow {
@@ -977,6 +988,14 @@ model MessageAttachment {
 
   uploadedBy ServerMember @relation("AttachmentUploads", fields: [uploadedById], references: [id], onDelete: Cascade)
 
+  mediaJobs MediaJob[]
+
+  thumbnail MediaThumbnail?
+
+  transcodes MediaTranscode[]
+
+  avScan MediaAvScan?
+
   @@index([messageId])
   @@index([serverId])
   @@index([channelId, createdAt])
@@ -1267,10 +1286,43 @@ model E2eeDevice {
   oneTimePreKeys E2eeOneTimePreKey[]
   senderSessions   E2eeSession[] @relation("SenderSessions")
   recipientSessions E2eeSession[] @relation("RecipientSessions")
+  sentEnvelopes     E2eeEnvelope[] @relation("EnvelopeSender")
+  receivedEnvelopes E2eeEnvelope[] @relation("EnvelopeRecipient")
+  sentVerifications     E2eeDeviceVerification[] @relation("LocalDeviceVerifications")
+  receivedVerifications E2eeDeviceVerification[] @relation("RemoteDeviceVerifications")
+  groupMemberships E2eeGroupMember[]
+  groupSessions E2eeGroupSession[]
+  sentGroupEnvelopes E2eeGroupEnvelope[]
+  sentAttachments E2eeAttachment[]
+  deliveryQueue E2eeDeliveryQueue[]
+  groupDeliveryQueue E2eeGroupDeliveryQueue[]
+  revocations E2eeDeviceRevocation[]
+  backups E2eeEncryptedBackup[]
+  keyTransparencyEntries E2eeKeyTransparencyEntry[]
+  sealedSenderKeys E2eeSealedSenderKey[]
+  pirRequests E2eePirRequest[]
 
   @@index([userId])
   @@index([userId, isRevoked])
   @@map("e2ee_devices")
+}
+
+model E2eeDeviceVerification {
+  id String @id @default(cuid())
+
+  localDeviceId  String
+  remoteDeviceId String
+
+  verifiedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  localDevice  E2eeDevice @relation("LocalDeviceVerifications", fields: [localDeviceId], references: [id], onDelete: Cascade)
+  remoteDevice E2eeDevice @relation("RemoteDeviceVerifications", fields: [remoteDeviceId], references: [id], onDelete: Cascade)
+
+  @@unique([localDeviceId, remoteDeviceId])
+  @@index([localDeviceId])
+  @@index([remoteDeviceId])
+  @@map("e2ee_device_verifications")
 }
 
 model E2eeSignedPreKey {
@@ -1354,6 +1406,8 @@ model E2eeSession {
   senderDevice   E2eeDevice @relation("SenderSessions", fields: [senderDeviceId], references: [id], onDelete: Cascade)
   recipientDevice E2eeDevice @relation("RecipientSessions", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
   ratchetState E2eeRatchetState?
+  envelopes E2eeEnvelope[]
+  attachments E2eeAttachment[]
 
   @@unique([senderDeviceId, recipientDeviceId])
   @@index([senderDeviceId, isActive])
@@ -1403,4 +1457,1104 @@ model E2eeRatchetState {
   session E2eeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("e2ee_ratchet_states")
+}
+
+enum E2eeEnvelopeType {
+  PRE_KEY
+  SIGNAL
+  SENDER_KEY
+}
+
+enum E2eeEnvelopeStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  EXPIRED
+}
+
+model E2eeEnvelope {
+  id String @id @default(cuid())
+
+  /// The session this envelope belongs to
+  sessionId String
+
+  /// Type of envelope (PRE_KEY for X3DH initiation, SIGNAL for regular ratchet messages, SENDER_KEY for group)
+  type E2eeEnvelopeType
+
+  /// Encrypted ciphertext payload (base64 blob)
+  ciphertext String
+
+  /// Associated data (base64 blob) - includes header, version, etc.
+  associatedData String?
+
+  /// Sender device ID
+  senderDeviceId String
+
+  /// Recipient device ID
+  recipientDeviceId String
+
+  /// Delivery status
+  status E2eeEnvelopeStatus @default(PENDING)
+
+  /// Number of delivery attempts
+  attempts Int @default(0)
+
+  /// Last delivery error
+  lastError String?
+
+  /// Delivered at timestamp
+  deliveredAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session E2eeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  senderDevice   E2eeDevice @relation("EnvelopeSender", fields: [senderDeviceId], references: [id], onDelete: Cascade)
+  recipientDevice E2eeDevice @relation("EnvelopeRecipient", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
+  deliveryQueue E2eeDeliveryQueue[]
+
+  @@index([recipientDeviceId, status])
+  @@index([senderDeviceId])
+  @@index([sessionId])
+  @@map("e2ee_envelopes")
+}
+
+model E2eeGroup {
+  id String @id @default(cuid())
+
+  /// Group name/title
+  name String
+
+  /// Optional description
+  description String?
+
+  /// Creator user ID
+  creatorUserId String
+
+  /// Group avatar
+  avatarUrl String?
+
+  /// Group version for protocol upgrades
+  version Int @default(1)
+
+  /// Whether group is active
+  isActive Boolean @default(true)
+
+  /// Archived at timestamp
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator User @relation("GroupCreator", fields: [creatorUserId], references: [id], onDelete: Cascade)
+  members E2eeGroupMember[]
+  sessions E2eeGroupSession[]
+  envelopes E2eeGroupEnvelope[]
+  attachments E2eeAttachment[]
+
+  @@index([creatorUserId])
+  @@index([isActive])
+  @@map("e2ee_groups")
+}
+
+model E2eeGroupMember {
+  id String @id @default(cuid())
+
+  groupId String
+  userId String
+  deviceId String
+
+  /// Role in group (ADMIN, MEMBER)
+  role String @default("MEMBER")
+
+  /// Whether member is active
+  isActive Boolean @default(true)
+
+  /// Joined at
+  joinedAt DateTime @default(now())
+
+  /// Left at (if applicable)
+  leftAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group E2eeGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, deviceId])
+  @@index([groupId])
+  @@index([userId])
+  @@index([deviceId])
+  @@map("e2ee_group_members")
+}
+
+model E2eeGroupSession {
+  id String @id @default(cuid())
+
+  groupId String
+  deviceId String
+
+  /// Sender key distribution ID (UUID)
+  distributionId String
+
+  /// Sender key chain ID
+  chainId Int @default(0)
+
+  /// Current chain iteration
+  iteration Int @default(0)
+
+  /// Sender key chain key (base64, encrypted with device identity key)
+  chainKey String
+
+  /// Sender key signing key (base64, PKCS8 DER)
+  signingKeyPrivate String?
+
+  /// Sender key signing public key (base64, SPKI DER)
+  signingKeyPublic String?
+
+  /// Whether this session is active
+  isActive Boolean @default(true)
+
+  /// Archived at
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group E2eeGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, deviceId])
+  @@index([groupId])
+  @@index([deviceId])
+  @@map("e2ee_group_sessions")
+}
+
+model E2eeGroupEnvelope {
+  id String @id @default(cuid())
+
+  /// The group this envelope belongs to
+  groupId String
+
+  /// Type of envelope (always SENDER_KEY for group messages)
+  type E2eeEnvelopeType @default(SENDER_KEY)
+
+  /// Encrypted ciphertext payload (base64 blob)
+  ciphertext String
+
+  /// Associated data (base64 blob) - includes header, version, etc.
+  associatedData String?
+
+  /// Sender device ID
+  senderDeviceId String
+
+  /// Delivery status
+  status E2eeEnvelopeStatus @default(PENDING)
+
+  /// Number of delivery attempts
+  attempts Int @default(0)
+
+  /// Last delivery error
+  lastError String?
+
+  /// Delivered at timestamp
+  deliveredAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group E2eeGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderDevice E2eeDevice @relation(fields: [senderDeviceId], references: [id], onDelete: Cascade)
+  deliveryQueue E2eeGroupDeliveryQueue[]
+
+  @@index([groupId, status])
+  @@index([senderDeviceId])
+  @@index([createdAt])
+  @@map("e2ee_group_envelopes")
+}
+
+enum E2eeAttachmentStatus {
+  PENDING
+  UPLOADED
+  FAILED
+  DELETED
+}
+
+model E2eeAttachment {
+  id String @id @default(cuid())
+
+  /// The session this attachment belongs to (for 1:1 E2EE messages)
+  sessionId String?
+
+  /// The group this attachment belongs to (for group E2EE messages)
+  groupId String?
+
+  /// Original file name
+  fileName String
+
+  /// MIME type
+  mimeType String
+
+  /// File size in bytes
+  sizeBytes Int
+
+  /// Storage key in object storage (R2/MinIO)
+  storageKey String @unique
+
+  /// Encrypted file encryption key (base64) - encrypted with session/group key
+  encryptedFileKey String
+
+  /// Encrypted thumbnail key (base64) - if thumbnail exists
+  encryptedThumbnailKey String?
+
+  /// Thumbnail storage key
+  thumbnailStorageKey String?
+
+  /// Thumbnail MIME type
+  thumbnailMimeType String?
+
+  /// Thumbnail size in bytes
+  thumbnailSizeBytes Int?
+
+  /// SHA-256 hash of the encrypted file for integrity verification
+  fileHash String
+
+  /// SHA-256 hash of the encrypted thumbnail
+  thumbnailHash String?
+
+  /// Status
+  status E2eeAttachmentStatus @default(PENDING)
+
+  /// Upload error if failed
+  uploadError String?
+
+  /// Associated message ID (for linking to specific message)
+  messageId String?
+
+  /// Sender device ID
+  senderDeviceId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session E2eeSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  group E2eeGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  senderDevice E2eeDevice @relation(fields: [senderDeviceId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([groupId])
+  @@index([senderDeviceId])
+  @@index([status])
+  @@map("e2ee_attachments")
+}
+
+enum E2eeDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  EXPIRED
+}
+
+model E2eeDeliveryQueue {
+  id String @id @default(cuid())
+
+  /// The envelope to deliver
+  envelopeId String
+
+  /// Target device ID
+  targetDeviceId String
+
+  /// Delivery status
+  status E2eeDeliveryStatus @default(PENDING)
+
+  /// Number of delivery attempts
+  attempts Int @default(0)
+
+  /// Max delivery attempts
+  maxAttempts Int @default(10)
+
+  /// Last delivery error
+  lastError String?
+
+  /// Next retry at
+  nextRetryAt DateTime?
+
+  /// Delivered at
+  deliveredAt DateTime?
+
+  /// Expired at (if delivery failed permanently)
+  expiredAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  envelope E2eeEnvelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  targetDevice E2eeDevice @relation(fields: [targetDeviceId], references: [id], onDelete: Cascade)
+
+  @@index([targetDeviceId, status])
+  @@index([envelopeId])
+  @@index([status, nextRetryAt])
+  @@map("e2ee_delivery_queue")
+}
+
+model E2eeGroupDeliveryQueue {
+  id String @id @default(cuid())
+
+  /// The group envelope to deliver
+  envelopeId String
+
+  /// Target device ID
+  targetDeviceId String
+
+  /// Delivery status
+  status E2eeDeliveryStatus @default(PENDING)
+
+  /// Number of delivery attempts
+  attempts Int @default(0)
+
+  /// Max delivery attempts
+  maxAttempts Int @default(10)
+
+  /// Last delivery error
+  lastError String?
+
+  /// Next retry at
+  nextRetryAt DateTime?
+
+  /// Delivered at
+  deliveredAt DateTime?
+
+  /// Expired at (if delivery failed permanently)
+  expiredAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  envelope E2eeGroupEnvelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  targetDevice E2eeDevice @relation(fields: [targetDeviceId], references: [id], onDelete: Cascade)
+
+  @@index([targetDeviceId, status])
+  @@index([envelopeId])
+  @@index([status, nextRetryAt])
+  @@map("e2ee_group_delivery_queue")
+}
+
+enum E2eeRevocationReason {
+  USER_REQUEST
+  COMPROMISE
+  EXPIRED
+  ADMIN_ACTION
+}
+
+model E2eeDeviceRevocation {
+  id String @id @default(cuid())
+
+  /// The revoked device
+  deviceId String
+
+  /// Reason for revocation
+  reason E2eeRevocationReason
+
+  /// User who initiated revocation
+  initiatedByUserId String
+
+  /// Whether revocation was acknowledged by device owner
+  acknowledged Boolean @default(false)
+
+  /// Revoked at
+  revokedAt DateTime @default(now())
+
+  /// Acknowledged at
+  acknowledgedAt DateTime?
+
+  /// Replacement device ID (if migrated)
+  replacementDeviceId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  initiator User @relation(fields: [initiatedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+  @@index([initiatedByUserId])
+  @@map("e2ee_device_revocations")
+}
+
+enum E2eeBackupStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model E2eeEncryptedBackup {
+  id String @id @default(cuid())
+
+  /// User who owns the backup
+  userId String
+
+  /// Device that created the backup
+  deviceId String
+
+  /// Encrypted backup payload (base64)
+  payload String
+
+  /// Backup version
+  version Int @default(1)
+
+  /// SVR2 recovery password hash (Argon2id)
+  recoveryPasswordHash String?
+
+  /// Backup status
+  status E2eeBackupStatus @default(PENDING)
+
+  /// Error if failed
+  error String?
+
+  /// Created at
+  createdAt DateTime @default(now())
+
+  /// Completed at
+  completedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([status])
+  @@map("e2ee_encrypted_backups")
+}
+
+model E2eeKeyTransparencyEntry {
+  id String @id @default(cuid())
+
+  /// User ID
+  userId String
+
+  /// Device ID
+  deviceId String
+
+  /// Key commitment (base64)
+  commitment String
+
+  /// Epoch/timestamp
+  epoch BigInt
+
+  /// Verified by user
+  verified Boolean @default(false)
+
+  /// Verified at
+  verifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId, epoch])
+  @@index([userId, epoch])
+  @@map("e2ee_key_transparency_entries")
+}
+
+model E2eeSealedSenderKey {
+  id String @id @default(cuid())
+
+  /// User ID who owns this sealed sender key
+  userId String
+
+  /// Device ID that this key belongs to
+  deviceId String
+
+  /// Sealed sender public key (base64)
+  publicKey String
+
+  /// Sealed sender private key (encrypted, base64)
+  encryptedPrivateKey String
+
+  /// Key expiration
+  expiresAt DateTime
+
+  /// Whether this key is active
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([deviceId])
+  @@map("e2ee_sealed_sender_keys")
+}
+
+model E2eePirRequest {
+  id String @id @default(cuid())
+
+  /// User ID making the request
+  userId String
+
+  /// Device ID making the request
+  deviceId String
+
+  /// Encrypted query for PIR (what device/key they're looking for)
+  encryptedQuery String
+
+  /// Server response (encrypted key bundle)
+  encryptedResponse String?
+
+  /// Request status
+  status String @default("PENDING")
+
+  /// Expires at
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([deviceId])
+  @@map("e2ee_pir_requests")
+}
+
+model E2eeMetadataPolicy {
+  id String @id @default(cuid())
+
+  /// User ID this policy applies to
+  userId String @unique
+
+  /// Minimum padding size for envelopes (bytes)
+  minPaddingSize Int @default(256)
+
+  /// Maximum padding size for envelopes (bytes)
+  maxPaddingSize Int @default(1024)
+
+  /// Enable sealed sender for outgoing messages
+  enableSealedSender Boolean @default(true)
+
+  /// Enable PIR for key bundle fetching
+  enablePir Boolean @default(true)
+
+  /// Batch delivery window (ms) - group deliveries to hide timing
+  batchWindowMs Int @default(100)
+
+  /// Minimum batch size for delivery
+  minBatchSize Int @default(5)
+
+  /// Enable group membership hiding
+  hideGroupMembership Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("e2ee_metadata_policies")
+}
+
+model SearchIndex {
+  id String @id @default(cuid())
+
+  /// The type of content indexed (channel_message, direct_message, server, channel, user)
+  contentType String
+
+  /// The ID of the content being indexed
+  contentId String
+
+  /// The server ID this content belongs to (for authorization filtering)
+  serverId String?
+
+  /// The channel ID this content belongs to
+  channelId String?
+
+  /// The author user ID
+  authorId String?
+
+  /// Full-text searchable content (title, content, etc.)
+  searchableText String
+
+  /// Additional metadata for filtering/ranking
+  metadata Json?
+
+  /// Created at
+  createdAt DateTime @default(now())
+
+  /// Updated at
+  updatedAt DateTime @updatedAt
+
+  @@unique([contentType, contentId])
+  @@index([serverId])
+  @@index([channelId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([searchableText])
+  @@map("search_indexes")
+}
+
+model SearchQuery {
+  id String @id @default(cuid())
+
+  /// User who performed the search
+  userId String
+
+  /// The search query text
+  queryText String
+
+  /// Filters applied
+  filters Json?
+
+  /// Number of results returned
+  resultCount Int
+
+  /// Time taken for search (ms)
+  latencyMs Int
+
+  /// Search engine used (meilisearch, postgres, opensearch)
+  engine String
+
+  /// Created at
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([queryText])
+  @@index([engine])
+  @@map("search_queries")
+}
+
+model SearchAnalytics {
+  id String @id @default(cuid())
+
+  /// Date bucket (day precision)
+  date DateTime @db.Date
+
+  /// Search engine
+  engine String
+
+  /// Total searches
+  totalSearches Int @default(0)
+
+  /// Unique users
+  uniqueUsers Int @default(0)
+
+  /// Average latency (ms)
+  avgLatencyMs Float @default(0)
+
+  /// Top queries (JSON array)
+  topQueries Json?
+
+  /// Zero result rate
+  zeroResultRate Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([date, engine])
+  @@index([date])
+  @@index([engine])
+  @@map("search_analytics")
+}
+
+enum MediaProcessingStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum MediaJobType {
+  THUMBNAIL
+  TRANSCODE
+  AV_SCAN
+  WATERMARK
+  METADATA_EXTRACTION
+}
+
+model MediaJob {
+  id String @id @default(cuid())
+
+  /// Related attachment
+  attachmentId String
+
+  /// Type of processing job
+  type MediaJobType
+
+  /// Current status
+  status MediaProcessingStatus @default(PENDING)
+
+  /// Priority (higher = more urgent)
+  priority Int @default(0)
+
+  /// Input parameters (JSON)
+  input Json?
+
+  /// Output results (JSON)
+  output Json?
+
+  /// Error message if failed
+  error String?
+
+  /// Progress percentage (0-100)
+  progress Int @default(0)
+
+  /// Started at
+  startedAt DateTime?
+
+  /// Completed at
+  completedAt DateTime?
+
+  /// Number of retries
+  retries Int @default(0)
+
+  /// Max retries allowed
+  maxRetries Int @default(3)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attachment MessageAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@index([attachmentId])
+  @@index([status])
+  @@index([type, status])
+  @@map("media_jobs")
+}
+
+model MediaProcessingConfig {
+  id String @id @default(cuid())
+
+  /// Config key
+  key String @unique
+
+  /// Config value (JSON)
+  value Json
+
+  /// Description
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("media_processing_configs")
+}
+
+model MediaThumbnail {
+  id String @id @default(cuid())
+
+  /// Source attachment
+  attachmentId String @unique
+
+  /// Thumbnail variants (JSON: { small: { key, width, height }, medium: ..., large: ... })
+  variants Json
+
+  /// Generated at
+  generatedAt DateTime @default(now())
+
+  attachment MessageAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@index([attachmentId])
+  @@map("media_thumbnails")
+}
+
+model MediaTranscode {
+  id String @id @default(cuid())
+
+  /// Source attachment
+  attachmentId String
+
+  /// Resolution variant (e.g., "480p", "720p", "1080p")
+  resolution String
+
+  /// Output storage key
+  storageKey String
+
+  /// Codec used (e.g., "h264", "vp9", "av1")
+  codec String
+
+  /// Bitrate in kbps
+  bitrate Int?
+
+  /// File size in bytes
+  sizeBytes Int?
+
+  /// Duration in seconds
+  duration Float?
+
+  /// Status
+  status MediaProcessingStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attachment MessageAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@unique([attachmentId, resolution])
+  @@index([attachmentId])
+  @@index([status])
+  @@map("media_transcodes")
+}
+
+model MediaAvScan {
+  id String @id @default(cuid())
+
+  /// Scanned attachment
+  attachmentId String @unique
+
+  /// Scan result (clean, infected, suspicious, error)
+  result String
+
+  /// Engine used (clamav, cloudav, etc.)
+  engine String
+
+  /// Threat name if infected
+  threatName String?
+
+  /// Scan duration in ms
+  durationMs Int?
+
+  /// Raw engine output (JSON)
+  rawOutput Json?
+
+  /// Scanned at
+  scannedAt DateTime @default(now())
+
+  attachment MessageAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@index([attachmentId])
+  @@index([result])
+  @@map("media_av_scans")
+}
+
+enum BackgroundJobStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  SCHEDULED
+  RETRYING
+}
+
+enum BackgroundJobPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+model BackgroundJob {
+  id String @id @default(cuid())
+
+  /// Job name/identifier
+  name String
+
+  /// Job queue name
+  queueName String
+
+  /// Job payload (JSON)
+  payload Json
+
+  /// Current status
+  status BackgroundJobStatus @default(PENDING)
+
+  /// Priority level
+  priority BackgroundJobPriority @default(NORMAL)
+
+  /// Number of attempts made
+  attempts Int @default(0)
+
+  /// Maximum retry attempts
+  maxRetries Int @default(3)
+
+  /// Current retry attempt
+  currentRetry Int @default(0)
+
+  /// Scheduled run time (for scheduled jobs)
+  scheduledAt DateTime?
+
+  /// Started at
+  startedAt DateTime?
+
+  /// Completed at
+  completedAt DateTime?
+
+  /// Failed at
+  failedAt DateTime?
+
+  /// Last error message
+  lastError String?
+
+  /// Result data (JSON)
+  result Json?
+
+  /// Progress percentage (0-100)
+  progress Int @default(0)
+
+  /// Cron expression (for recurring jobs)
+  cronExpression String?
+
+  /// Job tags for filtering/grouping
+  tags String[]
+
+  /// Correlation ID for tracing
+  correlationId String?
+
+  /// Idempotency key
+  idempotencyKey String? @unique
+
+  /// User who owns this job
+  userId String?
+
+  /// User relation
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([queueName, status])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([correlationId])
+  @@index([idempotencyKey])
+  @@index([userId])
+  @@map("background_jobs")
+}
+
+model BackgroundJobSchedule {
+  id String @id @default(cuid())
+
+  /// Schedule name
+  name String @unique
+
+  /// Cron expression
+  cronExpression String
+
+  /// Timezone
+  timezone String @default("UTC")
+
+  /// Job name to execute
+  jobName String
+
+  /// Default payload
+  payload Json?
+
+  /// Whether schedule is active
+  isActive Boolean @default(true)
+
+  /// Last run time
+  lastRunAt DateTime?
+
+  /// Next run time
+  nextRunAt DateTime?
+
+  /// Run count
+  runCount Int @default(0)
+
+  /// User who owns this schedule
+  userId String?
+
+  /// User relation
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([nextRunAt])
+  @@index([userId])
+  @@map("background_job_schedules")
+}
+
+model BackgroundJobDeadLetter {
+  id String @id @default(cuid())
+
+  /// Original job ID
+  jobId String
+
+  /// Job name
+  jobName String
+
+  /// Queue name
+  queueName String
+
+  /// Failed payload
+  payload Json
+
+  /// Error message
+  error String
+
+  /// Number of attempts
+  attempts Int
+
+  /// Last error
+  lastError String?
+
+  /// Failed at
+  failedAt DateTime @default(now())
+
+  /// Resolved at
+  resolvedAt DateTime?
+
+  /// Resolution notes
+  resolutionNotes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([jobId])
+  @@index([queueName])
+  @@index([failedAt])
+  @@map("background_job_dead_letters")
+}
+
+model BackgroundJobMetrics {
+  id String @id @default(cuid())
+
+  /// Date bucket (day precision)
+  date DateTime @db.Date
+
+  /// Queue name
+  queueName String
+
+  /// Total jobs processed
+  totalProcessed Int @default(0)
+
+  /// Successful jobs
+  succeeded Int @default(0)
+
+  /// Failed jobs
+  failed Int @default(0)
+
+  /// Cancelled jobs
+  cancelled Int @default(0)
+
+  /// Average processing time (ms)
+  avgProcessingTimeMs Float @default(0)
+
+  /// Peak concurrent jobs
+  peakConcurrent Int @default(0)
+
+  /// Average queue time (ms)
+  avgQueueTimeMs Float @default(0)
+
+  /// Retry rate
+  retryRate Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([date, queueName])
+  @@index([date])
+  @@index([queueName])
+  @@map("background_job_metrics")
 }

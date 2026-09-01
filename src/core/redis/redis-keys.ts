@@ -88,4 +88,8 @@ export const redisKeys = {
   lock: (name: string): string => prefix(`lock:${name}`),
 
   socketIoAdapter: (): string => prefix('socket.io'),
+
+  node: (nodeId: string): string => prefix(`node:${nodeId}`),
+
+  nodesPattern: (): string => `${prefix('node:*')}`,
 };
