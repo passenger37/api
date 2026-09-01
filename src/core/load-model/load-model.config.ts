@@ -44,6 +44,17 @@ export interface AsyncJobModel {
   p99Ms: number;
 }
 
+export interface DbPathModel {
+  /** Short Stable identifier for a tabulated hot read path. */
+  path: string;
+  /** Share of this path's traffic that is a read (0..1). */
+  readRatio: number;
+  /** Share of this path's traffic that is a write (0..1, = 1 - readRatio). */
+  writeRatio: number;
+  /** Expected validity of a cached value in seconds (drives the cache TTL). */
+  stabilitySec: number;
+}
+
 export interface ConnectionLimitModel {
   /** Max persistent (socket.io) connections the gateway should hold. */
   maxConcurrentSockets: number;
@@ -66,6 +77,13 @@ export interface LoadModelSpec {
   connections: ConnectionLimitModel;
   operations: OperationModel[];
   asyncJobs: AsyncJobModel[];
+  /**
+   * Per hot read-path read/write split + value stability. This is the
+   * load-model input the 40.83 cache architecture uses to decide WHAT to cache
+   * ("do not cache everything"): cache stable, read-heavy paths; skip
+   * write-heavy or volatile ones.
+   */
+  db: DbPathModel[];
 }
 
 export const LOAD_MODEL: LoadModelSpec = {
@@ -107,6 +125,20 @@ export const LOAD_MODEL: LoadModelSpec = {
     { job: 'outbox', weightPct: 50, drainRatioMin: 1.5, p99Ms: 2000 },
     { job: 'media', weightPct: 30, drainRatioMin: 1.2, p99Ms: 5000 },
     { job: 'search', weightPct: 20, drainRatioMin: 1.5, p99Ms: 3000 },
+  ],
+  // Per hot read-path read/write split + value stability. Drives the 40.83
+  // cache architecture's "what to cache" decision (read-heavy + stable =
+  // cacheable; write-heavy or volatile = not cached).
+  db: [
+    { path: 'message.history', readRatio: 0.98, writeRatio: 0.02, stabilitySec: 10 },
+    { path: 'dm.open', readRatio: 0.95, writeRatio: 0.05, stabilitySec: 60 },
+    { path: 'server.list', readRatio: 0.99, writeRatio: 0.01, stabilitySec: 300 },
+    { path: 'server.channel', readRatio: 0.98, writeRatio: 0.02, stabilitySec: 300 },
+    { path: 'server.members', readRatio: 0.95, writeRatio: 0.05, stabilitySec: 60 },
+    { path: 'channel.readstate', readRatio: 0.7, writeRatio: 0.3, stabilitySec: 10 },
+    { path: 'search.query', readRatio: 1.0, writeRatio: 0.0, stabilitySec: 60 },
+    { path: 'message.create', readRatio: 0.0, writeRatio: 1.0, stabilitySec: 0 },
+    { path: 'dm.send', readRatio: 0.0, writeRatio: 1.0, stabilitySec: 0 },
   ],
 };
 

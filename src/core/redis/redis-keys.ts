@@ -13,6 +13,21 @@ export const REDIS_TTL = {
   CONNECTION_COUNTER: 86_400,
 } as const;
 
+/**
+ * Lecture 40.83 — Cache Architecture TTL table (seconds) per logical cache.
+ * Mirrors `LoadModelSpec.db[].stabilitySec` — stable, read-heavy paths get
+ * longer TTLs; volatile / write-heavy paths are not cached (cannot be
+ * invalidated reliably at a useful hit-rate).
+ */
+export const CACHE_TTL = {
+  SERVER: 300,
+  SERVER_CHANNEL: 300,
+  SERVER_MEMBER_COUNT: 60,
+  SERVER_MEMBERS_BY_USER: 60,
+  DM_READ: 60,
+  SEARCH_RECENT: 60,
+} as const;
+
 export const REDIS_JOB_LOCK_TTL_MS = 30_000;
 
 export const PERMISSION_INVALIDATE_CHANNEL = prefix(
@@ -92,4 +107,22 @@ export const redisKeys = {
   node: (nodeId: string): string => prefix(`node:${nodeId}`),
 
   nodesPattern: (): string => `${prefix('node:*')}`,
+
+  // --- Lecture 40.83 cache keys ------------------------------------------
+  serverCache: (serverId: string): string => prefix(`cache:server:${serverId}`),
+
+  serverChannelCache: (channelId: string): string =>
+    prefix(`cache:channel:${channelId}`),
+
+  serverMemberCount: (serverId: string): string =>
+    prefix(`cache:server:${serverId}:member-count`),
+
+  serverMembersByUser: (userId: string): string =>
+    prefix(`cache:user:${userId}:servers`),
+
+  dmReadCache: (channelId: string, userId: string): string =>
+    prefix(`cache:dm:${channelId}:${userId}:read`),
+
+  searchRecent: (userId: string): string =>
+    prefix(`cache:user:${userId}:search-recent`),
 };

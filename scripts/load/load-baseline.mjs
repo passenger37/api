@@ -114,7 +114,15 @@ async function main() {
   console.log(`[${optOk ? 'PASS' : 'FAIL'}] db/query optimisation confirmed vs baseline`);
   console.log('');
 
-  console.log(allPass && optOk
+  // Lecture 40.83 — cache architecture coverage of the hot reads.
+  const cache = await json('/load-model/cache');
+  console.log('--- cache architecture (40.83) ---');
+  console.log(`coverage: ${(cache.readCoverage * 100).toFixed(1)}% of modelled read traffic cached`);
+  const cacheOk = cache.readCoverage > 0;
+  console.log(`[${cacheOk ? 'PASS' : 'FAIL'}] cache architecture covering hot reads`);
+  console.log('');
+
+  console.log(allPass && optOk && cacheOk
     ? 'Baseline OK — see /load-model/baseline for full detail. Next: 40.81 optimisations.'
     : 'Baseline outside targets — record as the pre-optimisation baseline and proceed to 40.81.');
 }

@@ -5,10 +5,15 @@ import { ServerMemberRepository } from '../repositories/server-member.repository
 import { GetServerMembersRequest } from '../dto/request/get-server-members.request';
 import { GetServerMembersResponse } from '../dto/response/get-server-members.response';
 import { ServerMemberMapper } from '../mappers/server-member.mapper';
+import { DbCacheService } from '../../../core/cache/db-cache.service';
+import { redisKeys, CACHE_TTL } from '../../../core/redis/redis-keys';
 
 @Injectable()
 export class ServerMemberQueryService {
-  constructor(private readonly memberRepository: ServerMemberRepository) {}
+  constructor(
+    private readonly memberRepository: ServerMemberRepository,
+    private readonly dbCache: DbCacheService,
+  ) {}
 
   async getMember(serverId: string, userId: string): Promise<ServerMember> {
     const member = await this.memberRepository.findByUser(serverId, userId);
@@ -43,7 +48,14 @@ export class ServerMemberQueryService {
   }
 
   async countMembers(serverId: string): Promise<number> {
-    return this.memberRepository.countMembers(serverId);
+    return (
+      (await this.dbCache.remember(
+        'serverMembers',
+        redisKeys.serverMemberCount(serverId),
+        CACHE_TTL.SERVER_MEMBER_COUNT,
+        () => this.memberRepository.countMembers(serverId),
+      )) ?? 0
+    );
   }
 
   async getMembers(

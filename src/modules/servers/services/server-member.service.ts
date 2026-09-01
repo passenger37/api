@@ -4,6 +4,8 @@ import { Prisma } from '@prisma/client';
 import { ServerMemberRepository } from '../repositories/server-member.repository';
 import { ServerRoleRepository } from '../repositories/server-role.repository';
 import { ServerRoleAssignmentRepository } from '../repositories/server-role-assignment.repository';
+import { DbCacheService } from '../../../core/cache/db-cache.service';
+import { redisKeys } from '../../../core/redis/redis-keys';
 
 @Injectable()
 export class ServerMemberService {
@@ -11,10 +13,19 @@ export class ServerMemberService {
     private readonly memberRepository: ServerMemberRepository,
     private readonly roleRepository: ServerRoleRepository,
     private readonly roleAssignmentRepository: ServerRoleAssignmentRepository,
+    private readonly dbCache: DbCacheService,
   ) {}
 
   async getMember(serverId: string, userId: string) {
     return this.memberRepository.findByServerAndUser(serverId, userId);
+  }
+
+  /** Evict the per-server caches affected by a membership change (40.83). */
+  async invalidateMemberCache(serverId: string, userId: string): Promise<void> {
+    await this.dbCache.delMany('serverMembers', [
+      redisKeys.serverMemberCount(serverId),
+      redisKeys.serverMembersByUser(userId),
+    ]);
   }
 
   /**
@@ -75,6 +86,12 @@ export class ServerMemberService {
         );
       }
     }
+
+    // Write-through invalidation (40.83): evict the member-count / servers-by-user
+    // caches so the next read re-populates from the database. Best-effort here
+    // inside the joining transaction; a read racing the commit may briefly see a
+    // stale count, which the short TTL bounds.
+    await this.invalidateMemberCache(serverId, userId);
 
     return member;
   }

@@ -64,6 +64,19 @@ async function main() {
   } else {
     console.log('No measured improvement — tune access paths / indexes and re-run.');
   }
+  console.log('');
+
+  // Lecture 40.83 — cache architecture decision table + read coverage.
+  const cache = await json('/load-model/cache');
+  console.log('--- cache architecture (40.83) ---');
+  console.log(
+    `cached  : ${cache.cacheable.map((d) => `${d.path}@${d.ttlSeconds}s`).join(', ')}`,
+  );
+  console.log(
+    `skipped : ${cache.notCached.map((d) => d.path).join(', ')}`,
+  );
+  console.log(`coverage: ${(cache.readCoverage * 100).toFixed(1)}% of modelled read traffic cached`);
+  console.log(`[${cache.readCoverage > 0 ? 'PASS' : 'FAIL'}] cache architecture covering hot reads`);
 }
 
 main().catch((e) => {
