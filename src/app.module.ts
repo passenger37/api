@@ -9,6 +9,7 @@ import { LoadModelModule } from './core/load-model/load-model.module';
 import { DbQueryOptimizerModule } from './core/db/query-optimizer/db-query-optimizer.module';
 import { CacheModule } from './core/cache/cache.module';
 import { ApiVersioningModule } from './core/api-versioning/api-versioning.module';
+import { ContractsModule } from './core/contracts/contracts.module';
 import { HealthModule } from './modules/health/heath.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptors/reesponse.interceptor';
