@@ -6,6 +6,7 @@ import { TracingModule } from './core/tracing/tracing.module';
 import { MetricsModule } from './core/metrics/metrics.module';
 import { HttpMetricsInterceptor } from './core/metrics/metrics.interceptor';
 import { LoadModelModule } from './core/load-model/load-model.module';
+import { DbQueryOptimizerModule } from './core/db/query-optimizer/db-query-optimizer.module';
 import { HealthModule } from './modules/health/heath.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptors/reesponse.interceptor';
@@ -37,6 +38,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
     AppLoggerModule,
     MetricsModule,
     LoadModelModule,
+    DbQueryOptimizerModule,
     HealthModule,
     UsersModule,
     AuthModule,

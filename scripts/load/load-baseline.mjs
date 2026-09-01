@@ -103,7 +103,19 @@ async function main() {
     if (!ok) allPass = false;
   }
   console.log('');
-  console.log(allPass ? 'Baseline OK — see /load-model/baseline for full detail. Next: 40.81 optimisations.'
+
+  // Lecture 40.82 — confirm the load-model-driven DB/query optimisation shows a
+  // measured improvement against the 40.80 baseline.
+  const opt = await json('/load-model/optimiser');
+  console.log('--- load-model-driven query optimiser (40.82) ---');
+  console.log(`rows/sec ${opt.totals.baselineRowsPerSec} -> ${opt.totals.optimisedRowsPerSec} (${(opt.totals.reduction * 100).toFixed(1)}% fewer)`);
+  console.log(`withinSLO: ${opt.totals.allWithinSlo ? 'PASS' : 'FAIL'}  improved: ${opt.improved ? 'PASS' : 'FAIL'}`);
+  const optOk = opt.improved && opt.totals.allWithinSlo;
+  console.log(`[${optOk ? 'PASS' : 'FAIL'}] db/query optimisation confirmed vs baseline`);
+  console.log('');
+
+  console.log(allPass && optOk
+    ? 'Baseline OK — see /load-model/baseline for full detail. Next: 40.81 optimisations.'
     : 'Baseline outside targets — record as the pre-optimisation baseline and proceed to 40.81.');
 }
 
