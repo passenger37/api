@@ -4,7 +4,7 @@
 
 > **Purpose:** This document is the standalone backend engineering roadmap for Nexus. It is intended to allow development to continue without depending on the original ChatGPT conversation.
 
-> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** Implementation has advanced well beyond the low lecture numbers described below. The messaging/realtime series is **COMPLETED through Lecture 40.81 - Multi-Instance WebSocket Scaling** (master B2 40.71 / PHASE 40 in this document), advancing the Scale phase (40.80–40.100). Implemented and shipped: the `/messages` gateway suite, WS error contract + exception filter, connection/auth guard + rate limiting, cursor pagination & history, read/unread state, typing, Redis-backed presence, reconnect/missed-event sync, idempotent sending, attachments, mentions, search part 1 & part 2 (MeiliSearch), transactional outbox, negative/security tests, CQRS/repository/mapper hardening, security hardening, the **Redis socket.io adapter foundation**, the full Direct Message Domain (`src/modules/direct-messages/` — `/dm` REST + `dm-open|send|sync|read` WS events, rooms `dm:${channelId}`), the E2EE series (40.63–40.73), Message Search Part 2 (`src/modules/search/`), Media Pipeline Part 2 (`src/modules/media/`), Background Jobs (`src/modules/jobs/`), Structured Logging (`src/core/logger/`), Distributed Tracing (`src/core/tracing/`), Production Metrics (`src/core/metrics/`), the 1M-User Load Model (`src/core/load-model/` + `scripts/load/load-baseline.mjs`), and Multi-Instance WebSocket Scaling (`src/core/redis/redis-node-registry.ts` + `RedisIoAdapter` per-instance named clients + graceful shutdown). **Current lecture: 40.87 (Database Integration Tests, next Scale-phase step)** (B2 40.77). **Completed: 40.86 API & WebSocket Contract Tests** `src/core/contracts/` ContractManifest + ContractManifestService (98 suites / 633 tests green). The lecture-lists and status sections (18, 19, 20) below are updated accordingly; per-lecture feature bodies above them remain reference notes.
+> **Status (synced with `PROJECT_DETAIL.md`, the live master roadmap):** Implementation has advanced well beyond the low lecture numbers described below. The messaging/realtime series is **COMPLETED through Lecture 40.81 - Multi-Instance WebSocket Scaling** (master B2 40.71 / PHASE 40 in this document), advancing the Scale phase (40.80–40.100). Implemented and shipped: the `/messages` gateway suite, WS error contract + exception filter, connection/auth guard + rate limiting, cursor pagination & history, read/unread state, typing, Redis-backed presence, reconnect/missed-event sync, idempotent sending, attachments, mentions, search part 1 & part 2 (MeiliSearch), transactional outbox, negative/security tests, CQRS/repository/mapper hardening, security hardening, the **Redis socket.io adapter foundation**, the full Direct Message Domain (`src/modules/direct-messages/` — `/dm` REST + `dm-open|send|sync|read` WS events, rooms `dm:${channelId}`), the E2EE series (40.63–40.73), Message Search Part 2 (`src/modules/search/`), Media Pipeline Part 2 (`src/modules/media/`), Background Jobs (`src/modules/jobs/`), Structured Logging (`src/core/logger/`), Distributed Tracing (`src/core/tracing/`), Production Metrics (`src/core/metrics/`), the 1M-User Load Model (`src/core/load-model/` + `scripts/load/load-baseline.mjs`), and Multi-Instance WebSocket Scaling (`src/core/redis/redis-node-registry.ts` + `RedisIoAdapter` per-instance named clients + graceful shutdown). **Current lecture: 40.88 (Redis Integration Tests, next Scale-phase step)** (B2 40.78). **Completed: 40.87 Database Integration Tests** `src/testing/db/` (opt-in real-PostgreSQL harness + `npm run test:db`; six `.db-int` suites over transactions/repository/constraints/authorization/message & reaction lifecycle) (default suite 98 / 633 green; `test:db` 6 / 19 green). The lecture-lists and status sections (18, 19, 20) below are updated accordingly; per-lecture feature bodies above them remain reference notes.
 
 ---
 
@@ -2804,7 +2804,8 @@ Do not:
 40.84 — API Versioning / Evolution (`src/core/api-versioning/`, `GET /v1/api` & `GET /v2/api`)  (completed)
 40.85 — OpenAPI/Swagger Hardening (`buildSwaggerConfig`, `VALIDATION_PIPE_OPTIONS`)  (completed)
 40.86 — API & WebSocket Contract Tests (`src/core/contracts/` `ContractManifest`)  (completed)
-40.87 — Database Integration Tests  (current)
+40.87 — Database Integration Tests (`src/testing/db/` `npm run test:db`)  (completed)
+40.88 — Redis Integration Tests  (current)
 ```
 
 The backend now contains everything listed in the original milestone plus all subsequent shipped work:
@@ -2922,7 +2923,10 @@ OpenAPI/Swagger Hardening (completed)
 API & WebSocket Contract Tests (completed)
         ↓
 40.87
-Database Integration Tests [NEXT/CURRENT]
+Database Integration Tests (completed)
+        ↓
+40.88
+Redis Integration Tests [NEXT/CURRENT]
 ```
 
 Continue through the scale/perf/testing/production phases (40.80 onward) defined above — re-run `scripts/load/load-baseline.mjs` after each 40.82+ optimisation to confirm improvement against the 40.80 baseline.

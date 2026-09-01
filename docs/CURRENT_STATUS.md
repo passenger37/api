@@ -27,10 +27,10 @@ with server-based collaboration and a hybrid messaging architecture.
 The immediate continuation point is now:
 
 ``` text
-40.86 Completed → verify → 40.87 (next Scale-phase step: Database Integration Tests)
+40.87 Completed → verify → 40.88 (next Scale-phase step: Redis Integration Tests)
 ```
 
-The authoritative position is `PROJECT_DETAIL.md` §4. The messaging/realtime series through 40.86 (incl. E2EE, search Pt.2, media Pt.2, background jobs, structured logging, distributed tracing, production metrics, the 1M-user load model, multi-instance WebSocket hardening, load-model-driven DB/query optimisation, the Redis-backed cache architecture, API versioning/evolution, OpenAPI/Swagger hardening, and API & WebSocket contract tests) are complete with a green automated test suite. This advances the Scale phase (40.80–40.100).
+The authoritative position is `PROJECT_DETAIL.md` §4. The messaging/realtime series through 40.87 (incl. E2EE, search Pt.2, media Pt.2, background jobs, structured logging, distributed tracing, production metrics, the 1M-user load model, multi-instance WebSocket hardening, load-model-driven DB/query optimisation, the Redis-backed cache architecture, API versioning/evolution, OpenAPI/Swagger hardening, API & WebSocket contract tests, and Database Integration Tests) are complete with a green automated test suite. This advances the Scale phase (40.80–40.100).
 
 ------------------------------------------------------------------------
 
@@ -134,9 +134,9 @@ Full-horizontal-scaling readiness for the WebSocket layer, hardening the 40.61 R
 
 ## Next Task
 
-## The cache, API versioning / evolution, OpenAPI/Swagger hardening, and API & WebSocket contract tests are COMPLETE.
+## The cache, API versioning / evolution, OpenAPI/Swagger hardening, API & WebSocket contract tests, and Database Integration Tests are COMPLETE.
 
-## 40.86 --- API & WebSocket Contract Tests --- COMPLETED (`src/core/contracts/` — runtime `ContractManifest` "disallow-list" aggregating version/deprecation/WS-envelope/validation/error-frame invariants + `ContractManifestService` + `contract-manifest.spec.ts`; extended `ws-envelope.spec.ts`). Next task: 40.87 (Database Integration Tests).
+## 40.87 --- Database Integration Tests --- COMPLETED (`src/testing/db/` — opt-in real-PostgreSQL harness + `npm run test:db`; six `*.db-int.spec.ts` suites over transactions, repository, constraints, authorization, message lifecycle, reaction lifecycle). Next task: 40.88 (Redis Integration Tests).
 
 ------------------------------------------------------------------------
 
@@ -160,7 +160,8 @@ After 40.68–40.73 (E2EE series), the sequence continues:
 - 40.84 API Versioning / Evolution (`src/core/api-versioning/`, `GET /v1/api` & `GET /v2/api`, `ws-envelope`) ✅
 - 40.85 OpenAPI/Swagger Hardening (`buildSwaggerConfig`, `VALIDATION_PIPE_OPTIONS`) ✅
 - 40.86 API & WebSocket Contract Tests (`src/core/contracts/` `ContractManifest`) ✅
-- 40.87–40.100 Scale, Performance, Testing, Production, Backend Feature Freeze (next: 40.87 — Database Integration Tests)
+- 40.87 Database Integration Tests (`src/testing/db/`, `npm run test:db`) ✅
+- 40.88–40.100 Scale, Performance, Testing, Production, Backend Feature Freeze (next: 40.88 — Redis Integration Tests)
 - 40.101–40.104 Admin / Feature Flags / AI
 - **FRONTEND START GATE**
 
@@ -269,6 +270,6 @@ The next commit should describe the actual completed change rather than claiming
 
 ## Immediate Continuation
 
-**Next task: 40.87 — (Database Integration Tests, next Scale-phase step).** 40.86 is complete.
+**Next task: 40.88 — (Redis Integration Tests, next Scale-phase step).** 40.87 is complete.
 
-The scale/performance/testing/production phase (40.80–40.100) has progressed: **40.80 1M-User Load Model** (`src/core/load-model/`, `GET /load-model` + `GET /load-model/baseline`, `scripts/load/load-baseline.mjs`), **40.81 Multi-Instance WebSocket Scaling** (`RedisNodeRegistry` + per-instance named adapter clients + graceful shutdown, `GET /instances`), **40.82 Load-model-driven DB/query optimisation** (`src/core/db/query-optimizer/` + `GET /load-model/optimiser` + `add_query_index_strategy_phase3` partial indexes), **40.83 Cache Architecture** (`src/core/cache/` — `DbCacheService` Redis cache-aside with TTL + hit/miss metrics, `CacheArchitectureService` deciding what/why/TTL/invalidation/consistency from the load model's `db` read/write split, `GET /load-model/cache`; cache keys + `CACHE_TTL` in `redis-keys.ts`; server-member-count read path wired with write-through invalidation on join; runner captures in `scripts/load/query-optimiser.mjs` / `scripts/load/load-baseline.mjs`), **40.84 API Versioning / Evolution** (`src/core/api-versioning/` — data-driven `ApiVersionControlService` + registry, app-wide `DeprecationHeaderInterceptor` attaching `Deprecation`/`Sunset`/`Link` to `/v1`, `GET /v1/api` & `GET /v2/api` co-existence, backward-compatible `ws-envelope.ts` for WS event evolution), **40.85 OpenAPI/Swagger Hardening** (`src/config/swagger/` `buildSwaggerConfig(version)` with tags/servers/security and `info.version` tied to the API version; `src/config/validation/` strict `VALIDATION_PIPE_OPTIONS`; removed dead `src/prisma.controller.ts`), and **40.86 API & WebSocket Contract Tests** (`src/core/contracts/` — runtime `ContractManifest` "disallow-list" aggregating version/deprecation/WS-envelope/validation/error-frame invariants, `ContractManifestService`, `contract-manifest.spec.ts`) are complete at 98 suites / 633 tests. Every 40.82+ change keeps the 40.77 redaction, 40.78 trace-id propagation, the 40.79 `/metrics` endpoint, the 40.80 load model, and the 40.81 node registry intact, and is confirmed by re-running `scripts/load/load-baseline.mjs` / `scripts/load/query-optimiser.mjs`.
+The scale/performance/testing/production phase (40.80–40.100) has progressed: **40.80 1M-User Load Model** (`src/core/load-model/`, `GET /load-model` + `GET /load-model/baseline`, `scripts/load/load-baseline.mjs`), **40.81 Multi-Instance WebSocket Scaling** (`RedisNodeRegistry` + per-instance named adapter clients + graceful shutdown, `GET /instances`), **40.82 Load-model-driven DB/query optimisation** (`src/core/db/query-optimizer/` + `GET /load-model/optimiser` + `add_query_index_strategy_phase3` partial indexes), **40.83 Cache Architecture** (`src/core/cache/` — `DbCacheService` Redis cache-aside with TTL + hit/miss metrics, `CacheArchitectureService` deciding what/why/TTL/invalidation/consistency from the load model's `db` read/write split, `GET /load-model/cache`; cache keys + `CACHE_TTL` in `redis-keys.ts`; server-member-count read path wired with write-through invalidation on join; runner captures in `scripts/load/query-optimiser.mjs` / `scripts/load/load-baseline.mjs`), **40.84 API Versioning / Evolution** (`src/core/api-versioning/` — data-driven `ApiVersionControlService` + registry, app-wide `DeprecationHeaderInterceptor` attaching `Deprecation`/`Sunset`/`Link` to `/v1`, `GET /v1/api` & `GET /v2/api` co-existence, backward-compatible `ws-envelope.ts` for WS event evolution), **40.85 OpenAPI/Swagger Hardening** (`src/config/swagger/` `buildSwaggerConfig(version)` with tags/servers/security and `info.version` tied to the API version; `src/config/validation/` strict `VALIDATION_PIPE_OPTIONS`; removed dead `src/prisma.controller.ts`), and **40.86 API & WebSocket Contract Tests** (`src/core/contracts/` — runtime `ContractManifest` "disallow-list" aggregating version/deprecation/WS-envelope/validation/error-frame invariants, `ContractManifestService`, `contract-manifest.spec.ts`), and **40.87 Database Integration Tests** (`src/testing/db/` - an opt-in real-PostgreSQL harness that creates a throwaway schema per run and pushes the Prisma schema into it, plus six `*.db-int.spec.ts` suites covering transactions, the message repository, DB constraints, authorization, message lifecycle, and reaction lifecycle; run via `npm run test:db`) are complete. The default unit suite stands at 98 suites / 633 tests (the `.db-int` specs are excluded via `testPathIgnorePatterns` so CI needs no DB); the opt-in `npm run test:db` runs 6 suites / 19 tests against a real local PostgreSQL. Every 40.82+ change keeps the 40.77 redaction, 40.78 trace-id propagation, the 40.79 `/metrics` endpoint, the 40.80 load model, and the 40.81 node registry intact, and is confirmed by re-running `scripts/load/load-baseline.mjs` / `scripts/load/query-optimiser.mjs`.
