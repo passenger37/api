@@ -264,8 +264,8 @@ PHASE 17 React Native (Mobile)
 8. **40.38** Typing Indicators — completed (ephemeral Redis presence with 10 s TTL; throttled `typing-start`/`typing-stop`; per-channel broadcast excluding the sender; no DB writes, no schema change).
 9. **40.39** Message Delivery State — completed (explicit `created` ack on send; `message-read` WS fan-out routed through the 40.37 read cursor; broadcast never conflated with read; no per-message read rows).
 10. **40.40** Presence Foundation — completed (Redis `user:{id}:presence`, online/idle/offline/dnd/invisible, socket-lifecycle driven).
-11. **40.41–40.81** — completed sequentially through §4.1–§4.7 as tabulated above, ending with E2EE Metadata Minimization (`src/modules/e2ee-metadata/`), Message Search Pt.2 (`src/modules/search/` MeiliSearch), Media Pipeline Pt.2 (`src/modules/media/`), Background Jobs (`src/modules/jobs/` BullMQ full set), Structured Logging (`src/core/logger/` pino redaction + `StructuredLogger` helper), Distributed Tracing (`src/core/tracing/` ALS `TraceService` + `TraceMiddleware`), Production Metrics (`src/core/metrics/` `MetricsService` + `GET /metrics`), the 1M-User Load Model (`src/core/load-model/` + `scripts/load/load-baseline.mjs`), and Multi-Instance WebSocket Scaling (`src/core/redis/redis-node-registry.ts` + adapter hardening), advancing the Scale phase (40.80–40.100).
-12. Continue sequentially through **§4.8**; next is **40.82 — (Load-model-driven DB/query optimisation, next Scale-phase step)**.
+11. **40.41–40.82** — completed sequentially through §4.1–§4.7 as tabulated above, ending with E2EE Metadata Minimization (`src/modules/e2ee-metadata/`), Message Search Pt.2 (`src/modules/search/` MeiliSearch), Media Pipeline Pt.2 (`src/modules/media/`), Background Jobs (`src/modules/jobs/` BullMQ full set), Structured Logging (`src/core/logger/` pino redaction + `StructuredLogger` helper), Distributed Tracing (`src/core/tracing/` ALS `TraceService` + `TraceMiddleware`), Production Metrics (`src/core/metrics/` `MetricsService` + `GET /metrics`), the 1M-User Load Model (`src/core/load-model/` + `scripts/load/load-baseline.mjs`), Multi-Instance WebSocket Scaling (`src/core/redis/redis-node-registry.ts` + adapter hardening), and Load-model-driven DB/query optimisation (`src/core/db/query-optimizer/` + `GET /load-model/optimiser`), advancing the Scale phase (40.80–40.100).
+12. Continue sequentially through **§4.8**; next is **40.83 — (next Scale-phase step, e.g. cache architecture / testing)**.
 8. Satisfy the Backend Completion Gate (§4, end).
 9. Open frontend start gate → Phase F0 onward.
 
@@ -289,11 +289,11 @@ For each lecture: briefing before coding (why, how, drawbacks, fit, alternatives
 
 ## 9. Next Immediate Action
 
-**Lecture 40.82 — Load-model-driven DB/query optimisation (next Scale-phase step).**
+**Lecture 40.83 — (next Scale-phase step, e.g. cache architecture / further query optimisation).** 40.82 is complete.
 
-Briefing required before implementation:
-- **Why:** 40.80 (1M-User Load Model) and 40.81 (Multi-Instance WebSocket Scaling, `src/core/redis/redis-node-registry.ts` + adapter hardening) are complete at 89 Jest suites / 578 tests, with the 40.80 load model + `/load-model/baseline` as the measurement harness. The Scale phase continues by applying targeted optimisations and proving them against that baseline.
-- **How:** pick the next bottleneck the 40.80 baseline suggests (e.g. PostgreSQL index/query tuning, connection pooling, or pagination depth) and re-run `scripts/load/load-baseline.mjs` to confirm measured improvement. This is the horizontal-scaling follow-on to the multi-instance WS work in 40.81.
-- **Integration:** keep the 40.77 "never log" redaction, the 40.78 trace-id propagation, the 40.79 `/metrics` endpoint, the 40.80 load model, and the 40.81 node registry intact; every 40.82+ change is validated by re-running `scripts/load/load-baseline.mjs`.
+**Lecture 40.82 — Load-model-driven DB/query optimisation — COMPLETED**
+- **Why:** 40.80 (1M-User Load Model) and 40.81 (Multi-Instance WebSocket Scaling, `src/core/redis/redis-node-registry.ts` + adapter hardening) are complete, with the 40.80 load model + `/load-model/baseline` as the measurement harness. The Scale phase continues by applying targeted optimisations and proving them against that baseline.
+- **How:** implemented a load-model-driven query optimizer (`src/core/db/query-optimizer/`) that registers the hot query paths, selects the cheapest index/access path per path from the modelled peak ops/sec + latency SLOs, and exposes `GET /load-model/optimiser` with the projected rows-per-second reduction vs the 40.80-style baseline. Added additive raw-SQL partial indexes (`add_query_index_strategy_phase3`) for the E2EE delivery queue, E2EE envelope pickup, and background-job ready pickup; added `scripts/load/query-optimiser.mjs` and a `load-model/optimiser` capture in `scripts/load/load-baseline.mjs` to confirm improvement.
+- **Integration:** kept the 40.77 "never log" redaction, the 40.78 trace-id propagation, the 40.79 `/metrics` endpoint, the 40.80 load model, and the 40.81 node registry intact; every 40.82+ change is validated by re-running `scripts/load/load-baseline.mjs` / `scripts/load/query-optimiser.mjs`. Verified 90 Jest suites / 587 tests green, tsc 0 errors, nest build clean.
 
-Proceed after briefing approval. **Next lecture after this: 40.83 (further Scale-phase step / testing).**
+**Next lecture after this: 40.83 (further Scale-phase step / testing).
