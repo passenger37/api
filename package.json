@@ -19,7 +19,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "test:db": "jest --config ./jest-db.json --runInBand",
-    "test:redis": "jest --config ./jest-redis.json --runInBand"
+    "test:redis": "jest --config ./jest-redis.json --runInBand",
+    "test:failures": "jest --config ./jest-failures.json --runInBand"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
@@ -106,7 +107,8 @@
     "testPathIgnorePatterns": [
       ".*\\.db-int\\.spec\\.ts$",
       ".*\\.red-is\\.spec\\.ts$",
-      ".*\\.e2e-spec\\.ts$"
+      ".*\\.e2e-spec\\.ts$",
+      ".*\\.fail-inj\\.spec\\.ts$"
     ],
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"

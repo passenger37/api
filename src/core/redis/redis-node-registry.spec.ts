@@ -12,6 +12,7 @@ describe('RedisNodeRegistry', () => {
 
   const redis = {
     getClient: jest.fn().mockReturnValue(client),
+    waitUntilReady: jest.fn().mockResolvedValue(undefined),
   } as unknown as RedisService;
 
   beforeEach(() => {

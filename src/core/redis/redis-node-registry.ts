@@ -86,6 +86,9 @@ export class RedisNodeRegistry implements OnModuleInit, OnModuleDestroy {
 
   /** Publish/refresh this node's record with a fresh heartbeat TTL. */
   async register(): Promise<void> {
+    // The registry's onModuleInit runs concurrently with RedisService's own;
+    // wait for readiness so the first write is not rejected mid-boot.
+    await this.redis.waitUntilReady();
     const client = this.redis.getClient();
     await client.set(
       redisKeys.node(this.nodeId),

@@ -1,0 +1,15 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testRegex": "(src/testing/failure|test)/.*\\.fail-inj\\.spec\\.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "transformIgnorePatterns": ["node_modules/(?!(@signalapp|\\.pnpm.*@signalapp|uuid|socket.io))/"],
+  "moduleNameMapper": {
+    "^@signalapp/libsignal-client$": "<rootDir>/test/__mocks__/libsignal-client.ts",
+    "^src/(.*)$": "<rootDir>/src/$1"
+  },
+  "testEnvironment": "node",
+  "testTimeout": 120000
+}
