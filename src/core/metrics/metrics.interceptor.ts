@@ -24,11 +24,14 @@ export class HttpMetricsInterceptor implements NestInterceptor {
     }
 
     const http = context.switchToHttp();
-    const request = http.getRequest<Request & { route?: { path?: string } }>();
+    const request = http.getRequest<Request>();
     const response = http.getResponse<Response>();
 
-    const routePath = request.route?.path || request.path || 'unknown';
-    const method = request.method || 'UNKNOWN';
+    const routePath =
+      (request.route as { path?: string } | undefined)?.path ||
+      request.url?.split('?')[0] ||
+      'unknown';
+    const method = request.method ?? 'UNKNOWN';
 
     const start = Date.now();
     response.on('finish', () => {
@@ -36,11 +39,25 @@ export class HttpMetricsInterceptor implements NestInterceptor {
       const status = response.statusCode;
       const statusClass = `${Math.floor(status / 100)}xx`;
 
-      this.metrics.increment('http_requests_total', { method, route: routePath, status: String(status) });
-      this.metrics.increment('http_requests_by_status_class', { method, statusClass });
-      this.metrics.observeDuration('http_request_duration_ms', durationMs, { method, route: routePath });
+      this.metrics.increment('http_requests_total', {
+        method,
+        route: routePath,
+        status: String(status),
+      });
+      this.metrics.increment('http_requests_by_status_class', {
+        method,
+        statusClass,
+      });
+      this.metrics.observeDuration('http_request_duration_ms', durationMs, {
+        method,
+        route: routePath,
+      });
       if (status >= 500) {
-        this.metrics.increment('http_errors_total', { method, route: routePath, status: String(status) });
+        this.metrics.increment('http_errors_total', {
+          method,
+          route: routePath,
+          status: String(status),
+        });
       }
     });
 

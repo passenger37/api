@@ -11,7 +11,9 @@ interface HistogramMetric {
   values: Map<string, { sum: number; count: number; byBucket: number[] }>;
 }
 
-const DEFAULT_HISTOGRAM_BUCKETS = [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000];
+const DEFAULT_HISTOGRAM_BUCKETS = [
+  5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000,
+];
 
 /**
  * Lightweight in-memory metrics store exposing Prometheus-style counters and
@@ -63,7 +65,7 @@ export class MetricsService {
     entry.sum += value;
     entry.count += 1;
     if (entry.byBucket.length === 0) {
-      entry.byBucket = new Array(hist.buckets.length).fill(0);
+      entry.byBucket = new Array<number>(hist.buckets.length).fill(0);
     }
     for (let i = 0; i < hist.buckets.length; i++) {
       if (value <= hist.buckets[i]) {
@@ -108,8 +110,7 @@ export class MetricsService {
         const prevCumulative = cumulative;
         cumulative += entry.byBucket[i];
         if (cumulative >= target && entry.byBucket[i] > 0) {
-          const width =
-            hist.buckets[i] - (i > 0 ? hist.buckets[i - 1] : 0);
+          const width = hist.buckets[i] - (i > 0 ? hist.buckets[i - 1] : 0);
           const into = target - prevCumulative;
           const frac = Math.min(1, Math.max(0, into / entry.byBucket[i]));
           valueMs = (i > 0 ? hist.buckets[i - 1] : 0) + frac * width;
@@ -130,7 +131,11 @@ export class MetricsService {
   aggregatePercentiles(
     name: string,
     percentiles: number[] = [50, 95, 99],
-  ): { count: number; sum: number; percentiles: Array<{ percentile: number; valueMs: number }> } | null {
+  ): {
+    count: number;
+    sum: number;
+    percentiles: Array<{ percentile: number; valueMs: number }>;
+  } | null {
     const hist = this.histograms.get(name);
     if (!hist) return null;
     const n = hist.buckets.length;
@@ -142,7 +147,12 @@ export class MetricsService {
       sum += entry.sum;
       for (let i = 0; i < n; i++) counts[i] += entry.byBucket[i];
     }
-    if (count === 0) return { count: 0, sum: 0, percentiles: percentiles.map((p) => ({ percentile: p, valueMs: 0 })) };
+    if (count === 0)
+      return {
+        count: 0,
+        sum: 0,
+        percentiles: percentiles.map((p) => ({ percentile: p, valueMs: 0 })),
+      };
 
     const result = percentiles.map((p) => {
       const target = (p / 100) * count;
@@ -153,7 +163,10 @@ export class MetricsService {
         cumulative += counts[i];
         if (cumulative >= target && counts[i] > 0) {
           const width = hist.buckets[i] - (i > 0 ? hist.buckets[i - 1] : 0);
-          const frac = Math.min(1, Math.max(0, (target - prevCumulative) / counts[i]));
+          const frac = Math.min(
+            1,
+            Math.max(0, (target - prevCumulative) / counts[i]),
+          );
           valueMs = (i > 0 ? hist.buckets[i - 1] : 0) + frac * width;
           break;
         }
@@ -161,6 +174,37 @@ export class MetricsService {
       return { percentile: p, valueMs: Number(valueMs.toFixed(2)) };
     });
     return { count, sum, percentiles: result };
+  }
+
+  /**
+   * Enumerate the distinct label sets recorded on a histogram (used by the
+   * 40.97 profiler to build per-route latency tables without unbounded
+   * cardinality assumptions).
+   */
+  histogramLabelSets(name: string): Labels[] {
+    const hist = this.histograms.get(name);
+    if (!hist) return [];
+    return [...hist.values.keys()].map((key) => {
+      if (!key) return {};
+      const labels: Labels = {};
+      for (const part of key.split(',')) {
+        const eq = part.indexOf('=');
+        if (eq === -1) continue;
+        const k = part.slice(0, eq);
+        const raw = part.slice(eq + 1);
+        const v =
+          raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1) : raw;
+        labels[k] = v;
+      }
+      return labels;
+    });
+  }
+
+  /** Observation count for a histogram + exact label set (0 when absent). */
+  histogramCount(name: string, labels: Labels = {}): number {
+    const hist = this.histograms.get(name);
+    if (!hist) return 0;
+    return hist.values.get(this.labelKey(labels))?.count ?? 0;
   }
 
   /** Current in-memory snapshot for tests/inspection. */
