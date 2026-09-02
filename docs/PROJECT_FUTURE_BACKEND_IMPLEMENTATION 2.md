@@ -2989,7 +2989,7 @@ The backend should not be declared complete until:
 [ ] Secret groups complete
 [ ] Notifications complete
 [~] Redis architecture complete        (usage strategy + adapter foundation done; remaining Redis work pending)
-[~] WebSocket scaling complete          (Redis adapter foundation done at 40.61)
+[x] WebSocket scaling complete          (Redis adapter foundation (40.61) + multi-instance scaling (40.81) done)
 [ ] Database optimization complete
 [ ] Security hardening complete         (foundation done at 40.54; ongoing review remains)
 [ ] Integration tests complete

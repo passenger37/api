@@ -3611,7 +3611,7 @@ Pagination                      ████████████████
 Typing                          ████████████████████  Done
 Presence                        ████████████████████  Done (Redis-backed)
 Direct Messages (Type B)        ████████████████████  Done (40.62)
-Distributed WebSocket Scaling   █████████████░░░░░░░  Redis adapter foundation (40.61)
+Distributed WebSocket Scaling   ████████████████████  Redis adapter foundation (40.61) + multi-instance scaling (40.81) done
 E2EE                            ████████████████████  Foundation + device/key mgmt + key dist + session + transport + groups + attachments + metadata minimization (40.63–40.73)
 Message Search                  ████████████████████  Part 1 + Part 2 (MeiliSearch) done
 Media Pipeline                  ████████████████████  Part 2 (AV scan/thumbnails/transcoding via BullMQ) done
