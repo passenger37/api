@@ -22,6 +22,11 @@ import { ServerRoleAssignmentRepository } from './repositories/server-role-assig
 import { ServerTemplateFactory } from './factories/server-template.factory';
 import { CodingTemplate } from './factories/templates/coding.template';
 import { ClassroomTemplate } from './factories/templates/classroom.template';
+import { SchoolClubTemplate } from './factories/templates/school-club.template';
+import { UniversityTemplate } from './factories/templates/university.template';
+import { CompanyTemplate } from './factories/templates/company.template';
+import { StudyGroupTemplate } from './factories/templates/study-group.template';
+import { GamingTemplate } from './factories/templates/gaming.template';
 import { CustomTemplate } from './factories/templates/custom.template';
 import { ServerHierarchyService } from './services/server-hierarchy.service';
 import { ServerRoleService } from './services/server-role.service';
@@ -102,6 +107,11 @@ import { ServerAuditLogQueryService } from './services/server-audit-log-query.se
     ServerTemplateFactory,
     CodingTemplate,
     ClassroomTemplate,
+    SchoolClubTemplate,
+    UniversityTemplate,
+    CompanyTemplate,
+    StudyGroupTemplate,
+    GamingTemplate,
     CustomTemplate,
     ServerInviteRepository,
     InviteCodeService,
