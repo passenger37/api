@@ -192,7 +192,7 @@ B1 numbers E2EE as a separate "E2EE Lecture 1–16" track; B2 folds it into the 
 | 40.95 | PostgreSQL Backup & Disaster Recovery | B2 40.85 | NOT APPLICABLE (no deployment in scope) |
 | 40.96 | Backend Security Audit | B2 40.86 | COMPLETED |
 | 40.97 | Performance Profiling | B2 40.87 | COMPLETED |
-| 40.98 | 1M-User Capacity Planning | B2 40.88 |
+| 40.98 | 1M-User Capacity Planning | B2 40.88 | COMPLETED |
 | 40.99 | Backend Production Readiness Review | B2 40.89 |
 | 40.100 | Backend Feature Freeze | B2 40.90 |
 
@@ -265,7 +265,7 @@ PHASE 17 React Native (Mobile)
 9. **40.39** Message Delivery State — completed (explicit `created` ack on send; `message-read` WS fan-out routed through the 40.37 read cursor; broadcast never conflated with read; no per-message read rows).
 10. **40.40** Presence Foundation — completed (Redis `user:{id}:presence`, online/idle/offline/dnd/invisible, socket-lifecycle driven).
 11. **40.41–40.89** — completed sequentially through §4.1–§4.8 as tabulated above, ending with E2EE Metadata Minimization (`src/modules/e2ee-metadata/`), Message Search Pt.2 (`src/modules/search/` MeiliSearch), Media Pipeline Pt.2 (`src/modules/media/`), Background Jobs (`src/modules/jobs/` BullMQ full set), Structured Logging (`src/core/logger/` pino redaction + `StructuredLogger` helper), Distributed Tracing (`src/core/tracing/` ALS `TraceService` + `TraceMiddleware`), Production Metrics (`src/core/metrics/` `MetricsService` + `GET /metrics`), the 1M-User Load Model (`src/core/load-model/` + `scripts/load/load-baseline.mjs`), Multi-Instance WebSocket Scaling (`src/core/redis/redis-node-registry.ts` + adapter hardening), Load-model-driven DB/query optimisation (`src/core/db/query-optimizer/` + `GET /load-model/optimiser`), the Cache Architecture (`src/core/cache/` + `GET /load-model/cache`), API Versioning / Evolution (`src/core/api-versioning/` + `GET /v1/api` & `GET /v2/api` + `ws-envelope`), OpenAPI/Swagger Hardening (`src/config/swagger/` `buildSwaggerConfig` + `src/config/validation/` `VALIDATION_PIPE_OPTIONS`), API & WebSocket Contract Tests (`src/core/contracts/` `ContractManifest`), Database Integration Tests (`src/testing/db/` — opt-in real-Postgres harness + `npm run test:db`), Redis Integration Tests (`src/testing/redis/` — opt-in real-Redis harness + `npm run test:redis`), and Messaging E2E Tests (`test/` — real-app E2E harness + `npm run test:e2e`), and Failure Injection Testing (`src/testing/failure/` + `test/websocket-unavailable.fail-inj.spec.ts` — opt-in failure-injection harness + `npm run test:failures`), the Backend Security Audit (`src/core/security/` + `GET /security/audit` + `npm run security:code`), and Performance Profiling (`src/core/profiling/` + `GET /profiling/*` + `scripts/load/profiling.mjs`), advancing the Scale phase (40.80–40.100).
-12. Continue sequentially through **§4.9** (40.91–40.95 marked NOT APPLICABLE — no deployment in scope); next is **40.98 — (1M-User Capacity Planning)**.
+12. Continue sequentially through **§4.9** (40.91–40.95 marked NOT APPLICABLE — no deployment in scope); next is **40.99 — (Backend Production Readiness)**.
 8. Satisfy the Backend Completion Gate (§4, end).
 9. Open frontend start gate → Phase F0 onward.
 
@@ -289,7 +289,14 @@ For each lecture: briefing before coding (why, how, drawbacks, fit, alternatives
 
 ## 9. Next Immediate Action
 
-**Lecture 40.98 — (1M-User Capacity Planning).** 40.97 is complete; 40.91–40.95 were declared NOT APPLICABLE (no deployment in scope), so the review-style lectures continue with 40.98 (B2 40.88 — actual estimates for registered users, DAU, concurrent users, messages/user/day, and the derived infra sizing).
+**Lecture 40.98 — 1M-User Capacity Planning — COMPLETED**
+
+**Lecture 40.99 — (Backend Production Readiness).** 40.98 is complete; 40.91–40.95 were declared NOT APPLICABLE (no deployment in scope), so the review-style lectures continue with 40.99 (B2 40.89 — production readiness checklist).
+
+**Lecture 40.98 — 1M-User Capacity Planning (B2 40.88) — COMPLETED**
+- **Why:** B2 40.88 requires "Create actual estimates for: registered users, daily active users, concurrent users, messages/user/day, messages/sec, database storage, media storage, Redis memory, network bandwidth" and insists "They must be established from expected product usage rather than guessed." 40.97 measured the healthy resource envelope; 40.98 now sizes the infra those measurements must cover.
+- **How:** added `src/core/capacity-model/` — `capacity-model.config.ts` (22 `CapacityAssumption`s each with a `rationale` explaining the expected product usage it derives from; all overridable per env via `CAPACITY_*`; pure `buildCapacityModel()` computes the nine estimates as direct formulas of those assumptions); `capacity-model.service.ts` (exposes `report()` = assumptions + estimates + workload + load-model consistency check that the derived message rate fits inside 40.80's `message.create` RPS budget); `capacity-model.controller.ts` (`GET /capacity-model` full report, `/capacity-model/estimates`, `/capacity-model/assumptions`); `capacity-model.module.ts` wired into `AppModule`; runner `scripts/load/capacity.mjs` prints assumptions, the nine estimates, and the load-model consistency gate.
+- **Integration:** verified tsc 0 errors; eslint clean on the new files; default Jest suite at **101 suites / 680 tests green** (17 new hermetic tests covering all nine derivations, env override, invalid override fallback, load-model consistency, and assumption rationale coverage); `npm run security:code` PASSED 19/19; runner validated with `node --check`.
 
 **Lecture 40.97 — Performance Profiling — COMPLETED**
 - **Why:** B2 40.87 opens PHASE 58 (Performance Engineering) with **"Measure before optimizing"** and a study list of CPU, memory, event-loop latency, PostgreSQL, Redis, network, and WebSocket throughput, closing with **"Do not optimize based only on intuition."** 40.90 measured how the system degrades under infrastructure failure; 40.97 measures the healthy resource envelope — and keeps a persistent measurement history so every later optimisation decision is data-driven (a delta vs baseline), never a guess.
