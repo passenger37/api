@@ -17,7 +17,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "test:db": "jest --config ./jest-db.json --runInBand",
     "test:redis": "jest --config ./jest-redis.json --runInBand"
   },
@@ -105,7 +105,8 @@
     "testRegex": ".*\\.spec\\.ts$",
     "testPathIgnorePatterns": [
       ".*\\.db-int\\.spec\\.ts$",
-      ".*\\.red-is\\.spec\\.ts$"
+      ".*\\.red-is\\.spec\\.ts$",
+      ".*\\.e2e-spec\\.ts$"
     ],
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"

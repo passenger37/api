@@ -26,11 +26,11 @@ export class SuperAdminSeeder {
       return;
     }
 
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    // Check by both email and username to avoid unique constraint failures
+    const existingByEmail = await this.prisma.user.findUnique({ where: { email } });
+    const existingByUsername = await this.prisma.user.findUnique({ where: { username } });
 
-    if (existingUser) {
+    if (existingByEmail || existingByUsername) {
       this.logger.log('Super Admin already exists.');
       return;
     }
@@ -47,23 +47,32 @@ export class SuperAdminSeeder {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        username,
-        displayName,
-        passwordHash,
-        isVerified: true,
-      },
-    });
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email,
+          username,
+          displayName,
+          passwordHash,
+          isVerified: true,
+        },
+      });
 
-    await this.prisma.userRole.create({
-      data: {
-        userId: user.id,
-        roleId: role.id,
-      },
-    });
+      await this.prisma.userRole.create({
+        data: {
+          userId: user.id,
+          roleId: role.id,
+        },
+      });
 
-    this.logger.log(`Super Admin created (${email})`);
+      this.logger.log(`Super Admin created (${email})`);
+    } catch (error) {
+      // Handle race condition where user was created between check and create
+      if (error.code === 'P2002') {
+        this.logger.log('Super Admin already exists (race condition).');
+        return;
+      }
+      throw error;
+    }
   }
 }

@@ -37,7 +37,14 @@ export class WebSocketExceptionFilter implements ExceptionFilter {
       `WebSocket error | socket=${client.id} | event=${response.event} | code=${error.code}`,
     );
 
-    client.emit('error', response);
+    // Call the ack callback if present to prevent client timeout
+    const ack = host.switchToWs().getData();
+    if (typeof ack === 'function') {
+      ack(response);
+    } else {
+      // Fallback: emit error event (legacy behavior)
+      client.emit('error', response);
+    }
   }
 
   private normalizeException(exception: unknown) {

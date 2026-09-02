@@ -16,14 +16,14 @@ export class JobsQueueService implements OnModuleInit, OnModuleDestroy {
   private queueEvents = new Map<string, QueueEvents>();
 
   private readonly queueNames = [
-    'jobs:default',
-    'jobs:high',
-    'jobs:low',
-    'jobs:scheduled',
-    'jobs:webhooks',
-    'jobs:notifications',
-    'jobs:cleanup',
-    'jobs:analytics',
+    'jobs-default',
+    'jobs-high',
+    'jobs-low',
+    'jobs-scheduled',
+    'jobs-webhooks',
+    'jobs-notifications',
+    'jobs-cleanup',
+    'jobs-analytics',
   ];
 
   constructor(
@@ -72,13 +72,13 @@ export class JobsQueueService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    this.registerProcessor('jobs:default', this.defaultProcessor, {
+    this.registerProcessor('jobs-default', this.defaultProcessor, {
       concurrency: 10,
     });
-    this.registerProcessor('jobs:high', this.defaultProcessor, {
+    this.registerProcessor('jobs-high', this.defaultProcessor, {
       concurrency: 5,
     });
-    this.registerProcessor('jobs:low', this.defaultProcessor, {
+    this.registerProcessor('jobs-low', this.defaultProcessor, {
       concurrency: 20,
     });
   }
