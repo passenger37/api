@@ -6,6 +6,7 @@ import { TracingModule } from './core/tracing/tracing.module';
 import { MetricsModule } from './core/metrics/metrics.module';
 import { HttpMetricsInterceptor } from './core/metrics/metrics.interceptor';
 import { LoadModelModule } from './core/load-model/load-model.module';
+import { CapacityModelModule } from './core/capacity-model/capacity-model.module';
 import { DbQueryOptimizerModule } from './core/db/query-optimizer/db-query-optimizer.module';
 import { CacheModule } from './core/cache/cache.module';
 import { ApiVersioningModule } from './core/api-versioning/api-versioning.module';
@@ -43,6 +44,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
     AppLoggerModule,
     MetricsModule,
     LoadModelModule,
+    CapacityModelModule,
     DbQueryOptimizerModule,
     CacheModule,
     ApiVersioningModule,
