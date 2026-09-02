@@ -10,6 +10,7 @@ import { DbQueryOptimizerModule } from './core/db/query-optimizer/db-query-optim
 import { CacheModule } from './core/cache/cache.module';
 import { ApiVersioningModule } from './core/api-versioning/api-versioning.module';
 import { ContractsModule } from './core/contracts/contracts.module';
+import { SecurityAuditModule } from './core/security/security-audit.module';
 import { HealthModule } from './modules/health/heath.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptors/reesponse.interceptor';
@@ -43,7 +44,9 @@ import { JobsModule } from './modules/jobs/jobs.module';
     LoadModelModule,
     DbQueryOptimizerModule,
     CacheModule,
-  ApiVersioningModule,
+    ApiVersioningModule,
+    ContractsModule,
+    SecurityAuditModule,
     HealthModule,
     UsersModule,
     AuthModule,

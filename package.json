@@ -20,7 +20,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "test:db": "jest --config ./jest-db.json --runInBand",
     "test:redis": "jest --config ./jest-redis.json --runInBand",
-    "test:failures": "jest --config ./jest-failures.json --runInBand"
+    "test:failures": "jest --config ./jest-failures.json --runInBand",
+    "security:audit": "npm audit",
+    "security:code": "tsx scripts/security/code-audit.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
