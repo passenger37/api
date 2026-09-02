@@ -27,10 +27,10 @@ with server-based collaboration and a hybrid messaging architecture.
 The immediate continuation point is now:
 
 ``` text
-40.89 Completed → verify → 40.90 (next Scale-phase step: Failure Injection Testing)
+40.90 Completed → verify → 40.91 (next Scale-phase step: Production Deployment Architecture)
 ```
 
-The authoritative position is `PROJECT_DETAIL.md` §4. The messaging/realtime series through 40.89 (incl. E2EE, search Pt.2, media Pt.2, background jobs, structured logging, distributed tracing, production metrics, the 1M-user load model, multi-instance WebSocket hardening, load-model-driven DB/query optimisation, the Redis-backed cache architecture, API versioning/evolution, OpenAPI/Swagger hardening, API & WebSocket contract tests, Database Integration Tests, Redis Integration Tests, and Messaging E2E Tests) are complete with a green automated test suite. This advances the Scale phase (40.80–40.100).
+The authoritative position is `PROJECT_DETAIL.md` §4. The messaging/realtime series through 40.90 (incl. E2EE, search Pt.2, media Pt.2, background jobs, structured logging, distributed tracing, production metrics, the 1M-user load model, multi-instance WebSocket hardening, load-model-driven DB/query optimisation, the Redis-backed cache architecture, API versioning/evolution, OpenAPI/Swagger hardening, API & WebSocket contract tests, Database Integration Tests, Redis Integration Tests, Messaging E2E Tests, and Failure Injection Testing) are complete with a green automated test suite. This advances the Scale phase (40.80–40.100).
 
 ------------------------------------------------------------------------
 
@@ -134,7 +134,9 @@ Full-horizontal-scaling readiness for the WebSocket layer, hardening the 40.61 R
 
 ## Next Task
 
-## The cache, API versioning / evolution, OpenAPI/Swagger hardening, API & WebSocket contract tests, Database Integration Tests, Redis Integration Tests, and Messaging E2E Tests are COMPLETE.
+## The cache, API versioning / evolution, OpenAPI/Swagger hardening, API & WebSocket contract tests, Database Integration Tests, Redis Integration Tests, Messaging E2E Tests, and Failure Injection Testing are COMPLETE.
+
+## 40.90 --- Failure Injection Testing --- COMPLETED (`src/testing/failure/` + `test/websocket-unavailable.fail-inj.spec.ts` — opt-in failure-injection harness + `npm run test:failures`; six `*.fail-inj` suites proving graceful degradation for Redis unavailable (fail-fast boot + loud runtime rejects, plus fixed a real boot/offline-queue hang in `RedisService`), PostgreSQL unavailable (fail-fast `$connect`, no Prisma leaks, 4xx contract survives), slow database (`$extends` latency injection), duplicate request (unique-constraint dedup + concurrent race to one row), queue failure (enqueue outage persistence, idempotency-key dedup, FAILED→RETRYING, dead-letter retry), and WebSocket instance unavailable / network interruption (bounded-time failure, no hang)). Next task: 40.91 (Production Deployment Architecture).
 
 ## 40.89 --- Messaging E2E Tests --- COMPLETED (`test/` — opt-in real-app E2E harness + `npm run test:e2e`; `test/app.ts` boots the real `AppModule` on a random port, `test/e2e-setup.ts` wires the 40.87 DB + 40.88 Redis harnesses, seeds fixtures + server-scoped roles, generates real JWTs, `test/messaging.e2e-spec.ts` covers health 200, 401 without token, GET channel messages 200, POST message 201, GET single message, non-member rejection (403/404), and cursor pagination). Next task: 40.90 (Failure Injection Testing).
 
@@ -167,7 +169,8 @@ After 40.68–40.73 (E2EE series), the sequence continues:
 - 40.87 Database Integration Tests (`src/testing/db/`, `npm run test:db`) ✅
 - 40.88 Redis Integration Tests (`src/testing/redis/`, `npm run test:redis`) ✅
 - 40.89 Messaging E2E Tests (`test/`, `npm run test:e2e`) ✅
-- 40.90–40.100 Scale, Performance, Testing, Production, Backend Feature Freeze (next: 40.90 — Failure Injection Testing)
+- 40.90 Failure Injection Testing (`src/testing/failure/` + `test/websocket-unavailable.fail-inj.spec.ts`, `npm run test:failures`) ✅
+- 40.91–40.100 Scale, Performance, Testing, Production, Backend Feature Freeze (next: 40.91 — Production Deployment Architecture)
 - 40.101–40.104 Admin / Feature Flags / AI
 - **FRONTEND START GATE**
 
@@ -276,6 +279,6 @@ The next commit should describe the actual completed change rather than claiming
 
 ## Immediate Continuation
 
-**Next task: 40.90 — (Failure Injection Testing).** 40.89 is complete.
+**Next task: 40.91 — (Production Deployment Architecture).** 40.90 is complete.
 
 The scale/performance/testing/production phase (40.80–40.100) has progressed: **40.80 1M-User Load Model** (`src/core/load-model/`, `GET /load-model` + `GET /load-model/baseline`, `scripts/load/load-baseline.mjs`), **40.81 Multi-Instance WebSocket Scaling** (`RedisNodeRegistry` + per-instance named adapter clients + graceful shutdown, `GET /instances`), **40.82 Load-model-driven DB/query optimisation** (`src/core/db/query-optimizer/` + `GET /load-model/optimiser` + `add_query_index_strategy_phase3` partial indexes), **40.83 Cache Architecture** (`src/core/cache/` — `DbCacheService` Redis cache-aside with TTL + hit/miss metrics, `CacheArchitectureService` deciding what/why/TTL/invalidation/consistency from the load model's `db` read/write split, `GET /load-model/cache`; cache keys + `CACHE_TTL` in `redis-keys.ts`; server-member-count read path wired with write-through invalidation on join; runner captures in `scripts/load/query-optimiser.mjs` / `scripts/load/load-baseline.mjs`), **40.84 API Versioning / Evolution** (`src/core/api-versioning/` — data-driven `ApiVersionControlService` + registry, app-wide `DeprecationHeaderInterceptor` attaching `Deprecation`/`Sunset`/`Link` to `/v1`, `GET /v1/api` & `GET /v2/api` co-existence, backward-compatible `ws-envelope.ts` for WS event evolution), **40.85 OpenAPI/Swagger Hardening** (`src/config/swagger/` `buildSwaggerConfig(version)` with tags/servers/security and `info.version` tied to the API version; `src/config/validation/` strict `VALIDATION_PIPE_OPTIONS`; removed dead `src/prisma.controller.ts`), and **40.86 API & WebSocket Contract Tests** (`src/core/contracts/` — runtime `ContractManifest` "disallow-list" aggregating version/deprecation/WS-envelope/validation/error-frame invariants, `ContractManifestService`, `contract-manifest.spec.ts`), and **40.87 Database Integration Tests** (`src/testing/db/` - an opt-in real-PostgreSQL harness that creates a throwaway schema per run and pushes the Prisma schema into it, plus six `*.db-int.spec.ts` suites covering transactions, the message repository, DB constraints, authorization, message lifecycle, and reaction lifecycle; run via `npm run test:db`) are complete. The default unit suite stands at 98 suites / 633 tests (the `.db-int` specs are excluded via `testPathIgnorePatterns` so CI needs no DB); the opt-in `npm run test:db` runs 6 suites / 19 tests against a real local PostgreSQL. **40.88 Redis Integration Tests** (`src/testing/redis/` - an opt-in real-Redis harness that points the real services at a dedicated isolated DB index, plus five `*.red-is.spec.ts` suites over rate limit, presence, cache-aside, BullMQ queues, and distributed coordination, via `npm run test:redis`) (default suite 98 / 633 green; test:redis 5 suites / 25 tests against a live local Redis, isolated DB index flushed on teardown), and **40.89 Messaging E2E Tests** (`test/` - an opt-in real-app harness that boots the real `AppModule` against the 40.87 isolated Postgres schema + real Redis and generates real JWTs; `test/messaging.e2e-spec.ts` covers the HTTP messaging pipeline: health 200, 401 without token, GET channel messages with auth 200, POST message 201, GET single message, non-member rejection, and cursor pagination; added `npm run test:e2e`; default suite 98 / 633 green with `*.e2e-spec.ts` excluded via `testPathIgnorePatterns`; e2e 1 suite / 7 tests green against live local Postgres + Redis). Every 40.82+ change keeps the 40.77 redaction, 40.78 trace-id propagation, the 40.79 `/metrics` endpoint, the 40.80 load model, and the 40.81 node registry intact, and is confirmed by re-running `scripts/load/load-baseline.mjs` / `scripts/load/query-optimiser.mjs`.
