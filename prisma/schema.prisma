@@ -2660,3 +2660,166 @@ model NotificationDelivery {
   @@index([status])
   @@index([channel, status])
 }
+
+// ===========================
+// Communities
+// ===========================
+
+enum CommunityVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum CommunityModerationActionType {
+  WARN
+  MUTE
+  BAN
+  DELETE_POST
+  DELETE_COMMENT
+  PIN_POST
+  UNPIN_POST
+}
+
+enum CommunityModeratorRole {
+  ADMIN
+  MODERATOR
+}
+
+model Community {
+  id               String   @id @default(cuid())
+  serverId         String
+  name             String
+  slug             String   @unique
+  description      String?
+  iconUrl          String?
+  visibility       CommunityVisibility @default(PUBLIC)
+  discoveryEnabled Boolean  @default(true)
+  rules            Json?
+
+  ownerId          String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categories       CommunityCategory[]
+  subscriptions    CommunitySubscription[]
+  posts            CommunityPost[]
+  moderators       CommunityModerator[]
+  moderationActions CommunityModerationAction[]
+
+  @@index([ownerId])
+  @@index([visibility, discoveryEnabled])
+  @@index([name])
+}
+
+model CommunityCategory {
+  id          String  @id @default(cuid())
+  communityId String
+  name        String
+  description String?
+  position    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  posts     CommunityPost[]
+
+  @@unique([communityId, name])
+  @@index([communityId, position])
+}
+
+model CommunitySubscription {
+  id          String   @id @default(cuid())
+  communityId String
+  userId      String
+  isMuted     Boolean  @default(false)
+
+  subscribedAt DateTime @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([userId])
+}
+
+model CommunityModerator {
+  id          String   @id @default(cuid())
+  communityId String
+  userId      String
+  role        CommunityModeratorRole @default(MODERATOR)
+  assignedAt  DateTime @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([communityId])
+}
+
+model CommunityPost {
+  id          String   @id @default(cuid())
+  communityId String
+  categoryId  String?
+  authorUserId String
+  title       String
+  content     String   @db.Text
+
+  isPinned    Boolean  @default(false)
+  pinnedAt    DateTime?
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
+  version     Int      @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  category  CommunityCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  comments  CommunityComment[]
+
+  @@index([communityId, createdAt])
+  @@index([communityId, isPinned, createdAt])
+  @@index([authorUserId])
+  @@index([categoryId])
+}
+
+model CommunityComment {
+  id          String   @id @default(cuid())
+  postId      String
+  parentId    String?
+  authorUserId String
+  content     String   @db.Text
+
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
+  version     Int      @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post    CommunityPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent  CommunityComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies CommunityComment[] @relation("CommentReplies")
+
+  @@index([postId, createdAt])
+  @@index([parentId, createdAt])
+  @@index([authorUserId])
+}
+
+model CommunityModerationAction {
+  id            String   @id @default(cuid())
+  communityId   String
+  moderatorUserId String
+  actionType    CommunityModerationActionType
+  targetUserId  String?
+  objectType    String?
+  objectId      String?
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([communityId, createdAt])
+  @@index([targetUserId])
+  @@index([actionType])
+}

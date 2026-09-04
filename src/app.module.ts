@@ -37,6 +37,7 @@ import { E2eeSessionsModule } from './modules/e2ee-sessions/e2ee-sessions.module
 import { E2eeRatchetModule } from './modules/e2ee-ratchet/e2ee-ratchet.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { CommunitiesModule } from './modules/communities/communities.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     E2eeRatchetModule,
     JobsModule,
     NotificationsModule,
+    CommunitiesModule,
   ],
   controllers: [],
   // providers: [AppService],
