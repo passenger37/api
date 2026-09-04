@@ -11,6 +11,9 @@ export const REDIS_TTL = {
   MESSAGE_PAGE: 10,
   PERMISSION_CACHE: 300,
   CONNECTION_COUNTER: 86_400,
+  NOTIFICATION_UNREAD: 30 * 24 * 60 * 60,
+  NOTIFICATION_RECENT: 30 * 24 * 60 * 60,
+  NOTIFICATION_DEDUPE: 3600,
 } as const;
 
 /**
@@ -125,4 +128,14 @@ export const redisKeys = {
 
   searchRecent: (userId: string): string =>
     prefix(`cache:user:${userId}:search-recent`),
+
+  // --- Notifications -------------------------------------------------------
+  notificationUnread: (userId: string): string =>
+    prefix(`notifications:${userId}:unread`),
+
+  notificationRecent: (userId: string): string =>
+    prefix(`notifications:${userId}:recent`),
+
+  notificationDedupe: (dedupeKey: string): string =>
+    prefix(`notifications:dedupe:${dedupeKey}`),
 };

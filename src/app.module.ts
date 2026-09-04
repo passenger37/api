@@ -36,6 +36,7 @@ import { E2eeKeyDistributionModule } from './modules/e2ee-key-distribution/e2ee-
 import { E2eeSessionsModule } from './modules/e2ee-sessions/e2ee-sessions.module';
 import { E2eeRatchetModule } from './modules/e2ee-ratchet/e2ee-ratchet.module';
 import { JobsModule } from './modules/jobs/jobs.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
     E2eeSessionsModule,
     E2eeRatchetModule,
     JobsModule,
+    NotificationsModule,
   ],
   controllers: [],
   // providers: [AppService],

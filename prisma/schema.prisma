@@ -2558,3 +2558,105 @@ model BackgroundJobMetrics {
   @@index([queueName])
   @@map("background_job_metrics")
 }
+
+// ===========================
+// Notifications
+// ===========================
+
+enum NotificationType {
+  DIRECT_MESSAGE
+  CHANNEL_MENTION
+  MESSAGE_REACTION
+  SERVER_INVITE
+  FRIEND_REQUEST
+  SERVER_JOIN
+  SYSTEM
+}
+
+enum NotificationEntityType {
+  USER
+  SERVER
+  CHANNEL
+  DIRECT_MESSAGE_CHANNEL
+  CHANNEL_MESSAGE
+  DIRECT_MESSAGE
+}
+
+enum NotificationDeliveryChannel {
+  IN_APP
+  PUSH
+  EMAIL
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+}
+
+model Notification {
+  id String @id @default(cuid())
+
+  recipientUserId String
+  actorUserId String?
+
+  type NotificationType
+  entityType NotificationEntityType
+  entityId String
+
+  payload Json
+
+  readAt DateTime?
+
+  dedupeKey String?
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+
+  deliveries NotificationDelivery[]
+
+  @@index([recipientUserId, createdAt])
+  @@index([recipientUserId, readAt])
+  @@index([recipientUserId, type, createdAt])
+  @@unique([recipientUserId, dedupeKey])
+}
+
+model NotificationPreference {
+  id String @id @default(cuid())
+
+  userId String
+  notificationType NotificationType
+
+  inAppEnabled Boolean @default(true)
+  pushEnabled Boolean @default(true)
+  emailEnabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, notificationType])
+  @@index([userId])
+}
+
+model NotificationDelivery {
+  id String @id @default(cuid())
+
+  notificationId String
+  channel NotificationDeliveryChannel
+  status NotificationDeliveryStatus @default(PENDING)
+
+  deliveredAt DateTime?
+  failedAt DateTime?
+
+  retryCount Int @default(0)
+  lastError String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId])
+  @@index([status])
+  @@index([channel, status])
+}
