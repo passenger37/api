@@ -4,6 +4,7 @@ import { CommunityModerationActionType } from '@prisma/client';
 import { CommunityAccessService } from './community-access.service';
 import {
   CommunityCommentNotFoundException,
+  CommunityInvalidCursorException,
   CommunityModerationInvalidTargetException,
   CommunityMuteTargetNotSubscribedException,
   CommunityNotFoundException,
@@ -16,6 +17,7 @@ import { CommunitySubscriptionRepository } from '../repositories/community-subsc
 import { CommunityModerationActionRepository } from '../repositories/community-moderation-action.repository';
 import { CreateModerationActionRequest } from '../dto/request/create-moderation-action.request';
 import { ModerationListResponse } from '../dto/response';
+import { encodeTwoFieldCursor, decodeTwoFieldCursor } from '../pagination/community-cursor';
 import { serializeModerationAction } from '../mappers/community.mapper';
 
 @Injectable()
@@ -62,22 +64,37 @@ export class CommunityModerationService {
 
     await this.access.assertModerator(community.id, userId);
 
+    const decoded = cursor ? this.decodeCursor(cursor) : null;
+
     const actions = actionType
       ? await this.actionRepository.listByActionType(
           community.id,
           actionType,
           limit,
-          cursor,
+          decoded,
         )
-      : await this.actionRepository.list(community.id, limit, cursor);
+      : await this.actionRepository.list(community.id, limit, decoded);
 
     const nextCursor =
-      actions.length === limit ? (actions[actions.length - 1]?.id ?? null) : null;
+      actions.length === limit && actions.length > 0
+        ? encodeTwoFieldCursor({
+            createdAt: actions[actions.length - 1]!.createdAt,
+            id: actions[actions.length - 1]!.id,
+          })
+        : null;
 
     return {
       items: actions.map(serializeModerationAction),
       nextCursor,
     };
+  }
+
+  private decodeCursor(cursor: string) {
+    try {
+      return decodeTwoFieldCursor(cursor);
+    } catch {
+      throw new CommunityInvalidCursorException();
+    }
   }
 
   private async applyEffect(
@@ -200,9 +217,16 @@ export class CommunityModerationService {
         break;
       }
 
-      case CommunityModerationActionType.WARN:
+      case CommunityModerationActionType.WARN: {
+        if (!request.targetUserId) {
+          throw new CommunityModerationInvalidTargetException(
+            'WARN requires a targetUserId.',
+          );
+        }
+
         // Pure metadata; the audit row captures the warning.
         break;
+      }
 
       default:
         break;

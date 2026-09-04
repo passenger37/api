@@ -75,3 +75,9 @@ export class CommunityModerationInvalidTargetException extends BadRequestExcepti
     super(message);
   }
 }
+
+export class CommunityInvalidCursorException extends BadRequestException {
+  constructor() {
+    super('Invalid pagination cursor.');
+  }
+}

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Community, CommunityVisibility, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
+import { TwoFieldCursor } from '../pagination/community-cursor';
 import {
   CommunityWithCounts,
   CommunitySubscriptionWithCommunity,
@@ -88,7 +89,10 @@ export class CommunityRepository {
 
     await client.community.update({
       where: { id },
-      data: { discoveryEnabled: false, visibility: CommunityVisibility.PRIVATE },
+      data: {
+        discoveryEnabled: false,
+        visibility: CommunityVisibility.PRIVATE,
+      },
     });
   }
 
@@ -108,15 +112,16 @@ export class CommunityRepository {
   async listSubscribed(
     userId: string,
     limit: number,
-    cursor?: string,
+    cursor?: TwoFieldCursor,
   ): Promise<CommunitySubscriptionWithCommunity[]> {
     return this.prisma.communitySubscription.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...this.subscribedCursorWhere(cursor),
+      },
       include: { community: true },
       orderBy: [{ subscribedAt: 'desc' }, { id: 'desc' }],
-      take: limit,
-      cursor: cursor ? { id: cursor } : undefined,
-      skip: cursor ? 1 : 0,
+      take: limit + 1,
     });
   }
 
@@ -146,7 +151,7 @@ export class CommunityRepository {
         },
       },
       orderBy: [{ subscriptions: { _count: 'desc' } }, { id: 'desc' }],
-      take: limit,
+      take: limit + 1,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
     });
@@ -167,5 +172,25 @@ export class CommunityRepository {
     };
 
     return this.prisma.community.count({ where });
+  }
+
+  private subscribedCursorWhere(
+    cursor?: TwoFieldCursor,
+  ): Prisma.CommunitySubscriptionWhereInput {
+    if (!cursor) {
+      return {};
+    }
+
+    return {
+      OR: [
+        { subscribedAt: { lt: cursor.createdAt } },
+        {
+          AND: [
+            { subscribedAt: cursor.createdAt },
+            { id: { lt: cursor.id } },
+          ],
+        },
+      ],
+    };
   }
 }

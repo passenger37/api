@@ -6,6 +6,7 @@ import {
 } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
+import { TwoFieldCursor } from '../pagination/community-cursor';
 import { CommunityModerationHistoryRow } from '../types/community.types';
 
 @Injectable()
@@ -24,14 +25,15 @@ export class CommunityModerationActionRepository {
   async list(
     communityId: string,
     limit: number,
-    cursor?: string,
+    cursor?: TwoFieldCursor,
   ): Promise<CommunityModerationHistoryRow[]> {
     return this.prisma.communityModerationAction.findMany({
-      where: { communityId },
+      where: {
+        communityId,
+        ...this.cursorWhere(cursor),
+      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit,
-      cursor: cursor ? { id: cursor } : undefined,
-      skip: cursor ? 1 : 0,
     });
   }
 
@@ -39,18 +41,45 @@ export class CommunityModerationActionRepository {
     communityId: string,
     actionType: CommunityModerationActionType,
     limit: number,
-    cursor?: string,
+    cursor?: TwoFieldCursor,
   ): Promise<CommunityModerationHistoryRow[]> {
     return this.prisma.communityModerationAction.findMany({
-      where: { communityId, actionType },
+      where: {
+        communityId,
+        actionType,
+        ...this.cursorWhere(cursor),
+      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit,
-      cursor: cursor ? { id: cursor } : undefined,
-      skip: cursor ? 1 : 0,
     });
   }
 
   async countByCommunity(communityId: string): Promise<number> {
-    return this.prisma.communityModerationAction.count({ where: { communityId } });
+    return this.prisma.communityModerationAction.count({
+      where: { communityId },
+    });
+  }
+
+  /**
+   * Build a "rows strictly before this cursor in [createdAt desc, id desc]
+   * order" predicate. Without this, two rows with identical `createdAt`
+   * could split across pages because the underlying cursor index is `id`.
+   */
+  private cursorWhere(cursor?: TwoFieldCursor): Prisma.CommunityModerationActionWhereInput {
+    if (!cursor) {
+      return {};
+    }
+
+    return {
+      OR: [
+        { createdAt: { lt: cursor.createdAt } },
+        {
+          AND: [
+            { createdAt: cursor.createdAt },
+            { id: { lt: cursor.id } },
+          ],
+        },
+      ],
+    };
   }
 }

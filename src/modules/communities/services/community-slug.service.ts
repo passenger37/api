@@ -1,5 +1,4 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { CommunityRepository } from '../repositories/community.repository';
 
@@ -30,13 +29,8 @@ export class CommunitySlugService {
       }
     }
 
-    throw new Prisma.PrismaClientKnownRequestError(
+    throw new BadRequestException(
       `Could not generate a unique community slug after ${MAX_SLUG_ATTEMPTS} attempts.`,
-      {
-        code: 'P2002',
-        clientVersion: 'slug-fallback',
-        meta: { modelName: 'Community' },
-      },
     );
   }
 }

@@ -13,16 +13,15 @@ export class CommunityDiscoveryService {
     cursor?: string,
     limit = 20,
   ): Promise<CommunityListResponse> {
-    const communities = await this.repository.discoverPublic(q, limit, cursor);
+    const rows = await this.repository.discoverPublic(q, limit, cursor);
 
-    const nextCursor =
-      communities.length === limit
-        ? (communities[communities.length - 1]?.id ?? null)
-        : null;
+    const hasMore = rows.length > limit;
+    const communities = hasMore ? rows.slice(0, limit) : rows;
+    const last = communities[communities.length - 1];
 
     return {
       items: communities.map(serializeCommunity),
-      nextCursor,
+      nextCursor: hasMore && last ? last.id : null,
     };
   }
 

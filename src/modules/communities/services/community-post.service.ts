@@ -4,6 +4,7 @@ import { CommunityAccessService } from './community-access.service';
 import {
   CommunityAccessDeniedException,
   CommunityCommentNotFoundException,
+  CommunityInvalidCursorException,
   CommunityNotFoundException,
   CommunityPostDeletedException,
   CommunityPostNotFoundException,
@@ -30,6 +31,10 @@ import {
   CommunityPostWithRelations,
   CommunityCommentWithRelations,
 } from '../types/community.types';
+import {
+  decodePostCursor,
+  encodePostCursor,
+} from '../pagination/community-cursor';
 import { serializePost, serializeComment } from '../mappers/community.mapper';
 
 @Injectable()
@@ -164,17 +169,29 @@ export class CommunityPostService {
       }
     }
 
-    const posts = categoryId
+    const decoded = cursor ? this.decodePostCursor(cursor) : undefined;
+
+    const rows = categoryId
       ? await this.postRepository.findPageByCategory(
           community.id,
           categoryId,
           limit,
-          cursor,
+          decoded,
         )
-      : await this.postRepository.findPage(community.id, limit, cursor);
+      : await this.postRepository.findPage(community.id, limit, decoded);
+
+    const hasMore = rows.length > limit;
+    const posts = hasMore ? rows.slice(0, limit) : rows;
+    const last = posts[posts.length - 1];
 
     const nextCursor =
-      posts.length === limit ? (posts[posts.length - 1]?.id ?? null) : null;
+      hasMore && last
+        ? encodePostCursor({
+            isPinned: last.isPinned,
+            createdAt: last.createdAt,
+            id: last.id,
+          })
+        : null;
 
     return {
       items: posts.map(serializePost),
@@ -345,21 +362,55 @@ export class CommunityPostService {
       return { items: [], nextCursor: null };
     }
 
-    const comments = await this.commentRepository.listPostComments(
+    const decoded = cursor
+      ? this.decodeTwoFieldCursorSafe(cursor)
+      : undefined;
+
+    const rows = await this.commentRepository.listPostComments(
       postId,
-      limit,
-      cursor,
+      limit + 1,
+      decoded,
     );
 
-    const nextCursor =
-      comments.length === limit
-        ? (comments[comments.length - 1]?.id ?? null)
-        : null;
+    const hasMore = rows.length > limit;
+    const comments = hasMore ? rows.slice(0, limit) : rows;
+    const last = comments[comments.length - 1];
 
     return {
       items: comments.map(serializeComment),
-      nextCursor,
+      nextCursor:
+        hasMore && last
+          ? Buffer.from(
+              `${last.createdAt.toISOString()}|${last.id}`,
+              'utf8',
+            ).toString('base64url')
+          : null,
     };
+  }
+
+  private decodePostCursor(cursor: string) {
+    try {
+      return decodePostCursor(cursor);
+    } catch {
+      throw new CommunityInvalidCursorException();
+    }
+  }
+
+  private decodeTwoFieldCursorSafe(cursor: string) {
+    try {
+      // Lightweight inline decoder to avoid pulling the helper into a service
+      // method that doesn't otherwise need it.
+      const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
+      const [createdAt, id] = decoded.split('|');
+
+      if (!createdAt || !id) {
+        throw new Error('Invalid cursor.');
+      }
+
+      return { createdAt: new Date(createdAt), id };
+    } catch {
+      throw new CommunityInvalidCursorException();
+    }
   }
 
   private async communityBySlug(slug: string) {

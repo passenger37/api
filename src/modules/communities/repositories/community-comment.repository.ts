@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CommunityComment, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
+import { TwoFieldCursor } from '../pagination/community-cursor';
 import { CommunityCommentWithRelations } from '../types/community.types';
 
 @Injectable()
@@ -24,17 +25,29 @@ export class CommunityCommentRepository {
   async listPostComments(
     postId: string,
     limit: number,
-    cursor?: string,
+    cursor?: TwoFieldCursor,
   ): Promise<CommunityCommentWithRelations[]> {
     return this.prisma.communityComment.findMany({
-      where: { postId, parentId: null, isDeleted: false },
+      where: {
+        postId,
+        parentId: null,
+        isDeleted: false,
+        ...this.cursorWhere(cursor),
+      },
       include: {
-        replies: { where: { isDeleted: false }, orderBy: { createdAt: 'asc' } },
+        replies: {
+          where: { isDeleted: false },
+          orderBy: { createdAt: 'asc' },
+          include: {
+            replies: {
+              where: { isDeleted: false },
+              orderBy: { createdAt: 'asc' },
+            },
+          },
+        },
       },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       take: limit,
-      cursor: cursor ? { id: cursor } : undefined,
-      skip: cursor ? 1 : 0,
     });
   }
 
@@ -65,5 +78,27 @@ export class CommunityCommentRepository {
     return this.prisma.communityComment.count({
       where: { postId, isDeleted: false },
     });
+  }
+
+  /**
+   * Build a "rows strictly after this cursor in [createdAt asc, id asc]
+   * order" predicate.
+   */
+  private cursorWhere(cursor?: TwoFieldCursor): Prisma.CommunityCommentWhereInput {
+    if (!cursor) {
+      return {};
+    }
+
+    return {
+      OR: [
+        { createdAt: { gt: cursor.createdAt } },
+        {
+          AND: [
+            { createdAt: cursor.createdAt },
+            { id: { gt: cursor.id } },
+          ],
+        },
+      ],
+    };
   }
 }

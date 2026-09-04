@@ -3,6 +3,7 @@ import { CommunityVisibility } from '@prisma/client';
 
 import { CommunityAccessService } from './community-access.service';
 import {
+  CommunityInvalidCursorException,
   CommunityNotFoundException,
   CommunityAccessDeniedException,
 } from '../exceptions/community.exceptions';
@@ -15,6 +16,7 @@ import {
   CategoryResponse,
 } from '../dto/response';
 import { serializeCommunity, serializeCategory } from '../mappers/community.mapper';
+import { decodeTwoFieldCursor, encodeTwoFieldCursor } from '../pagination/community-cursor';
 
 @Injectable()
 export class CommunityQueryService {
@@ -54,24 +56,27 @@ export class CommunityQueryService {
     cursor?: string,
     limit = 20,
   ): Promise<CommunityListResponse> {
-    const subscriptions = await this.repository.listSubscribed(
-      userId,
-      limit,
-      cursor,
-    );
+    const decoded = cursor ? this.decodeCursorSafe(cursor) : undefined;
+
+    const rows = await this.repository.listSubscribed(userId, limit, decoded);
+
+    const hasMore = rows.length > limit;
+    const subscriptions = hasMore ? rows.slice(0, limit) : rows;
+    const last = subscriptions[subscriptions.length - 1];
 
     const communities = subscriptions.map(
       (subscription) => subscription.community,
     );
 
-    const nextCursor =
-      subscriptions.length === limit
-        ? (subscriptions[subscriptions.length - 1]?.id ?? null)
-        : null;
-
     return {
       items: communities.map(serializeCommunity),
-      nextCursor,
+      nextCursor:
+        hasMore && last
+          ? encodeTwoFieldCursor({
+              createdAt: last.subscribedAt,
+              id: last.id,
+            })
+          : null,
     };
   }
 
@@ -101,6 +106,14 @@ export class CommunityQueryService {
       subscribed: Boolean(subscription),
       isMuted: subscription?.isMuted ?? false,
     };
+  }
+
+  private decodeCursorSafe(cursor: string) {
+    try {
+      return decodeTwoFieldCursor(cursor);
+    } catch {
+      throw new CommunityInvalidCursorException();
+    }
   }
 
   private async assertViewable(
