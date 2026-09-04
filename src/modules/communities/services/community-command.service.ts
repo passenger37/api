@@ -117,15 +117,16 @@ export class CommunityCommandService {
 
     const response = serializeCommunity(withCounts);
 
-    // Realtime: the new community becomes visible to subscribers of the
-    // server's community listing. We publish on the community's own channel
-    // so the future gateway can fan out to the owner + moderators. The
-    // audience doesn't include the creator (they don't need an echo), but
-    // a future "community:created" event is not in scope of this PR.
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.SUBSCRIPTION_CHANGED, {
-      action: 'created',
-      community: response,
-    });
+    // Realtime: a dedicated `community:created` event so the future gateway
+    // can render "new community" UI without switching on `payload.action`.
+    // The creator is the only audience right now (they are the only
+    // subscriber of a freshly-created community); the future gateway can
+    // also fan this out to the underlying server's members if desired.
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.COMMUNITY_CREATED,
+      { community: response },
+    );
 
     return response;
   }
@@ -162,10 +163,11 @@ export class CommunityCommandService {
 
     const response = serializeCommunity(withCounts);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.SUBSCRIPTION_CHANGED, {
-      action: 'updated',
-      community: response,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.COMMUNITY_UPDATED,
+      { community: response },
+    );
 
     return response;
   }
@@ -177,10 +179,11 @@ export class CommunityCommandService {
 
     await this.repository.hideFromDiscovery(community.id);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.SUBSCRIPTION_CHANGED, {
-      action: 'soft-deleted',
-      communityId: community.id,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.COMMUNITY_SOFT_DELETED,
+      { communityId: community.id },
+    );
   }
 
   async createCategory(
@@ -214,11 +217,11 @@ export class CommunityCommandService {
 
     const response = serializeCategory(category);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.SUBSCRIPTION_CHANGED, {
-      action: 'category-created',
-      communityId: community.id,
-      category: response,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.CATEGORY_CREATED,
+      { category: response },
+    );
 
     return response;
   }
@@ -261,11 +264,11 @@ export class CommunityCommandService {
 
     const response = serializeCategory(updated);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.SUBSCRIPTION_CHANGED, {
-      action: 'category-updated',
-      communityId: community.id,
-      category: response,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.CATEGORY_UPDATED,
+      { category: response },
+    );
 
     return response;
   }
@@ -287,11 +290,11 @@ export class CommunityCommandService {
 
     await this.categoryRepository.delete(categoryId);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.SUBSCRIPTION_CHANGED, {
-      action: 'category-deleted',
-      communityId: community.id,
-      categoryId,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.CATEGORY_DELETED,
+      { categoryId },
+    );
   }
 
   async addModerator(
@@ -306,12 +309,11 @@ export class CommunityCommandService {
 
     await this.moderatorRepository.upsert(community.id, targetUserId, role);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.SUBSCRIPTION_CHANGED, {
-      action: 'moderator-added',
-      communityId: community.id,
-      targetUserId,
-      role,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.MODERATOR_ADDED,
+      { targetUserId, role },
+    );
   }
 
   async removeModerator(
@@ -325,11 +327,11 @@ export class CommunityCommandService {
 
     await this.moderatorRepository.remove(community.id, targetUserId);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.SUBSCRIPTION_CHANGED, {
-      action: 'moderator-removed',
-      communityId: community.id,
-      targetUserId,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.MODERATOR_REMOVED,
+      { targetUserId },
+    );
   }
 
   private async communityBySlug(

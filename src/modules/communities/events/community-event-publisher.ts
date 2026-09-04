@@ -49,13 +49,23 @@ export class CommunityEventPublisher {
       payload,
     };
 
+    // Serialize the envelope up front, separately from the Redis call, so
+    // a non-serializable payload is reported as a payload error rather
+    // than being conflated with a transport failure.
+    let serialized: string;
+    try {
+      serialized = JSON.stringify(envelope);
+    } catch (err) {
+      this.logger.error(
+        `Failed to serialize community realtime event communityId=${communityId} event=${event}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+      return;
+    }
+
     const channel = communityEventChannel(communityId);
 
     try {
-      // The RedisService client supports pub/sub via publish(). We use the
-      // generic getClient() surface so this publisher has no socket.io
-      // dependency and can be unit-tested with a stubbed client.
-      //
       // `waitUntilReady` is required because RedisService is configured with
       // `disableOfflineQueue: true` (see redis.service.ts): commands issued
       // before the connection is ready are rejected instead of queued. A
@@ -64,7 +74,7 @@ export class CommunityEventPublisher {
       // in a freshly booted process is racy without this barrier.
       await this.redis.waitUntilReady();
       const client = this.redis.getClient();
-      await client.publish(channel, JSON.stringify(envelope));
+      await client.publish(channel, serialized);
     } catch (err) {
       // Publishing realtime events must not break the originating HTTP
       // request. We log and move on — the database write is the source of
