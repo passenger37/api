@@ -6,6 +6,7 @@ import { CommunitySlugService } from './community-slug.service';
 import { CommunityAccessService } from './community-access.service';
 import {
   CommunityCategoryConflictException,
+  CommunityCategoryNotFoundException,
   CommunityNotFoundException,
 } from '../exceptions/community.exceptions';
 import { CommunityRepository } from '../repositories/community.repository';
@@ -37,19 +38,22 @@ export class CommunityCommandService {
     const slug = await this.slugService.generate(request.name);
 
     const community = await this.prisma.$transaction(async (tx) => {
-      const created = await this.repository.create(
-        {
-          serverId: request.serverId,
-          ownerId,
-          name: request.name,
-          slug,
-          description: request.description ?? null,
-          visibility: request.visibility,
-          discoveryEnabled: request.discoveryEnabled ?? true,
-          rules: (request.rules as Prisma.InputJsonValue) ?? undefined,
-        },
-        tx,
-      );
+      const data: Prisma.CommunityCreateInput = {
+        serverId: request.serverId,
+        ownerId,
+        name: request.name,
+        slug,
+        description: request.description ?? null,
+        discoveryEnabled: request.discoveryEnabled ?? true,
+        ...(request.visibility
+          ? { visibility: request.visibility }
+          : {}),
+        ...(request.rules
+          ? { rules: request.rules as Prisma.InputJsonValue }
+          : {}),
+      };
+
+      const created = await this.repository.create(data, tx);
 
       await this.moderatorRepository.upsert(
         created.id,
@@ -75,16 +79,26 @@ export class CommunityCommandService {
 
     await this.access.assertOwner(community.id, userId);
 
-    const updated = await this.repository.update(community.id, {
-      name: request.name,
-      description: request.description,
-      iconUrl: request.iconUrl,
-      visibility: request.visibility,
-      discoveryEnabled: request.discoveryEnabled,
-      rules: request.rules as Prisma.InputJsonValue,
-    });
+    const data: Prisma.CommunityUpdateInput = {
+      ...(request.name !== undefined ? { name: request.name } : {}),
+      ...(request.description !== undefined
+        ? { description: request.description }
+        : {}),
+      ...(request.iconUrl !== undefined ? { iconUrl: request.iconUrl } : {}),
+      ...(request.visibility !== undefined
+        ? { visibility: request.visibility }
+        : {}),
+      ...(request.discoveryEnabled !== undefined
+        ? { discoveryEnabled: request.discoveryEnabled }
+        : {}),
+      ...(request.rules !== undefined
+        ? { rules: request.rules as Prisma.InputJsonValue }
+        : {}),
+    };
 
-    const withCounts = (await this.repository.findById(updated.id))!;
+    await this.repository.update(community.id, data);
+
+    const withCounts = (await this.repository.findById(community.id))!;
 
     return serializeCommunity(withCounts);
   }
@@ -142,7 +156,7 @@ export class CommunityCommandService {
     const existing = await this.categoryRepository.findById(categoryId);
 
     if (!existing || existing.communityId !== community.id) {
-      throw new CommunityCategoryConflictException();
+      throw new CommunityCategoryNotFoundException();
     }
 
     if (request.name && request.name !== existing.name) {
@@ -156,10 +170,14 @@ export class CommunityCommandService {
       }
     }
 
-    const updated = await this.categoryRepository.update(categoryId, {
-      name: request.name,
-      description: request.description,
-    });
+    const data: Prisma.CommunityCategoryUpdateInput = {
+      ...(request.name !== undefined ? { name: request.name } : {}),
+      ...(request.description !== undefined
+        ? { description: request.description }
+        : {}),
+    };
+
+    const updated = await this.categoryRepository.update(categoryId, data);
 
     return serializeCategory(updated);
   }
@@ -176,7 +194,7 @@ export class CommunityCommandService {
     const existing = await this.categoryRepository.findById(categoryId);
 
     if (!existing || existing.communityId !== community.id) {
-      throw new CommunityCategoryConflictException();
+      throw new CommunityCategoryNotFoundException();
     }
 
     await this.categoryRepository.delete(categoryId);

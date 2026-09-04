@@ -25,7 +25,6 @@ import { SetMutedRequest } from '../dto/request/set-muted.request';
 import { ModeratorAssignmentRequest } from '../dto/request/moderator-assignment.request';
 import { DiscoverCommunitiesQuery } from '../dto/query/discover-communities.query';
 import { ListSubscriptionsQuery } from '../dto/query/list-subscriptions.query';
-import { serializeCommunity } from '../mappers/community.mapper';
 
 @ApiTags('communities')
 @ApiBearerAuth()
@@ -65,9 +64,7 @@ export class CommunityController {
     @Param('slug') slug: string,
     @CurrentUser('id') userId: string,
   ) {
-    const community = await this.queryService.getBySlug(slug, userId);
-
-    return serializeCommunity(community);
+    return this.queryService.getBySlug(slug, userId);
   }
 
   @Patch(':slug')

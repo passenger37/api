@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CommunityVisibility } from '@prisma/client';
 
 import { CommunityAccessService } from './community-access.service';
 import {
@@ -10,9 +11,9 @@ import { CommunityCategoryRepository } from '../repositories/community-category.
 import { CommunitySubscriptionRepository } from '../repositories/community-subscription.repository';
 import {
   CommunityListResponse,
+  CommunityResponse,
   CategoryResponse,
 } from '../dto/response';
-import { CommunityWithCounts } from '../types/community.types';
 import { serializeCommunity, serializeCategory } from '../mappers/community.mapper';
 
 @Injectable()
@@ -24,16 +25,16 @@ export class CommunityQueryService {
     private readonly access: CommunityAccessService,
   ) {}
 
-  async getBySlug(slug: string, userId?: string): Promise<CommunityWithCounts> {
+  async getBySlug(slug: string, userId?: string): Promise<CommunityResponse> {
     const community = await this.repository.findBySlugWithRelations(slug);
 
     if (!community) {
       throw new CommunityNotFoundException();
     }
 
-    await this.assertViewable(community, userId);
+    await this.assertViewable(community.visibility, community.id, userId);
 
-    return community;
+    return serializeCommunity(community);
   }
 
   async listCategories(slug: string): Promise<CategoryResponse[]> {
@@ -103,10 +104,11 @@ export class CommunityQueryService {
   }
 
   private async assertViewable(
-    community: CommunityWithCounts,
+    visibility: CommunityVisibility,
+    communityId: string,
     userId?: string,
   ): Promise<void> {
-    if (community.visibility === 'PUBLIC') {
+    if (visibility === CommunityVisibility.PUBLIC) {
       return;
     }
 
@@ -114,14 +116,14 @@ export class CommunityQueryService {
       throw new CommunityAccessDeniedException();
     }
 
-    const isModerator = await this.access.isModerator(community.id, userId);
+    const isModerator = await this.access.isModerator(communityId, userId);
 
     if (isModerator) {
       return;
     }
 
     const subscribed = await this.subscriptionRepository.isSubscribed(
-      community.id,
+      communityId,
       userId,
     );
 

@@ -5,6 +5,7 @@ import {
   CommunityAccessDeniedException,
   CommunityCommentNotFoundException,
   CommunityNotFoundException,
+  CommunityPostDeletedException,
   CommunityPostNotFoundException,
   CommunityNotSubscribedException,
 } from '../exceptions/community.exceptions';
@@ -87,6 +88,10 @@ export class CommunityPostService {
     const community = await this.communityBySlug(slug);
 
     const post = await this.postInCommunity(community.id, postId);
+
+    if (post.isDeleted) {
+      throw new CommunityPostDeletedException();
+    }
 
     const isModerator = await this.access.isModerator(community.id, userId);
 
@@ -189,19 +194,25 @@ export class CommunityPostService {
 
     const post = await this.postInCommunity(community.id, postId);
 
-    let parentId: string | null = null;
+    if (post.isDeleted) {
+      throw new CommunityPostDeletedException();
+    }
 
     if (request.parentId) {
       const parent = await this.commentInPost(post.id, request.parentId);
 
-      parentId = parent.id;
+      if (parent.isDeleted) {
+        throw new CommunityCommentNotFoundException();
+      }
     }
 
     const comment = await this.commentRepository.create({
       post: { connect: { id: post.id } },
       authorUserId: userId,
       content: request.content,
-      parent: parentId ? { connect: { id: parentId } } : undefined,
+      parent: request.parentId
+        ? { connect: { id: request.parentId } }
+        : undefined,
     });
 
     const withRelations = (await this.commentRepository.findById(comment.id))!;
@@ -225,7 +236,15 @@ export class CommunityPostService {
 
     const post = await this.postInCommunity(community.id, postId);
 
+    if (post.isDeleted) {
+      throw new CommunityPostDeletedException();
+    }
+
     const parent = await this.commentInPost(post.id, commentId);
+
+    if (parent.isDeleted) {
+      throw new CommunityCommentNotFoundException();
+    }
 
     const comment = await this.commentRepository.create({
       post: { connect: { id: post.id } },
@@ -256,7 +275,11 @@ export class CommunityPostService {
       throw new CommunityCommentNotFoundException();
     }
 
-    await this.postInCommunity(community.id, comment.postId);
+    const post = await this.postInCommunity(community.id, comment.postId);
+
+    if (post.isDeleted) {
+      throw new CommunityPostDeletedException();
+    }
 
     const isModerator = await this.access.isModerator(community.id, userId);
 
@@ -290,7 +313,11 @@ export class CommunityPostService {
       throw new CommunityCommentNotFoundException();
     }
 
-    await this.postInCommunity(community.id, comment.postId);
+    const post = await this.postInCommunity(community.id, comment.postId);
+
+    if (post.isDeleted && comment.authorUserId !== userId) {
+      throw new CommunityPostDeletedException();
+    }
 
     const isModerator = await this.access.isModerator(community.id, userId);
 
@@ -312,7 +339,11 @@ export class CommunityPostService {
 
     await this.requireSubscription(community.id, userId);
 
-    await this.postInCommunity(community.id, postId);
+    const post = await this.postInCommunity(community.id, postId);
+
+    if (post.isDeleted) {
+      return { items: [], nextCursor: null };
+    }
 
     const comments = await this.commentRepository.listPostComments(
       postId,

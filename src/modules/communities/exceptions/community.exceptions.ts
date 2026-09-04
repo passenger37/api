@@ -28,6 +28,12 @@ export class CommunityCommentNotFoundException extends NotFoundException {
   }
 }
 
+export class CommunityCategoryNotFoundException extends NotFoundException {
+  constructor() {
+    super('Category not found.');
+  }
+}
+
 export class CommunityNotSubscribedException extends BadRequestException {
   constructor() {
     super('You are not subscribed to this community.');
@@ -43,6 +49,12 @@ export class CommunityAlreadySubscribedException extends BadRequestException {
 export class CommunityCategoryConflictException extends BadRequestException {
   constructor() {
     super('A category with this name already exists in the community.');
+  }
+}
+
+export class CommunityPostDeletedException extends BadRequestException {
+  constructor() {
+    super('This post has been deleted and is no longer accepting comments.');
   }
 }
 
