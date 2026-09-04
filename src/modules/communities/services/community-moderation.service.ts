@@ -73,26 +73,32 @@ export class CommunityModerationService {
 
     const decoded = cursor ? this.decodeCursor(cursor) : null;
 
+    // Fetch one extra row so we can tell whether another page exists
+    // without issuing a count query. The repository takes `limit` as
+    // written (no +1), so we do the +1 here to keep the repository
+    // signature honest.
     const actions = actionType
       ? await this.actionRepository.listByActionType(
           community.id,
           actionType,
-          limit,
-          decoded,
+          limit + 1,
+          decoded ?? undefined,
         )
-      : await this.actionRepository.list(community.id, limit, decoded);
+      : await this.actionRepository.list(community.id, limit + 1, decoded ?? undefined);
 
-    const nextCursor =
-      actions.length === limit && actions.length > 0
-        ? encodeTwoFieldCursor({
-            createdAt: actions[actions.length - 1]!.createdAt,
-            id: actions[actions.length - 1]!.id,
-          })
-        : null;
+    const hasMore = actions.length > limit;
+    const page = hasMore ? actions.slice(0, limit) : actions;
+    const last = page[page.length - 1];
 
     return {
-      items: actions.map(serializeModerationAction),
-      nextCursor,
+      items: page.map(serializeModerationAction),
+      nextCursor:
+        hasMore && last
+          ? encodeTwoFieldCursor({
+              createdAt: last.createdAt,
+              id: last.id,
+            })
+          : null,
     };
   }
 

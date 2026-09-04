@@ -140,6 +140,7 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
       // Cache entry expired.
       this.permissionCache.delete(cacheKey);
     }
+
     const existingRequest = this.inFlight.get(cacheKey);
 
     if (existingRequest) {
@@ -150,6 +151,7 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
 
       return existingRequest;
     }
+
     this.metrics.recordMiss();
 
     this.logger.debug({
@@ -159,35 +161,12 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
       channelId,
       cacheKey,
     });
-    const permissions = await this.resolver.resolvePermissions(
-      serverId,
-      userId,
-      channelId,
-    );
-    this.logger.debug(
-      {
-        event: 'permission_resolution_completed',
-        serverId,
-        userId,
-        channelId,
-        permissionCount: permissions.size,
-      },
-      'Permission resolution completed',
-    );
-    this.permissionCache.set(cacheKey, {
-      permissions: new Set(permissions),
-      expiresAt: Date.now() + this.CACHE_TTL_MS,
-    });
-    this.logger.debug(
-      {
-        event: 'permission_cache_store',
-        serverId,
-        userId,
-        channelId,
-        permissionCount: permissions.size,
-      },
-      'Permissions stored in cache',
-    );
+
+    // Resolve once. The promise is stored in `inFlight` so concurrent
+    // requests for the same key share a single resolver round-trip;
+    // resolution writes the result into the cache (unless the generation
+    // was bumped by an invalidation in the meantime, in which case the
+    // fresh value is returned without poisoning the new cache slot).
     const generation = this.getGeneration(cacheKey);
     const resolution = this.resolveAndCache(
       cacheKey,
@@ -204,8 +183,6 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
     } finally {
       this.inFlight.delete(cacheKey);
     }
-
-    return new Set(permissions);
   }
 
   async hasPermission(
@@ -264,6 +241,18 @@ export class ServerPermissionService implements OnModuleInit, OnModuleDestroy {
       permissions,
       expiresAt: Date.now() + this.CACHE_TTL_MS,
     });
+
+    this.logger.debug(
+      {
+        event: 'permission_cache_store',
+        cacheKey,
+        serverId,
+        userId,
+        channelId,
+        permissionCount: permissions.size,
+      },
+      'Permissions stored in cache',
+    );
 
     return permissions;
   }
