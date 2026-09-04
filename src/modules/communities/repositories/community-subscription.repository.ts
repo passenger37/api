@@ -54,6 +54,10 @@ export class CommunitySubscriptionRepository {
     });
   }
 
+  /**
+   * Atomically flip the muted flag. Returns the updated row, or null if no
+   * subscription exists for (communityId, userId).
+   */
   async setMuted(
     communityId: string,
     userId: string,
@@ -62,17 +66,20 @@ export class CommunitySubscriptionRepository {
   ): Promise<CommunitySubscription | null> {
     const client = tx ?? this.prisma;
 
-    const subscription = await client.communitySubscription.findUnique({
-      where: { communityId_userId: { communityId, userId } },
-    });
+    try {
+      return await client.communitySubscription.update({
+        where: { communityId_userId: { communityId, userId } },
+        data: { isMuted },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        return null;
+      }
 
-    if (!subscription) {
-      return null;
+      throw error;
     }
-
-    return client.communitySubscription.update({
-      where: { id: subscription.id },
-      data: { isMuted },
-    });
   }
 }

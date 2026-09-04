@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
 import {
-  CommunityAccessDeniedException,
   CommunityNotFoundException,
   CommunityNotSubscribedException,
 } from '../exceptions/community.exceptions';
@@ -61,12 +60,6 @@ export class CommunityMembershipService {
 
     if (!subscription) {
       throw new CommunityNotSubscribedException();
-    }
-
-    if (subscription.userId !== userId) {
-      throw new CommunityAccessDeniedException(
-        'You can only update your own subscription.',
-      );
     }
 
     const updated = await this.subscriptionRepository.setMuted(

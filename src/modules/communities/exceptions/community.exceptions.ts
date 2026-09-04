@@ -63,3 +63,15 @@ export class CommunityAccessDeniedException extends ForbiddenException {
     super(message);
   }
 }
+
+export class CommunityMuteTargetNotSubscribedException extends BadRequestException {
+  constructor() {
+    super('You can only mute users who are subscribed to the community.');
+  }
+}
+
+export class CommunityModerationInvalidTargetException extends BadRequestException {
+  constructor(message: string) {
+    super(message);
+  }
+}

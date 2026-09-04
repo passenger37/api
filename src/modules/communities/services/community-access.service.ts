@@ -13,13 +13,13 @@ export class CommunityAccessService {
   ) {}
 
   async assertOwner(communityId: string, userId: string): Promise<void> {
-    const community = await this.communityRepository.findById(communityId);
+    const ownerId = await this.communityRepository.findOwnerId(communityId);
 
-    if (!community) {
+    if (ownerId === null) {
       return;
     }
 
-    if (community.ownerId !== userId) {
+    if (ownerId !== userId) {
       throw new CommunityAccessDeniedException(
         'Only the community owner can perform this action.',
       );
@@ -27,9 +27,9 @@ export class CommunityAccessService {
   }
 
   async assertModerator(communityId: string, userId: string): Promise<void> {
-    const ownerCheck = await this.communityRepository.findById(communityId);
+    const ownerId = await this.communityRepository.findOwnerId(communityId);
 
-    if (ownerCheck?.ownerId === userId) {
+    if (ownerId === userId) {
       return;
     }
 
@@ -43,9 +43,9 @@ export class CommunityAccessService {
   }
 
   async assertAdmin(communityId: string, userId: string): Promise<void> {
-    const ownerCheck = await this.communityRepository.findById(communityId);
+    const ownerId = await this.communityRepository.findOwnerId(communityId);
 
-    if (ownerCheck?.ownerId === userId) {
+    if (ownerId === userId) {
       return;
     }
 
@@ -62,9 +62,9 @@ export class CommunityAccessService {
     communityId: string,
     userId: string,
   ): Promise<boolean> {
-    const ownerCheck = await this.communityRepository.findById(communityId);
+    const ownerId = await this.communityRepository.findOwnerId(communityId);
 
-    if (ownerCheck?.ownerId === userId) {
+    if (ownerId === userId) {
       return true;
     }
 
@@ -77,9 +77,9 @@ export class CommunityAccessService {
     communityId: string,
     userId: string,
   ): Promise<CommunityModeratorRole | null> {
-    const ownerCheck = await this.communityRepository.findById(communityId);
+    const ownerId = await this.communityRepository.findOwnerId(communityId);
 
-    if (ownerCheck?.ownerId === userId) {
+    if (ownerId === userId) {
       return CommunityModeratorRole.ADMIN;
     }
 

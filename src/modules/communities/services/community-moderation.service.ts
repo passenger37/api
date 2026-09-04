@@ -4,6 +4,8 @@ import { CommunityModerationActionType } from '@prisma/client';
 import { CommunityAccessService } from './community-access.service';
 import {
   CommunityCommentNotFoundException,
+  CommunityModerationInvalidTargetException,
+  CommunityMuteTargetNotSubscribedException,
   CommunityNotFoundException,
   CommunityPostNotFoundException,
 } from '../exceptions/community.exceptions';
@@ -83,54 +85,123 @@ export class CommunityModerationService {
     request: CreateModerationActionRequest,
   ): Promise<void> {
     switch (request.actionType) {
-      case CommunityModerationActionType.MUTE:
-        if (request.targetUserId) {
-          await this.subscriptionRepository.setMuted(
-            communityId,
-            request.targetUserId,
-            true,
+      case CommunityModerationActionType.MUTE: {
+        if (!request.targetUserId) {
+          throw new CommunityModerationInvalidTargetException(
+            'MUTE requires a targetUserId.',
           );
         }
+
+        const updated = await this.subscriptionRepository.setMuted(
+          communityId,
+          request.targetUserId,
+          true,
+        );
+
+        if (!updated) {
+          throw new CommunityMuteTargetNotSubscribedException();
+        }
+
         break;
+      }
 
-      case CommunityModerationActionType.DELETE_POST:
-        if (!request.objectId) {
-          return;
-        }
-
-        {
-          const post = await this.postRepository.findById(request.objectId);
-
-          if (!post || post.communityId !== communityId) {
-            throw new CommunityPostNotFoundException();
-          }
-
-          await this.postRepository.softDelete(post.id);
-        }
-        break;
-
-      case CommunityModerationActionType.DELETE_COMMENT:
-        if (!request.objectId) {
-          return;
-        }
-
-        {
-          const comment = await this.commentRepository.findById(
-            request.objectId,
+      case CommunityModerationActionType.BAN: {
+        if (!request.targetUserId) {
+          throw new CommunityModerationInvalidTargetException(
+            'BAN requires a targetUserId.',
           );
-
-          if (!comment) {
-            throw new CommunityCommentNotFoundException();
-          }
-
-          const post = await this.postRepository.findById(comment.postId);
-
-          if (!post || post.communityId !== communityId) {
-            throw new CommunityCommentNotFoundException();
-          }
-
-          await this.commentRepository.softDelete(comment.id);
         }
+
+        // The schema has no CommunityBan model yet, so a BAN is recorded as
+        // an audit row only. Future work: add a CommunityBan model and effect
+        // an unsubscribe + write here.
+        break;
+      }
+
+      case CommunityModerationActionType.DELETE_POST: {
+        if (!request.objectId) {
+          throw new CommunityModerationInvalidTargetException(
+            'DELETE_POST requires an objectId.',
+          );
+        }
+
+        const post = await this.postRepository.findById(request.objectId);
+
+        if (!post || post.communityId !== communityId) {
+          throw new CommunityPostNotFoundException();
+        }
+
+        await this.postRepository.softDelete(post.id);
+        break;
+      }
+
+      case CommunityModerationActionType.DELETE_COMMENT: {
+        if (!request.objectId) {
+          throw new CommunityModerationInvalidTargetException(
+            'DELETE_COMMENT requires an objectId.',
+          );
+        }
+
+        const comment = await this.commentRepository.findById(
+          request.objectId,
+        );
+
+        if (!comment) {
+          throw new CommunityCommentNotFoundException();
+        }
+
+        const post = await this.postRepository.findById(comment.postId);
+
+        if (!post || post.communityId !== communityId) {
+          throw new CommunityCommentNotFoundException();
+        }
+
+        await this.commentRepository.softDelete(comment.id);
+        break;
+      }
+
+      case CommunityModerationActionType.PIN_POST: {
+        if (!request.objectId) {
+          throw new CommunityModerationInvalidTargetException(
+            'PIN_POST requires an objectId.',
+          );
+        }
+
+        const post = await this.postRepository.findById(request.objectId);
+
+        if (!post || post.communityId !== communityId) {
+          throw new CommunityPostNotFoundException();
+        }
+
+        await this.postRepository.update(post.id, {
+          isPinned: true,
+          pinnedAt: new Date(),
+        });
+        break;
+      }
+
+      case CommunityModerationActionType.UNPIN_POST: {
+        if (!request.objectId) {
+          throw new CommunityModerationInvalidTargetException(
+            'UNPIN_POST requires an objectId.',
+          );
+        }
+
+        const post = await this.postRepository.findById(request.objectId);
+
+        if (!post || post.communityId !== communityId) {
+          throw new CommunityPostNotFoundException();
+        }
+
+        await this.postRepository.update(post.id, {
+          isPinned: false,
+          pinnedAt: null,
+        });
+        break;
+      }
+
+      case CommunityModerationActionType.WARN:
+        // Pure metadata; the audit row captures the warning.
         break;
 
       default:

@@ -31,6 +31,18 @@ export class CommunityRepository {
     });
   }
 
+  /**
+   * Cheap lookup used by access checks — only fetches id and ownerId.
+   */
+  async findOwnerId(id: string): Promise<string | null> {
+    const community = await this.prisma.community.findUnique({
+      where: { id },
+      select: { ownerId: true },
+    });
+
+    return community?.ownerId ?? null;
+  }
+
   async findBySlug(
     slug: string,
     visibility?: CommunityVisibility,
@@ -80,7 +92,9 @@ export class CommunityRepository {
     });
   }
 
-  async findBySlugWithRelations(slug: string): Promise<CommunityWithCounts | null> {
+  async findBySlugWithRelations(
+    slug: string,
+  ): Promise<CommunityWithCounts | null> {
     return this.prisma.community.findUnique({
       where: { slug },
       include: {
@@ -152,6 +166,6 @@ export class CommunityRepository {
         : {}),
     };
 
-    return this.prisma.commount.count({ where });
+    return this.prisma.community.count({ where });
   }
 }
