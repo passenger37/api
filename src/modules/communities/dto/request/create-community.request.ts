@@ -3,7 +3,6 @@ import {
   IsEnum,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -18,11 +17,6 @@ export class CreateCommunityRequest {
   @ApiProperty({ description: 'Slug of the associated server.' })
   @IsString()
   serverId: string;
-
-  @ApiPropertyOptional({ description: 'Server id used to authorise creation.' })
-  @IsOptional()
-  @IsUUID(4)
-  ownerIdHint?: string;
 
   @ApiProperty({ maxLength: COMMUNITY_NAME_MAX_LENGTH })
   @IsString()

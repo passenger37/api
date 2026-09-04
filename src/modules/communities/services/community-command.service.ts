@@ -45,10 +45,10 @@ export class CommunityCommandService {
         slug,
         description: request.description ?? null,
         discoveryEnabled: request.discoveryEnabled ?? true,
-        ...(request.visibility
+        ...(request.visibility !== undefined
           ? { visibility: request.visibility }
           : {}),
-        ...(request.rules
+        ...(request.rules !== undefined
           ? { rules: request.rules as Prisma.InputJsonValue }
           : {}),
       };
@@ -108,7 +108,7 @@ export class CommunityCommandService {
 
     await this.access.assertOwner(community.id, userId);
 
-    await this.repository.softDelete(community.id);
+    await this.repository.hideFromDiscovery(community.id);
   }
 
   async createCategory(

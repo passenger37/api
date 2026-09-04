@@ -63,7 +63,15 @@ export class CommunityRepository {
     return client.community.update({ where: { id }, data });
   }
 
-  async softDelete(id: string, tx?: Prisma.TransactionClient): Promise<void> {
+  /**
+   * Hide a community from public discovery without removing it.
+   * Sets visibility to PRIVATE and disables discovery.
+   * The row remains queryable for owners/moderators/subscribers.
+   */
+  async hideFromDiscovery(
+    id: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
     const client = tx ?? this.prisma;
 
     await client.community.update({
@@ -144,6 +152,6 @@ export class CommunityRepository {
         : {}),
     };
 
-    return this.prisma.community.count({ where });
+    return this.prisma.commount.count({ where });
   }
 }

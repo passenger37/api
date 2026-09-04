@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { CommunityRepository } from '../repositories/community.repository';
+
+const MAX_SLUG_ATTEMPTS = 16;
 
 @Injectable()
 export class CommunitySlugService {
@@ -16,16 +19,24 @@ export class CommunitySlugService {
 
     const fallback = baseSlug || 'community';
 
-    let slug = fallback;
+    for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
+      const candidate =
+        attempt === 0 ? fallback : `${fallback}-${attempt + 1}`;
 
-    let counter = 2;
+      const exists = await this.repository.existsBySlug(candidate);
 
-    while (await this.repository.existsBySlug(slug)) {
-      slug = `${fallback}-${counter}`;
-
-      counter++;
+      if (!exists) {
+        return candidate;
+      }
     }
 
-    return slug;
+    throw new Prisma.PrismaClientKnownRequestError(
+      `Could not generate a unique community slug after ${MAX_SLUG_ATTEMPTS} attempts.`,
+      {
+        code: 'P2002',
+        clientVersion: 'slug-fallback',
+        meta: { modelName: 'Community' },
+      },
+    );
   }
 }

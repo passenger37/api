@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 
 import {
-  CommunityAlreadySubscribedException,
-  CommunityNotSubscribedException,
+  CommunityAccessDeniedException,
   CommunityNotFoundException,
+  CommunityNotSubscribedException,
 } from '../exceptions/community.exceptions';
 import { CommunityRepository } from '../repositories/community.repository';
 import { CommunitySubscriptionRepository } from '../repositories/community-subscription.repository';
@@ -19,15 +19,6 @@ export class CommunityMembershipService {
 
   async subscribe(slug: string, userId: string): Promise<SubscriptionResponse> {
     const community = await this.communityBySlug(slug);
-
-    const already = await this.subscriptionRepository.isSubscribed(
-      community.id,
-      userId,
-    );
-
-    if (already) {
-      throw new CommunityAlreadySubscribedException();
-    }
 
     const subscription = await this.subscriptionRepository.subscribe(
       community.id,
@@ -63,17 +54,32 @@ export class CommunityMembershipService {
   ): Promise<SubscriptionResponse> {
     const community = await this.communityBySlug(slug);
 
-    const subscription = await this.subscriptionRepository.setMuted(
+    const subscription = await this.subscriptionRepository.find(
       community.id,
       userId,
-      isMuted,
     );
 
     if (!subscription) {
       throw new CommunityNotSubscribedException();
     }
 
-    return serializeSubscription(subscription, {
+    if (subscription.userId !== userId) {
+      throw new CommunityAccessDeniedException(
+        'You can only update your own subscription.',
+      );
+    }
+
+    const updated = await this.subscriptionRepository.setMuted(
+      community.id,
+      userId,
+      isMuted,
+    );
+
+    if (!updated) {
+      throw new CommunityNotSubscribedException();
+    }
+
+    return serializeSubscription(updated, {
       id: community.id,
       name: community.name,
       slug: community.slug,
