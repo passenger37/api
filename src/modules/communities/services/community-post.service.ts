@@ -34,6 +34,8 @@ import {
 import {
   decodePostCursor,
   encodePostCursor,
+  decodeTwoFieldCursor,
+  encodeTwoFieldCursor,
 } from '../pagination/community-cursor';
 import { serializePost, serializeComment } from '../mappers/community.mapper';
 import { CommunityEventPublisher } from '../events/community-event-publisher';
@@ -410,9 +412,7 @@ export class CommunityPostService {
       return { items: [], nextCursor: null };
     }
 
-    const decoded = cursor
-      ? this.decodeTwoFieldCursorSafe(cursor)
-      : undefined;
+    const decoded = cursor ? this.decodeTwoFieldCursorSafe(cursor) : undefined;
 
     const rows = await this.commentRepository.listPostComments(
       postId,
@@ -428,10 +428,10 @@ export class CommunityPostService {
       items: comments.map(serializeComment),
       nextCursor:
         hasMore && last
-          ? Buffer.from(
-              `${last.createdAt.toISOString()}|${last.id}`,
-              'utf8',
-            ).toString('base64url')
+          ? encodeTwoFieldCursor({
+              createdAt: last.createdAt,
+              id: last.id,
+            })
           : null,
     };
   }
@@ -446,16 +446,7 @@ export class CommunityPostService {
 
   private decodeTwoFieldCursorSafe(cursor: string) {
     try {
-      // Lightweight inline decoder to avoid pulling the helper into a service
-      // method that doesn't otherwise need it.
-      const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
-      const [createdAt, id] = decoded.split('|');
-
-      if (!createdAt || !id) {
-        throw new Error('Invalid cursor.');
-      }
-
-      return { createdAt: new Date(createdAt), id };
+      return decodeTwoFieldCursor(cursor);
     } catch {
       throw new CommunityInvalidCursorException();
     }

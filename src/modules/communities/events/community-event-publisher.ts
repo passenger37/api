@@ -55,6 +55,14 @@ export class CommunityEventPublisher {
       // The RedisService client supports pub/sub via publish(). We use the
       // generic getClient() surface so this publisher has no socket.io
       // dependency and can be unit-tested with a stubbed client.
+      //
+      // `waitUntilReady` is required because RedisService is configured with
+      // `disableOfflineQueue: true` (see redis.service.ts): commands issued
+      // before the connection is ready are rejected instead of queued. A
+      // services-module onModuleInit hook can run concurrently with the
+      // RedisService hook under Nest's parallel init, so the first publish
+      // in a freshly booted process is racy without this barrier.
+      await this.redis.waitUntilReady();
       const client = this.redis.getClient();
       await client.publish(channel, JSON.stringify(envelope));
     } catch (err) {
@@ -62,17 +70,9 @@ export class CommunityEventPublisher {
       // request. We log and move on — the database write is the source of
       // truth; a missed realtime event is recoverable via the next read.
       this.logger.error(
-        {
-          event: 'community_realtime_publish_failed',
-          communityId,
-          eventName: event,
-          channel,
-          err,
-        },
-        'Failed to publish community realtime event',
+        `Failed to publish community realtime event communityId=${communityId} event=${event} channel=${channel}`,
+        err instanceof Error ? err.stack : String(err),
       );
     }
   }
 }
-
-export { COMMUNITY_REALTIME_EVENTS };

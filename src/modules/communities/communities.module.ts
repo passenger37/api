@@ -20,7 +20,6 @@ import { CommunityMembershipService } from './services/community-membership.serv
 import { CommunityPostService } from './services/community-post.service';
 import { CommunityModerationService } from './services/community-moderation.service';
 import { CommunityDiscoveryService } from './services/community-discovery.service';
-import { CommunityRoomResolverService } from './services/community-room-resolver.service';
 
 import { CommunityEventPublisher } from './events/community-event-publisher';
 
@@ -51,7 +50,6 @@ import { CommunityModerationController } from './controllers/community-moderatio
     CommunityPostService,
     CommunityModerationService,
     CommunityDiscoveryService,
-    CommunityRoomResolverService,
     CommunityEventPublisher,
   ],
   exports: [
