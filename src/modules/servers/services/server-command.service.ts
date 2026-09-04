@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 
@@ -28,8 +29,12 @@ import { ServerStructureService } from './server-structure.service';
 import { ServerRoleService } from './server-role.service';
 import { ServerPermissionService } from './server-permission.service';
 
+import { SearchService } from '../../search/services/search.service';
+
 @Injectable()
 export class ServerCommandService {
+  private readonly logger = new Logger(ServerCommandService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly validation: ServerValidationService,
@@ -42,6 +47,7 @@ export class ServerCommandService {
     private readonly serverRoleRepository: ServerRoleRepository,
     private readonly serverRoleAssignmentRepository: ServerRoleAssignmentRepository,
     private readonly permissionService: ServerPermissionService,
+    private readonly searchService: SearchService,
   ) {}
 
   async createServer(
@@ -52,7 +58,7 @@ export class ServerCommandService {
 
     const slug = await this.slugService.generate(request.name);
 
-    return this.prisma.$transaction(async (tx) => {
+    const server = await this.prisma.$transaction(async (tx) => {
       const server = await this.serverRepository.create(
         {
           name: request.name,
@@ -121,8 +127,32 @@ export class ServerCommandService {
         tx,
       );
 
-      return ServerMapper.toCreateResponse(server);
+      return server;
     });
+
+    await this.indexServer(server);
+
+    return ServerMapper.toCreateResponse(server);
+  }
+
+  private async indexServer(server: {
+    id: string;
+    name: string;
+    description: string | null;
+    createdAt: Date;
+  }) {
+    try {
+      await this.searchService.indexServer(server.id, {
+        name: server.name,
+        description: server.description || undefined,
+        memberCount: 1,
+        createdAt: server.createdAt,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to index server ${server.id} in search: ${(error as Error).message}`,
+      );
+    }
   }
 
   async updateServer(

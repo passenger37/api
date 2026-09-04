@@ -16,6 +16,7 @@ import { OutboxEventRepository } from '../repositories/outbox-event.repository';
 import { MessageAttachmentService } from './message-attachment.service';
 import { MessageSpamControlService } from './message-spam-control.service';
 import { ChannelMessageCacheService } from './channel-message-cache.service';
+import { SearchService } from '../../search/services/search.service';
 
 describe('ChannelMessageCommandService - mentions', () => {
   let service: ChannelMessageCommandService;
@@ -135,6 +136,10 @@ describe('ChannelMessageCommandService - mentions', () => {
         { provide: MessageAttachmentService, useValue: attachmentService },
         { provide: MessageSpamControlService, useValue: spamControl },
         { provide: ChannelMessageCacheService, useValue: cache },
+        {
+          provide: SearchService,
+          useValue: { indexChannelMessage: jest.fn() },
+        },
       ],
     }).compile();
 

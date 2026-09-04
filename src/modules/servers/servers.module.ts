@@ -2,6 +2,8 @@
 
 import { PrismaModule } from '../../core/database/prisma.module';
 
+import { SearchModule } from '../search/search.module';
+
 import { ServersController } from './controllers/servers.controller';
 
 import { ServersService } from './services/servers.service';
@@ -75,7 +77,7 @@ import { ServerModerationService } from './services/server-moderation.service';
 import { ServerAuditLogQueryService } from './services/server-audit-log-query.service';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, SearchModule],
 
   controllers: [
     ServersController,

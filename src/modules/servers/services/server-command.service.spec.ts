@@ -18,6 +18,7 @@ import { ServerTemplateFactory } from '../factories/server-template.factory';
 import { ServerStructureService } from './server-structure.service';
 import { ServerRoleService } from './server-role.service';
 import { ServerPermissionService } from './server-permission.service';
+import { SearchService } from '../../search/services/search.service';
 
 describe('ServerCommandService - lifecycle', () => {
   let service: ServerCommandService;
@@ -97,6 +98,7 @@ describe('ServerCommandService - lifecycle', () => {
           useValue: { create: jest.fn() },
         },
         { provide: ServerPermissionService, useValue: permissionService },
+        { provide: SearchService, useValue: { indexServer: jest.fn() } },
       ],
     }).compile();
 

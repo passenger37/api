@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { Prisma, ServerChannelType } from '@prisma/client';
 
@@ -7,11 +7,16 @@ import { ServerChannelRepository } from '../repositories/server-channel.reposito
 
 import { ServerStructure } from '../domain/server-structure.interface';
 
+import { SearchService } from '../../search/services/search.service';
+
 @Injectable()
 export class ServerStructureService {
+  private readonly logger = new Logger(ServerStructureService.name);
+
   constructor(
     private readonly categoryRepository: ServerCategoryRepository,
     private readonly channelRepository: ServerChannelRepository,
+    private readonly searchService: SearchService,
   ) {}
 
   async createStructure(
@@ -39,7 +44,7 @@ export class ServerStructureService {
       );
 
       for (const channel of category.channels) {
-        await this.channelRepository.create(
+        const createdChannel = await this.channelRepository.create(
           {
             name: channel.name,
 
@@ -67,7 +72,32 @@ export class ServerStructureService {
           },
           tx,
         );
+
+        await this.indexChannel(createdChannel);
       }
+    }
+  }
+
+  private async indexChannel(channel: {
+    id: string;
+    serverId: string;
+    name: string;
+    description: string | null;
+    type: ServerChannelType;
+    createdAt: Date;
+  }) {
+    try {
+      await this.searchService.indexChannel(channel.id, {
+        serverId: channel.serverId,
+        name: channel.name,
+        description: channel.description || undefined,
+        type: channel.type,
+        createdAt: channel.createdAt,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to index channel ${channel.id} in search: ${(error as Error).message}`,
+      );
     }
   }
 }

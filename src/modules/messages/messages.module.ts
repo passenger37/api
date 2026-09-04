@@ -4,6 +4,7 @@ import { PrismaModule } from '../../core/database/prisma.module';
 
 import { ServersModule } from '../servers/servers.module';
 import { UsersModule } from '../users/users.module';
+import { SearchModule } from '../search/search.module';
 import { ChannelMessageRepository } from './repositories/channel-message.repository';
 import { ChannelMessageEditRepository } from './repositories/channel-message-edit.repository';
 import { ChannelMentionRepository } from './repositories/channel-message-mention.repository';
@@ -37,7 +38,7 @@ import { MessageAttachmentController } from './controllers/message-attachment.co
 import { MessageSpamControlService } from './services/message-spam-control.service';
 import { ChannelMessageCacheService } from './services/channel-message-cache.service';
 @Module({
-  imports: [PrismaModule, ServersModule, AuthModule, UsersModule],
+  imports: [PrismaModule, ServersModule, AuthModule, UsersModule, SearchModule],
   controllers: [ChannelMessageController, MessageAttachmentController],
   providers: [
     ChannelMessageRepository,

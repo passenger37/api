@@ -3,6 +3,7 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
@@ -21,8 +22,12 @@ import { MessageAttachmentService } from './message-attachment.service';
 import { MessageSpamControlService } from './message-spam-control.service';
 import { ChannelMessageCacheService } from './channel-message-cache.service';
 
+import { SearchService } from '../../search/services/search.service';
+
 @Injectable()
 export class ChannelMessageCommandService {
+  private readonly logger = new Logger(ChannelMessageCommandService.name);
+
   constructor(
     private readonly prisma: PrismaService,
 
@@ -52,6 +57,8 @@ export class ChannelMessageCommandService {
     private readonly spamControl: MessageSpamControlService,
 
     private readonly cache: ChannelMessageCacheService,
+
+    private readonly searchService: SearchService,
   ) {}
 
   async createMessage(
@@ -186,6 +193,15 @@ export class ChannelMessageCommandService {
         return message;
       });
 
+      await this.indexMessage({
+        id: message.id,
+        serverId: message.serverId,
+        channelId: message.channelId,
+        content: message.content,
+        createdAt: message.createdAt,
+        authorId: member.userId,
+      });
+
       await this.cache.invalidateChannel(channelId);
 
       return {
@@ -208,6 +224,29 @@ export class ChannelMessageCommandService {
       }
 
       throw error;
+    }
+  }
+
+  private async indexMessage(message: {
+    id: string;
+    serverId: string;
+    channelId: string;
+    content: string;
+    createdAt: Date;
+    authorId: string;
+  }) {
+    try {
+      await this.searchService.indexChannelMessage(message.id, {
+        serverId: message.serverId,
+        channelId: message.channelId,
+        authorId: message.authorId,
+        content: message.content,
+        createdAt: message.createdAt,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to index message ${message.id} in search: ${(error as Error).message}`,
+      );
     }
   }
 

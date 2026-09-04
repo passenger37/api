@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
-import { Prisma, ServerPermission } from '@prisma/client';
+import { ServerPermission } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
 
@@ -13,8 +13,12 @@ import { ServerPermissionService } from './server-permission.service';
 import { CreateServerChannelRequest } from '../dto/request/create-server-channel.request';
 import { UpdateServerChannelRequest } from '../dto/request/update-server-channel.request';
 
+import { SearchService } from '../../search/services/search.service';
+
 @Injectable()
 export class ServerChannelCommandService {
+  private readonly logger = new Logger(ServerChannelCommandService.name);
+
   constructor(
     private readonly prisma: PrismaService,
 
@@ -23,6 +27,8 @@ export class ServerChannelCommandService {
     private readonly validation: ServerChannelValidationService,
 
     private readonly permissionService: ServerPermissionService,
+
+    private readonly searchService: SearchService,
   ) {}
 
   async createChannel(
@@ -48,7 +54,7 @@ export class ServerChannelCommandService {
 
     const highestPosition = await this.repository.getHighestPosition(serverId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const channel = await this.prisma.$transaction(async (tx) => {
       return this.repository.create(
         {
           name: request.name,
@@ -82,6 +88,33 @@ export class ServerChannelCommandService {
         tx,
       );
     });
+
+    await this.indexChannel(channel);
+
+    return channel;
+  }
+
+  private async indexChannel(channel: {
+    id: string;
+    serverId: string;
+    name: string;
+    description: string | null;
+    type: string;
+    createdAt: Date;
+  }) {
+    try {
+      await this.searchService.indexChannel(channel.id, {
+        serverId: channel.serverId,
+        name: channel.name,
+        description: channel.description || undefined,
+        type: channel.type,
+        createdAt: channel.createdAt,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to index channel ${channel.id} in search: ${(error as Error).message}`,
+      );
+    }
   }
 
   async updateChannel(

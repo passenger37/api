@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { SearchIndex, SearchQuery, SearchAnalytics, Prisma } from '@prisma/client';
+import {
+  SearchIndex,
+  SearchQuery,
+  SearchAnalytics,
+  Prisma,
+} from '@prisma/client';
 
 @Injectable()
 export class SearchIndexRepository {
@@ -23,7 +28,11 @@ export class SearchIndexRepository {
     const client = tx ?? this.prisma;
     return client.searchIndex.upsert({
       where: { contentType_contentId: { contentType, contentId } },
-      create: { contentType, contentId, ...data } as Prisma.SearchIndexCreateInput,
+      create: {
+        contentType,
+        contentId,
+        ...data,
+      } as Prisma.SearchIndexCreateInput,
       update: data,
     });
   }
@@ -32,7 +41,10 @@ export class SearchIndexRepository {
     return this.prisma.searchIndex.findUnique({ where: { id } });
   }
 
-  async findByContent(contentType: string, contentId: string): Promise<SearchIndex | null> {
+  async findByContent(
+    contentType: string,
+    contentId: string,
+  ): Promise<SearchIndex | null> {
     return this.prisma.searchIndex.findUnique({
       where: { contentType_contentId: { contentType, contentId } },
     });
@@ -108,14 +120,40 @@ export class SearchIndexRepository {
   async upsertDailyAnalytics(
     date: Date,
     engine: string,
-    data: Partial<Prisma.SearchAnalyticsCreateInput>,
+    data: {
+      totalIncrement?: number;
+      uniqueIncrement?: number;
+      avgLatencyMs?: number;
+      topQueries?: Prisma.InputJsonValue;
+      zeroResultRate?: number;
+    },
     tx?: Prisma.TransactionClient,
   ): Promise<SearchAnalytics> {
     const client = tx ?? this.prisma;
+    const totalIncrement = data.totalIncrement ?? 0;
+    const uniqueIncrement = data.uniqueIncrement ?? 0;
+    const avgLatencyMs = data.avgLatencyMs ?? 0;
+    const topQueries = data.topQueries;
+    const zeroResultRate = data.zeroResultRate;
+
     return client.searchAnalytics.upsert({
       where: { date_engine: { date, engine } },
-      create: { date, engine, ...data },
-      update: data,
+      create: {
+        date,
+        engine,
+        totalSearches: totalIncrement,
+        uniqueUsers: uniqueIncrement,
+        avgLatencyMs,
+        ...(topQueries !== undefined && { topQueries }),
+        ...(zeroResultRate !== undefined && { zeroResultRate }),
+      },
+      update: {
+        totalSearches: { increment: totalIncrement },
+        uniqueUsers: { increment: uniqueIncrement },
+        avgLatencyMs,
+        ...(topQueries !== undefined && { topQueries }),
+        ...(zeroResultRate !== undefined && { zeroResultRate }),
+      },
     });
   }
 

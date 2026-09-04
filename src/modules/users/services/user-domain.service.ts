@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { Prisma } from '@prisma/client';
 
@@ -8,7 +8,7 @@ import { CreateUserDto } from '../dto/create-user.dto';
 
 import { UserResponseDto } from '../responses';
 
-import { CreateUserMapper, UserMapper } from '../mappers';
+import { UserMapper } from '../mappers';
 
 import { UserFactory } from '../factories/user.factory';
 
@@ -16,13 +16,18 @@ import { UserValidationService } from './user-validation.service';
 
 import { PasswordService } from '../../security/services/password.service';
 
+import { SearchService } from '../../search/services/search.service';
+
 @Injectable()
 export class UserDomainService {
+  private readonly logger = new Logger(UserDomainService.name);
+
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly userValidationService: UserValidationService,
     private readonly passwordService: PasswordService,
     private readonly userFactory: UserFactory,
+    private readonly searchService: SearchService,
   ) {}
 
   // =====================================================
@@ -35,7 +40,11 @@ export class UserDomainService {
       input.username,
     );
 
-    return this.usersRepository.create(input);
+    const user = await this.usersRepository.create(input);
+
+    await this.indexUser(user);
+
+    return user;
   }
 
   // =====================================================
@@ -54,6 +63,31 @@ export class UserDomainService {
 
     const user = await this.usersRepository.create(input);
 
+    await this.indexUser(user);
+
     return UserMapper.toResponse(user);
+  }
+
+  private async indexUser(user: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    bio: string | null;
+    avatarUrl: string | null;
+    createdAt: Date;
+  }) {
+    try {
+      await this.searchService.indexUser(user.id, {
+        username: user.username,
+        displayName: user.displayName ?? user.username,
+        bio: user.bio || undefined,
+        avatarUrl: user.avatarUrl || undefined,
+        createdAt: user.createdAt,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to index user ${user.id} in search: ${(error as Error).message}`,
+      );
+    }
   }
 }

@@ -11,6 +11,7 @@ describe('DmCommandService', () => {
   let readStateRepository: any;
   let userQueryService: any;
   let gateway: any;
+  let searchService: any;
 
   const now = new Date('2026-01-01T00:00:00.000Z');
 
@@ -42,6 +43,7 @@ describe('DmCommandService', () => {
       broadcastMessageDeleted: jest.fn(),
       broadcastMessageRead: jest.fn(),
     };
+    searchService = { indexDirectMessage: jest.fn() };
 
     service = new DmCommandService(
       prisma,
@@ -50,6 +52,7 @@ describe('DmCommandService', () => {
       readStateRepository,
       userQueryService,
       gateway,
+      searchService,
     );
   });
 

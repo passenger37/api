@@ -53,25 +53,37 @@ export class MeilisearchEngine implements SearchEngine, OnModuleInit {
     private readonly configService: ConfigService,
     @Optional() private readonly logger: any,
   ) {
-    this.indexName = this.configService.get('Meilisearch_INDEX') || 'nexus_messages';
+    this.indexName =
+      this.configService.get('Meilisearch_INDEX') || 'nexus_messages';
   }
 
   async onModuleInit() {
     try {
-      const host = this.configService.get('Meilisearch_HOST') || 'http://localhost:7700';
-      const apiKey = this.configService.get('Meilisearch_API_KEY') || '';
-      
+      const host =
+        this.configService.get('MEILISEARCH_HOST') || 'http://localhost:7700';
+      const apiKey = this.configService.get('MEILISEARCH_API_KEY') || '';
+
       // Dynamic import for Meilisearch
-      const Meilisearch = await import('Meilisearch');
-      this.client = new Meilisearch.Meilisearch({ host, apiKey });
-      
-      // Create index if not exists
-      await this.client.createIndexIfNotExists(this.indexName, { primaryKey: 'id' });
-      
+      const { Meilisearch } = await import('meilisearch');
+      this.client = new Meilisearch({ host, apiKey });
+
+      // Create index — ignore "index already exists" errors
+      try {
+        await this.client.createIndex(this.indexName, { primaryKey: 'id' });
+      } catch (err: any) {
+        if (!err.message?.includes('already exists')) throw err;
+      }
+
       // Configure index settings
       await this.updateSettings({
         searchableAttributes: ['content', 'title', 'authorName', 'channelName'],
-        filterableAttributes: ['serverId', 'channelId', 'authorId', 'contentType', 'serverId'],
+        filterableAttributes: [
+          'serverId',
+          'channelId',
+          'authorId',
+          'contentType',
+          'serverId',
+        ],
         sortableAttributes: ['createdAt', 'score'],
         rankingRules: [
           'words',
@@ -83,13 +95,27 @@ export class MeilisearchEngine implements SearchEngine, OnModuleInit {
           'recency',
         ],
         synonyms: {
-          'dm': ['direct message', 'private message'],
-          'channel': ['room', 'chat'],
+          dm: ['direct message', 'private message'],
+          channel: ['room', 'chat'],
         },
-        stopWords: ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with'],
+        stopWords: [
+          'the',
+          'a',
+          'an',
+          'and',
+          'or',
+          'but',
+          'in',
+          'on',
+          'at',
+          'to',
+          'for',
+          'of',
+          'with',
+        ],
         pagination: { maxTotalHits: 1000 },
       });
-      
+
       this.available = true;
     } catch (error) {
       console.warn('Meilisearch not available, using fallback:', error.message);
@@ -128,7 +154,7 @@ export class MeilisearchEngine implements SearchEngine, OnModuleInit {
     };
 
     const results = await index.search(options.query, searchParams);
-    
+
     return {
       hits: results.hits.map((hit: any) => ({
         id: hit.id,
@@ -158,7 +184,7 @@ export class MeilisearchEngine implements SearchEngine, OnModuleInit {
     return Object.entries(filter)
       .map(([key, value]) => {
         if (Array.isArray(value)) {
-          return `${key} IN [${value.map(v => `"${v}"`).join(', ')}]`;
+          return `${key} IN [${value.map((v) => `"${v}"`).join(', ')}]`;
         }
         return `${key} = "${value}"`;
       })

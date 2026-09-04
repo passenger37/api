@@ -8,11 +8,7 @@ import { SearchController } from './controllers/search.controller';
 @Module({
   imports: [PrismaModule],
   controllers: [SearchController],
-  providers: [
-    SearchIndexRepository,
-    MeilisearchEngine,
-    SearchService,
-  ],
+  providers: [SearchIndexRepository, MeilisearchEngine, SearchService],
   exports: [SearchService, SearchIndexRepository],
 })
 export class SearchModule {}

@@ -44,7 +44,11 @@ export class SearchController {
     @CurrentUser('id') userId: string,
     @Query() query: SearchSuggestionsRequestDto,
   ) {
-    return this.searchService.getSearchSuggestions(userId, query.partialQuery, query.limit);
+    return this.searchService.getSearchSuggestions(
+      userId,
+      query.partialQuery,
+      query.limit,
+    );
   }
 
   @Get('analytics')
@@ -54,7 +58,10 @@ export class SearchController {
     @Query() query: SearchAnalyticsRequestDto,
   ) {
     // Only admins can see analytics (could add a guard)
-    return this.searchService.getSearchAnalytics(query.engine || 'meilisearch', query.days);
+    return this.searchService.getSearchAnalytics(
+      query.engine || 'meilisearch',
+      query.days,
+    );
   }
 
   @Get('history')

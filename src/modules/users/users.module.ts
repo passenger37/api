@@ -20,9 +20,10 @@ import { UserProfileFactory } from './factories';
 import { UserMapper } from './mappers';
 import { SessionsModule } from '../sessions/sessions.module';
 import { UserSocialRepository } from './repositories/user-social.repository';
+import { SearchModule } from '../search/search.module';
 
 @Module({
-  imports: [SecurityModule, SessionsModule],
+  imports: [SecurityModule, SessionsModule, SearchModule],
 
   controllers: [UsersController],
 

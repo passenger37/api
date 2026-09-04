@@ -2,8 +2,46 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { SearchIndexRepository } from '../repositories/search-index.repository';
-import { SearchEngine, MeilisearchEngine, SearchOptions, SearchResults, SearchHit } from './search-engine.service';
-import { SearchIndex, SearchQuery, SearchAnalytics, Prisma } from '@prisma/client';
+import {
+  SearchEngine,
+  MeilisearchEngine,
+  SearchOptions,
+  SearchResults,
+  SearchHit,
+} from './search-engine.service';
+import { Prisma, UserStatus } from '@prisma/client';
+
+type UserFacingContentType =
+  | 'user'
+  | 'users'
+  | 'server'
+  | 'servers'
+  | 'channel'
+  | 'channels'
+  | 'message'
+  | 'messages'
+  | 'channel_message'
+  | 'direct_message';
+
+const CONTENT_TYPE_MAP: Record<UserFacingContentType, string[]> = {
+  user: ['user'],
+  users: ['user'],
+  server: ['server'],
+  servers: ['server'],
+  channel: ['channel'],
+  channels: ['channel'],
+  message: ['channel_message', 'direct_message'],
+  messages: ['channel_message', 'direct_message'],
+  channel_message: ['channel_message'],
+  direct_message: ['direct_message'],
+};
+
+function normalizeContentTypes(
+  contentType?: UserFacingContentType,
+): string[] | null {
+  if (!contentType) return null;
+  return CONTENT_TYPE_MAP[contentType] ?? [contentType];
+}
 
 export interface AdvancedSearchOptions {
   userId: string;
@@ -11,7 +49,17 @@ export interface AdvancedSearchOptions {
   serverId?: string;
   channelId?: string;
   authorId?: string;
-  contentType?: 'channel_message' | 'direct_message' | 'server' | 'channel' | 'user';
+  contentType?:
+    | 'user'
+    | 'users'
+    | 'server'
+    | 'servers'
+    | 'channel'
+    | 'channels'
+    | 'message'
+    | 'messages'
+    | 'channel_message'
+    | 'direct_message';
   dateFrom?: Date;
   dateTo?: Date;
   hasAttachments?: boolean;
@@ -72,8 +120,11 @@ export class SearchService {
     private readonly indexRepo: SearchIndexRepository,
     private readonly meilisearchEngine: MeilisearchEngine,
   ) {
-    this.useMeilisearch = this.configService.get('MEILISEARCH_ENABLED') === 'true';
-    this.primaryEngine = this.useMeilisearch ? this.meilisearchEngine : null as any;
+    this.useMeilisearch =
+      this.configService.get('MEILISEARCH_ENABLED') === 'true';
+    this.primaryEngine = this.useMeilisearch
+      ? this.meilisearchEngine
+      : (null as any);
     this.fallbackEngine = null as any; // PostgresSearchEngine would be injected here
   }
 
@@ -89,7 +140,7 @@ export class SearchService {
       title?: string;
       metadata?: Record<string, any>;
       createdAt: Date;
-    }
+    },
   ): Promise<void> {
     await this.indexRepo.upsertIndex('channel_message', messageId, {
       serverId: data.serverId,
@@ -103,18 +154,20 @@ export class SearchService {
 
     // Also index in Meilisearch if available
     if (this.useMeilisearch) {
-      await this.meilisearchEngine.indexDocuments([{
-        id: messageId,
-        contentType: 'channel_message',
-        contentId: messageId,
-        serverId: data.serverId,
-        channelId: data.channelId,
-        authorId: data.authorId,
-        content: data.content,
-        title: data.title,
-        metadata: data.metadata,
-        createdAt: data.createdAt.toISOString(),
-      }]);
+      await this.meilisearchEngine.indexDocuments([
+        {
+          id: messageId,
+          contentType: 'channel_message',
+          contentId: messageId,
+          serverId: data.serverId,
+          channelId: data.channelId,
+          authorId: data.authorId,
+          content: data.content,
+          title: data.title,
+          metadata: data.metadata,
+          createdAt: data.createdAt.toISOString(),
+        },
+      ]);
     }
   }
 
@@ -125,7 +178,7 @@ export class SearchService {
       content: string;
       metadata?: Record<string, any>;
       createdAt: Date;
-    }
+    },
   ): Promise<void> {
     await this.indexRepo.upsertIndex('direct_message', messageId, {
       authorId: data.authorId,
@@ -136,15 +189,17 @@ export class SearchService {
     });
 
     if (this.useMeilisearch) {
-      await this.meilisearchEngine.indexDocuments([{
-        id: messageId,
-        contentType: 'direct_message',
-        contentId: messageId,
-        authorId: data.authorId,
-        content: data.content,
-        metadata: data.metadata,
-        createdAt: data.createdAt.toISOString(),
-      }]);
+      await this.meilisearchEngine.indexDocuments([
+        {
+          id: messageId,
+          contentType: 'direct_message',
+          contentId: messageId,
+          authorId: data.authorId,
+          content: data.content,
+          metadata: data.metadata,
+          createdAt: data.createdAt.toISOString(),
+        },
+      ]);
     }
   }
 
@@ -155,7 +210,7 @@ export class SearchService {
       description?: string;
       memberCount: number;
       createdAt: Date;
-    }
+    },
   ): Promise<void> {
     await this.indexRepo.upsertIndex('server', serverId, {
       searchableText: [data.name, data.description].filter(Boolean).join(' '),
@@ -173,7 +228,7 @@ export class SearchService {
       description?: string;
       type: string;
       createdAt: Date;
-    }
+    },
   ): Promise<void> {
     await this.indexRepo.upsertIndex('channel', channelId, {
       serverId: data.serverId,
@@ -190,13 +245,21 @@ export class SearchService {
       username: string;
       displayName: string;
       bio?: string;
+      avatarUrl?: string;
       createdAt: Date;
-    }
+    },
   ): Promise<void> {
     await this.indexRepo.upsertIndex('user', userId, {
       authorId: userId,
-      searchableText: [data.username, data.displayName, data.bio].filter(Boolean).join(' '),
-      metadata: {},
+      searchableText: [data.username, data.displayName, data.bio]
+        .filter(Boolean)
+        .join(' '),
+      metadata: {
+        username: data.username,
+        displayName: data.displayName,
+        bio: data.bio,
+        ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
+      },
       createdAt: data.createdAt,
       updatedAt: new Date(),
     });
@@ -223,10 +286,12 @@ export class SearchService {
     if (options.serverId) filter.serverId = options.serverId;
     if (options.channelId) filter.channelId = options.channelId;
     if (options.authorId) filter.authorId = options.authorId;
-    if (options.contentType) filter.contentType = options.contentType;
+    const contentTypes = normalizeContentTypes(options.contentType);
+    if (contentTypes) filter.contentTypes = contentTypes;
     if (options.dateFrom || options.dateTo) {
       filter.createdAt = {};
-      if (options.dateFrom) filter.createdAt['>='] = options.dateFrom.toISOString();
+      if (options.dateFrom)
+        filter.createdAt['>='] = options.dateFrom.toISOString();
       if (options.dateTo) filter.createdAt['<='] = options.dateTo.toISOString();
     }
     if (options.hasAttachments) filter.hasAttachments = true;
@@ -270,63 +335,67 @@ export class SearchService {
       try {
         return await this.meilisearchEngine.search(options.query, options);
       } catch (error) {
-        this.logger.warn('Meilisearch failed, falling back to PostgreSQL', error);
+        this.logger.warn(
+          'Meilisearch failed, falling back to PostgreSQL',
+          error,
+        );
       }
     }
-    
+
     // Fallback to PostgreSQL full-text search
     return this.postgresSearch(options);
   }
 
-private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
+  private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
     const query = options.query || '';
     const filter = options.filter || {};
-    
-    const whereConditions: string[] = [];
-    const params: any[] = [];
-    let paramIndex = 1;
+
+    const where: Prisma.SearchIndexWhereInput = {};
 
     if (query) {
-      whereConditions.push("searchableText @@ plainto_tsquery('english', $" + paramIndex + ")");
-      params.push(query);
-      paramIndex++;
+      where.OR = [{ searchableText: { contains: query, mode: 'insensitive' } }];
     }
 
-    if (options.filter) {
-      for (const [key, value] of Object.entries(options.filter)) {
-        if (Array.isArray(value)) {
-          whereConditions.push(key + " = ANY($" + paramIndex + ")");
-          params.push(value);
-        } else {
-          whereConditions.push(key + " = $" + paramIndex);
-          params.push(value);
-        }
-        paramIndex++;
-      }
+    if (filter.serverId) where.serverId = filter.serverId as string;
+    if (filter.channelId) where.channelId = filter.channelId as string;
+    if (filter.authorId) where.authorId = filter.authorId as string;
+    if (filter.contentTypes) {
+      where.contentType = { in: filter.contentTypes as string[] };
+    } else if (filter.contentType) {
+      where.contentType = filter.contentType as string;
+    }
+    if (filter.createdAt) {
+      const range = filter.createdAt as Record<string, string>;
+      where.createdAt = {};
+      if (range['>=']) where.createdAt.gte = new Date(range['>=']);
+      if (range['<=']) where.createdAt.lte = new Date(range['<=']);
     }
 
-    const whereClause = whereConditions.length > 0 ? "WHERE " + whereConditions.join(" AND ") : "";
-    
-    const countQuery = "SELECT COUNT(*) FROM search_indexes " + whereClause;
-    const countResult = await this.prisma.$queryRawUnsafe(countQuery, ...params);
-    const total = Number((countResult as any)[0]?.count || 0);
-
-    const selectQuery = `
-      SELECT *, ts_rank_cd(searchableText, plainto_tsquery('english', $1)) as rank
-      FROM search_indexes
-      ` + (whereConditions.length > 0 ? "WHERE " + whereConditions.join(" AND ") : "") + `
-      ORDER BY rank DESC, created_at DESC
-      LIMIT $` + paramIndex + ` OFFSET $` + (paramIndex + 1) + `
-    `;
-    params.push(query, options.limit || 20, options.offset || 0);
-
-    const items = await this.prisma.$queryRawUnsafe(selectQuery, ...params) as any[];
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.searchIndex.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: options.limit ?? 20,
+        skip: options.offset ?? 0,
+      }),
+      this.prisma.searchIndex.count({ where }),
+    ]);
 
     return {
-      hits: items.map((item: any) => ({
+      hits: rows.map((item) => ({
         id: item.id,
-        score: Number(item.rank) || 1.0,
-        document: item,
+        score: 1.0,
+        document: {
+          id: item.id,
+          contentType: item.contentType,
+          contentId: item.contentId,
+          serverId: item.serverId,
+          channelId: item.channelId,
+          authorId: item.authorId,
+          content: item.searchableText,
+          metadata: item.metadata,
+          createdAt: item.createdAt,
+        } as any,
       })),
       estimatedTotalHits: total,
       processingTimeMs: 0,
@@ -343,16 +412,19 @@ private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
     // E2EE messages cannot be searched server-side
     // This endpoint returns a signal to the client to perform local search
     // The client maintains an encrypted local search index
-    
-    return [{
-      id: 'client_side_search_required',
-      contentType: 'e2ee_message',
-      contentId: '',
-      content: 'E2EE messages must be searched client-side. Use the local encrypted index.',
-      score: 0,
-      metadata: { clientSideSearch: true, query },
-      createdAt: new Date(),
-    }];
+
+    return [
+      {
+        id: 'client_side_search_required',
+        contentType: 'e2ee_message',
+        contentId: '',
+        content:
+          'E2EE messages must be searched client-side. Use the local encrypted index.',
+        score: 0,
+        metadata: { clientSideSearch: true, query },
+        createdAt: new Date(),
+      },
+    ];
   }
 
   // ============ Faceted Search ============
@@ -367,7 +439,9 @@ private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
     };
   }
 
-  private buildDateHistogram(dateFacet: Record<string, number>): Record<string, number> {
+  private buildDateHistogram(
+    dateFacet: Record<string, number>,
+  ): Record<string, number> {
     // Convert date facet to histogram buckets (daily)
     const histogram: Record<string, number> = {};
     for (const [date, count] of Object.entries(dateFacet)) {
@@ -401,7 +475,12 @@ private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
     if (options.serverId) {
       // Check if user is member of server
       const membership = await this.prisma.serverMember.findUnique({
-        where: { serverId_userId: { serverId: options.serverId!, userId: options.userId } },
+        where: {
+          serverId_userId: {
+            serverId: options.serverId,
+            userId: options.userId,
+          },
+        },
       });
       if (!membership) {
         throw new Error('Not a member of this server');
@@ -410,12 +489,17 @@ private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
     if (options.channelId) {
       // Check if user has access to channel
       const channel = await this.prisma.serverChannel.findUnique({
-        where: { id: options.channelId! },
+        where: { id: options.channelId },
       });
       if (!channel) throw new Error('Channel not found');
-      
+
       const membership = await this.prisma.serverMember.findUnique({
-        where: { serverId_userId: { serverId: channel.serverId, userId: options.userId } },
+        where: {
+          serverId_userId: {
+            serverId: channel.serverId,
+            userId: options.userId,
+          },
+        },
       });
       if (!membership) throw new Error('Not a member of this server');
     }
@@ -441,8 +525,8 @@ private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
       new Date(),
       this.useMeilisearch ? 'meilisearch' : 'postgres',
       {
-        totalSearches: { increment: 1 } as any,
-        uniqueUsers: { increment: 1 } as any, // Simplified - would need proper distinct count
+        totalIncrement: 1,
+        uniqueIncrement: 1, // Simplified - would need proper distinct count
         avgLatencyMs: results.processingTimeMs,
       },
     );
@@ -456,17 +540,23 @@ private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
     limit = 5,
   ): Promise<SearchSuggestion[]> {
     // Get from user's search history
-    const recentQueries = await this.indexRepo.findQueriesByUser(userId, { limit: 50 });
-    
+    const recentQueries = await this.indexRepo.findQueriesByUser(userId, {
+      limit: 50,
+    });
+
     // Filter by prefix
     const suggestions = recentQueries
-      .filter(q => q.queryText.toLowerCase().startsWith(partialQuery.toLowerCase()))
+      .filter((q) =>
+        q.queryText.toLowerCase().startsWith(partialQuery.toLowerCase()),
+      )
       .slice(0, limit)
-      .map(q => ({ query: q.queryText, count: 1 }));
+      .map((q) => ({ query: q.queryText, count: 1 }));
 
     // Add popular queries from analytics
-    const popularQueries = await this.getPopularQueries(limit - suggestions.length);
-    
+    const popularQueries = await this.getPopularQueries(
+      limit - suggestions.length,
+    );
+
     return [...suggestions, ...popularQueries];
   }
 
@@ -479,12 +569,18 @@ private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
   }
 
   private async getPopularQueries(limit: number): Promise<SearchSuggestion[]> {
-    const analytics = await this.indexRepo.findAnalytics('meilisearch', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), new Date());
-    
+    const analytics = await this.indexRepo.findAnalytics(
+      'meilisearch',
+      new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      new Date(),
+    );
+
     const queryCounts: Record<string, number> = {};
     for (const day of analytics) {
       if (day.topQueries) {
-        for (const [query, count] of Object.entries(day.topQueries as Record<string, number>)) {
+        for (const [query, count] of Object.entries(
+          day.topQueries as Record<string, number>,
+        )) {
           queryCounts[query] = (queryCounts[query] || 0) + count;
         }
       }
@@ -510,9 +606,9 @@ private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
   }> {
     const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     const to = new Date();
-    
+
     const analytics = await this.indexRepo.findAnalytics(engine, from, to);
-    
+
     let totalSearches = 0;
     let uniqueUsers = 0;
     let totalLatency = 0;
@@ -524,9 +620,11 @@ private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
       uniqueUsers += day.uniqueUsers;
       totalLatency += day.avgLatencyMs * day.totalSearches;
       searchesPerDay[day.date.toISOString().split('T')[0]] = day.totalSearches;
-      
+
       if (day.topQueries) {
-        for (const [query, count] of Object.entries(day.topQueries as Record<string, number>)) {
+        for (const [query, count] of Object.entries(
+          day.topQueries as Record<string, number>,
+        )) {
           queryCounts[query] = (queryCounts[query] || 0) + count;
         }
       }
@@ -550,10 +648,118 @@ private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
     let indexed = 0;
     let errors = 0;
 
-    // Reindex channel messages
+    // Users
+    const users = await this.prisma.user.findMany({
+      where: { status: UserStatus.ACTIVE, deletedAt: null },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        bio: true,
+        avatarUrl: true,
+        createdAt: true,
+      },
+    });
+    for (const u of users) {
+      try {
+        await this.indexUser(u.id, {
+          username: u.username,
+          displayName: u.displayName,
+          bio: u.bio || undefined,
+          avatarUrl: u.avatarUrl || undefined,
+          createdAt: u.createdAt,
+        });
+        indexed++;
+      } catch {
+        errors++;
+      }
+    }
+
+    // Servers
+    const servers = await this.prisma.server.findMany({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        createdAt: true,
+        _count: { select: { members: true } },
+      },
+    });
+    for (const s of servers) {
+      try {
+        await this.indexServer(s.id, {
+          name: s.name,
+          description: s.description || undefined,
+          memberCount: s._count.members,
+          createdAt: s.createdAt,
+        });
+        indexed++;
+      } catch {
+        errors++;
+      }
+    }
+
+    // Channels
+    const channels = await this.prisma.serverChannel.findMany({
+      select: {
+        id: true,
+        serverId: true,
+        name: true,
+        description: true,
+        type: true,
+        createdAt: true,
+      },
+    });
+    for (const c of channels) {
+      try {
+        await this.indexChannel(c.id, {
+          serverId: c.serverId,
+          name: c.name,
+          description: c.description || undefined,
+          type: c.type,
+          createdAt: c.createdAt,
+        });
+        indexed++;
+      } catch {
+        errors++;
+      }
+    }
+
+    // Direct messages
+    const dms = await this.prisma.directMessage.findMany({
+      where: { isDeleted: false },
+      select: {
+        id: true,
+        authorUserId: true,
+        content: true,
+        createdAt: true,
+      },
+      take: 10000,
+    });
+    for (const dm of dms) {
+      try {
+        await this.indexDirectMessage(dm.id, {
+          authorId: dm.authorUserId,
+          content: dm.content,
+          createdAt: dm.createdAt,
+        });
+        indexed++;
+      } catch {
+        errors++;
+      }
+    }
+
+    // Channel messages
     const messages = await this.prisma.channelMessage.findMany({
       where: { isDeleted: false },
-      select: { id: true, serverId: true, channelId: true, authorMemberId: true, content: true, createdAt: true },
+      select: {
+        id: true,
+        serverId: true,
+        channelId: true,
+        authorMemberId: true,
+        content: true,
+        createdAt: true,
+      },
       take: 10000,
     });
 
@@ -563,7 +769,7 @@ private async postgresSearch(options: SearchOptions): Promise<SearchResults> {
           where: { id: msg.authorMemberId },
           select: { userId: true },
         });
-        
+
         await this.indexChannelMessage(msg.id, {
           serverId: msg.serverId,
           channelId: msg.channelId,

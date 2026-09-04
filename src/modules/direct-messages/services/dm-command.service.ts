@@ -3,6 +3,7 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { UserStatus } from '@prisma/client';
@@ -16,8 +17,12 @@ import { DirectMessageReadStateRepository } from '../repositories/direct-message
 import { serializeDirectMessage } from '../serializers/dm.serializer';
 import { DmGateway } from '../gateways/dm.gateway';
 
+import { SearchService } from '../../search/services/search.service';
+
 @Injectable()
 export class DmCommandService {
+  private readonly logger = new Logger(DmCommandService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly channelRepository: DirectMessageChannelRepository,
@@ -26,6 +31,7 @@ export class DmCommandService {
     private readonly userQueryService: UserQueryService,
     @Inject(forwardRef(() => DmGateway))
     private readonly gateway: DmGateway,
+    private readonly searchService: SearchService,
   ) {}
 
   async open(userId: string, targetUserId: string) {
@@ -116,6 +122,13 @@ export class DmCommandService {
         return created;
       });
 
+      await this.indexDirectMessage({
+        id: message.id,
+        content: message.content,
+        createdAt: message.createdAt,
+        authorId: senderId,
+      });
+
       const payload = serializeDirectMessage(message);
 
       this.gateway.broadcastMessageCreated(channelId, payload);
@@ -140,6 +153,25 @@ export class DmCommandService {
       }
 
       throw error;
+    }
+  }
+
+  private async indexDirectMessage(message: {
+    id: string;
+    content: string;
+    createdAt: Date;
+    authorId: string;
+  }) {
+    try {
+      await this.searchService.indexDirectMessage(message.id, {
+        authorId: message.authorId,
+        content: message.content,
+        createdAt: message.createdAt,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to index direct message ${message.id} in search: ${(error as Error).message}`,
+      );
     }
   }
 
