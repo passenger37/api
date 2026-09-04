@@ -25,7 +25,7 @@ import { SetMutedRequest } from '../dto/request/set-muted.request';
 import { ModeratorAssignmentRequest } from '../dto/request/moderator-assignment.request';
 import { DiscoverCommunitiesQuery } from '../dto/query/discover-communities.query';
 import { ListSubscriptionsQuery } from '../dto/query/list-subscriptions.query';
-import { serializeCommunity, serializeCategory } from '../mappers/community.mapper';
+import { serializeCommunity } from '../mappers/community.mapper';
 
 @ApiTags('communities')
 @ApiBearerAuth()
@@ -100,9 +100,7 @@ export class CommunityController {
     @CurrentUser('id') userId: string,
     @Body() request: CreateCategoryRequest,
   ) {
-    await this.commandService.createCategory(slug, userId, request);
-
-    return this.queryService.listCategories(slug);
+    return this.commandService.createCategory(slug, userId, request);
   }
 
   @Patch(':slug/categories/:categoryId')
@@ -112,7 +110,7 @@ export class CommunityController {
     @CurrentUser('id') userId: string,
     @Body() request: UpdateCategoryRequest,
   ) {
-    await this.commandService.updateCategory(slug, categoryId, userId, request);
+    return this.commandService.updateCategory(slug, categoryId, userId, request);
   }
 
   @Delete(':slug/categories/:categoryId')
@@ -122,6 +120,8 @@ export class CommunityController {
     @CurrentUser('id') userId: string,
   ) {
     await this.commandService.deleteCategory(slug, categoryId, userId);
+
+    return { deleted: true };
   }
 
   @Post(':slug/subscribe')
@@ -171,6 +171,8 @@ export class CommunityController {
       request.userId,
       request.role,
     );
+
+    return { added: true };
   }
 
   @Delete(':slug/moderators/:targetUserId')
@@ -180,5 +182,7 @@ export class CommunityController {
     @Param('targetUserId') targetUserId: string,
   ) {
     await this.commandService.removeModerator(slug, userId, targetUserId);
+
+    return { removed: true };
   }
 }

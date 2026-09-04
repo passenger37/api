@@ -123,6 +123,12 @@ export class CommunityModerationService {
             throw new CommunityCommentNotFoundException();
           }
 
+          const post = await this.postRepository.findById(comment.postId);
+
+          if (!post || post.communityId !== communityId) {
+            throw new CommunityCommentNotFoundException();
+          }
+
           await this.commentRepository.softDelete(comment.id);
         }
         break;

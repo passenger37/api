@@ -111,7 +111,7 @@ export class CommunityPostService {
       content: request.content,
       category: request.categoryId
         ? { connect: { id: request.categoryId } }
-        : undefined,
+        : { disconnect: true },
       version: { increment: 1 },
     });
 
@@ -256,15 +256,13 @@ export class CommunityPostService {
       throw new CommunityCommentNotFoundException();
     }
 
-    const post = await this.postInCommunity(community.id, comment.postId);
+    await this.postInCommunity(community.id, comment.postId);
 
     const isModerator = await this.access.isModerator(community.id, userId);
 
     if (comment.authorUserId !== userId && !isModerator) {
       throw new CommunityAccessDeniedException();
     }
-
-    void post;
 
     await this.commentRepository.update(commentId, {
       content: request.content,

@@ -15,9 +15,9 @@ import { CreateCommunityRequest } from '../dto/request/create-community.request'
 import { UpdateCommunityRequest } from '../dto/request/update-community.request';
 import { CreateCategoryRequest } from '../dto/request/create-category.request';
 import { UpdateCategoryRequest } from '../dto/request/update-category.request';
-import { CommunityResponse } from '../dto/response/community.response';
+import { CategoryResponse, CommunityResponse } from '../dto/response';
 import { CommunityWithCounts } from '../types/community.types';
-import { serializeCommunity } from '../mappers/community.mapper';
+import { serializeCategory, serializeCommunity } from '../mappers/community.mapper';
 
 @Injectable()
 export class CommunityCommandService {
@@ -101,7 +101,7 @@ export class CommunityCommandService {
     slug: string,
     userId: string,
     request: CreateCategoryRequest,
-  ): Promise<CommunityModeratorRole | null> {
+  ): Promise<CategoryResponse> {
     const community = await this.communityBySlug(slug);
 
     await this.access.assertModerator(community.id, userId);
@@ -119,14 +119,14 @@ export class CommunityCommandService {
       where: { communityId: community.id },
     });
 
-    await this.categoryRepository.create({
+    const category = await this.categoryRepository.create({
       community: { connect: { id: community.id } },
       name: request.name,
       description: request.description ?? null,
       position: count,
     });
 
-    return this.access.roleFor(community.id, userId);
+    return serializeCategory(category);
   }
 
   async updateCategory(
@@ -134,15 +134,34 @@ export class CommunityCommandService {
     categoryId: string,
     userId: string,
     request: UpdateCategoryRequest,
-  ): Promise<void> {
+  ): Promise<CategoryResponse> {
     const community = await this.communityBySlug(slug);
 
     await this.access.assertModerator(community.id, userId);
 
-    await this.categoryRepository.update(categoryId, {
+    const existing = await this.categoryRepository.findById(categoryId);
+
+    if (!existing || existing.communityId !== community.id) {
+      throw new CommunityCategoryConflictException();
+    }
+
+    if (request.name && request.name !== existing.name) {
+      const collision = await this.categoryRepository.findByName(
+        community.id,
+        request.name,
+      );
+
+      if (collision && collision.id !== categoryId) {
+        throw new CommunityCategoryConflictException();
+      }
+    }
+
+    const updated = await this.categoryRepository.update(categoryId, {
       name: request.name,
       description: request.description,
     });
+
+    return serializeCategory(updated);
   }
 
   async deleteCategory(
@@ -153,6 +172,12 @@ export class CommunityCommandService {
     const community = await this.communityBySlug(slug);
 
     await this.access.assertModerator(community.id, userId);
+
+    const existing = await this.categoryRepository.findById(categoryId);
+
+    if (!existing || existing.communityId !== community.id) {
+      throw new CommunityCategoryConflictException();
+    }
 
     await this.categoryRepository.delete(categoryId);
   }
