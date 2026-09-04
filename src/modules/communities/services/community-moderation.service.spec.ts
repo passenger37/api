@@ -7,14 +7,30 @@ import {
 } from '../exceptions/community.exceptions';
 import { CommunityModerationService } from './community-moderation.service';
 
+/**
+ * Unit tests for CommunityModerationService.
+ *
+ * Coverage priorities:
+ * - Domain exceptions are thrown for missing community / wrong target.
+ * - Effects (mute, delete-post, delete-comment) call the right repository.
+ * - The audit row is created with the right shape.
+ * - Realtime events fire AFTER the transaction, in the right order
+ *   (MODERATION_RECORDED first, then the resource-level side-effect
+ *   event). See PR #6 — the previous implementation published
+ *   DELETE_POST/DELETE_COMMENT before the audit row existed, which
+ *   broke the "audience is told only after the action is reconcilable
+ *   from durable storage" contract.
+ */
 describe('CommunityModerationService', () => {
   let service: CommunityModerationService;
+  let prisma: any;
   let repository: any;
   let actionRepository: any;
   let postRepository: any;
   let commentRepository: any;
   let subscriptionRepository: any;
   let access: any;
+  let eventPublisher: any;
 
   const now = new Date('2026-01-01T00:00:00.000Z');
 
@@ -29,6 +45,14 @@ describe('CommunityModerationService', () => {
   };
 
   beforeEach(() => {
+    // A transaction-client-shaped stub: $transaction just invokes the
+    // callback with itself so the service can call repository methods
+    // (which in production accept an optional tx) synchronously.
+    const tx = {};
+    prisma = {
+      $transaction: jest.fn(async (fn: (client: unknown) => unknown) => fn(tx)),
+    };
+
     repository = { findBySlugWithRelations: jest.fn() };
     actionRepository = {
       create: jest.fn(),
@@ -39,14 +63,17 @@ describe('CommunityModerationService', () => {
     commentRepository = { findById: jest.fn(), softDelete: jest.fn() };
     subscriptionRepository = { setMuted: jest.fn() };
     access = { assertModerator: jest.fn() };
+    eventPublisher = { publish: jest.fn().mockResolvedValue(undefined) };
 
     service = new CommunityModerationService(
+      prisma,
       repository,
       actionRepository,
       postRepository,
       commentRepository,
       subscriptionRepository,
       access,
+      eventPublisher,
     );
   });
 
@@ -59,18 +86,23 @@ describe('CommunityModerationService', () => {
           actionType: CommunityModerationActionType.WARN,
         }),
       ).rejects.toBeInstanceOf(CommunityNotFoundException);
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(eventPublisher.publish).not.toHaveBeenCalled();
     });
 
-    it('should mute a target user', async () => {
+    it('should mute a target user inside the transaction', async () => {
       repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
       access.assertModerator.mockResolvedValue(undefined);
       subscriptionRepository.setMuted.mockResolvedValue({ id: 'sub1' });
+      actionRepository.create.mockResolvedValue({ id: 'a1' });
 
       await service.record('nexus', 'u1', {
         actionType: CommunityModerationActionType.MUTE,
         targetUserId: 'u2',
       });
 
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(subscriptionRepository.setMuted).toHaveBeenCalledWith(
         'c1',
         'u2',
@@ -83,15 +115,97 @@ describe('CommunityModerationService', () => {
           actionType: CommunityModerationActionType.MUTE,
           targetUserId: 'u2',
         }),
+        expect.anything(),
       );
     });
 
-    it('should delete a post in the community', async () => {
+    it('should publish MODERATION_RECORDED after the audit row is committed', async () => {
+      const calls: string[] = [];
+
       repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
       access.assertModerator.mockResolvedValue(undefined);
-      postRepository.findById.mockResolvedValue({
-        id: 'p1',
-        communityId: 'c1',
+      subscriptionRepository.setMuted.mockImplementation(async () => {
+        calls.push('effect');
+        return { id: 'sub1' };
+      });
+      actionRepository.create.mockImplementation(async () => {
+        calls.push('audit');
+        return {
+          id: 'a1',
+          communityId: 'c1',
+          moderatorUserId: 'u1',
+          actionType: CommunityModerationActionType.MUTE,
+          targetUserId: 'u2',
+          objectType: null,
+          objectId: null,
+          reason: null,
+          createdAt: now,
+        };
+      });
+      eventPublisher.publish.mockImplementation(async () => {
+        calls.push('publish');
+      });
+
+      await service.record('nexus', 'u1', {
+        actionType: CommunityModerationActionType.MUTE,
+        targetUserId: 'u2',
+      });
+
+      // Effect + audit must run inside the transaction, in either order;
+      // publish must run AFTER both. The first publish is
+      // MODERATION_RECORDED.
+      expect(calls[0]).not.toBe('publish');
+      expect(calls[1]).not.toBe('publish');
+      expect(calls[calls.length - 1]).toBe('publish');
+
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        'c1',
+        'community:moderation:recorded',
+        expect.objectContaining({
+          action: expect.objectContaining({ id: 'a1' }),
+        }),
+      );
+    });
+
+    it('should NOT publish a resource-level event for MUTE', async () => {
+      repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
+      access.assertModerator.mockResolvedValue(undefined);
+      subscriptionRepository.setMuted.mockResolvedValue({ id: 'sub1' });
+      actionRepository.create.mockResolvedValue({ id: 'a1' });
+
+      await service.record('nexus', 'u1', {
+        actionType: CommunityModerationActionType.MUTE,
+        targetUserId: 'u2',
+      });
+
+      // Only MODERATION_RECORDED is published; MUTE has no post/comment
+      // side effect.
+      expect(eventPublisher.publish).toHaveBeenCalledTimes(1);
+      expect(eventPublisher.publish).toHaveBeenCalledWith(
+        'c1',
+        'community:moderation:recorded',
+        expect.any(Object),
+      );
+    });
+
+    it('should delete a post and publish POST_DELETED after the audit row', async () => {
+      const calls: string[] = [];
+
+      repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
+      access.assertModerator.mockResolvedValue(undefined);
+      postRepository.findById.mockImplementation(async () => {
+        calls.push('read-post');
+        return { id: 'p1', communityId: 'c1' };
+      });
+      postRepository.softDelete.mockImplementation(async () => {
+        calls.push('soft-delete');
+      });
+      actionRepository.create.mockImplementation(async () => {
+        calls.push('audit');
+        return { id: 'a1', createdAt: now };
+      });
+      eventPublisher.publish.mockImplementation(async () => {
+        calls.push('publish');
       });
 
       await service.record('nexus', 'u1', {
@@ -100,7 +214,29 @@ describe('CommunityModerationService', () => {
         objectId: 'p1',
       });
 
-      expect(postRepository.softDelete).toHaveBeenCalledWith('p1');
+      // Soft delete must happen before the audit row; the publish must
+      // happen after the audit row.
+      expect(calls.indexOf('soft-delete')).toBeLessThan(
+        calls.indexOf('audit'),
+      );
+      expect(calls.indexOf('audit')).toBeLessThan(
+        calls.indexOf('publish'),
+      );
+
+      // Two publishes: MODERATION_RECORDED first, POST_DELETED second.
+      expect(eventPublisher.publish).toHaveBeenCalledTimes(2);
+      expect(eventPublisher.publish).toHaveBeenNthCalledWith(
+        1,
+        'c1',
+        'community:moderation:recorded',
+        expect.any(Object),
+      );
+      expect(eventPublisher.publish).toHaveBeenNthCalledWith(
+        2,
+        'c1',
+        'community:post:deleted',
+        expect.objectContaining({ postId: 'p1', communityId: 'c1' }),
+      );
     });
 
     it('should throw when the post is not in the community', async () => {
@@ -117,12 +253,22 @@ describe('CommunityModerationService', () => {
           objectId: 'p1',
         }),
       ).rejects.toBeInstanceOf(CommunityPostNotFoundException);
+
+      // Transaction was opened (the effect runs inside it) but rolled
+      // back, so no audit row and no publishes.
+      expect(actionRepository.create).not.toHaveBeenCalled();
+      expect(eventPublisher.publish).not.toHaveBeenCalled();
     });
 
-    it('should delete a comment', async () => {
+    it('should delete a comment and publish COMMENT_DELETED after the audit row', async () => {
       repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
       access.assertModerator.mockResolvedValue(undefined);
       commentRepository.findById.mockResolvedValue({ id: 'cm1' });
+      postRepository.findById.mockResolvedValue({
+        id: 'p1',
+        communityId: 'c1',
+      });
+      actionRepository.create.mockResolvedValue({ id: 'a1', createdAt: now });
 
       await service.record('nexus', 'u1', {
         actionType: CommunityModerationActionType.DELETE_COMMENT,
@@ -130,6 +276,20 @@ describe('CommunityModerationService', () => {
       });
 
       expect(commentRepository.softDelete).toHaveBeenCalledWith('cm1');
+
+      expect(eventPublisher.publish).toHaveBeenCalledTimes(2);
+      expect(eventPublisher.publish).toHaveBeenNthCalledWith(
+        1,
+        'c1',
+        'community:moderation:recorded',
+        expect.any(Object),
+      );
+      expect(eventPublisher.publish).toHaveBeenNthCalledWith(
+        2,
+        'c1',
+        'community:comment:deleted',
+        expect.objectContaining({ commentId: 'cm1', communityId: 'c1' }),
+      );
     });
 
     it('should throw when the comment does not exist', async () => {
@@ -143,11 +303,70 @@ describe('CommunityModerationService', () => {
           objectId: 'cm1',
         }),
       ).rejects.toBeInstanceOf(CommunityCommentNotFoundException);
+
+      expect(actionRepository.create).not.toHaveBeenCalled();
+      expect(eventPublisher.publish).not.toHaveBeenCalled();
+    });
+
+    it('should pin a post and publish POST_UPDATED with isPinned=true', async () => {
+      repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
+      access.assertModerator.mockResolvedValue(undefined);
+      postRepository.findById.mockResolvedValue({
+        id: 'p1',
+        communityId: 'c1',
+      });
+      actionRepository.create.mockResolvedValue({ id: 'a1', createdAt: now });
+
+      await service.record('nexus', 'u1', {
+        actionType: CommunityModerationActionType.PIN_POST,
+        objectId: 'p1',
+      });
+
+      expect(postRepository.update).toHaveBeenCalledWith(
+        'p1',
+        expect.objectContaining({ isPinned: true, pinnedAt: expect.any(Date) }),
+      );
+
+      expect(eventPublisher.publish).toHaveBeenCalledTimes(2);
+      expect(eventPublisher.publish).toHaveBeenNthCalledWith(
+        2,
+        'c1',
+        'community:post:updated',
+        expect.objectContaining({ postId: 'p1', isPinned: true }),
+      );
+    });
+
+    it('should unpin a post and publish POST_UPDATED with isPinned=false', async () => {
+      repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
+      access.assertModerator.mockResolvedValue(undefined);
+      postRepository.findById.mockResolvedValue({
+        id: 'p1',
+        communityId: 'c1',
+      });
+      actionRepository.create.mockResolvedValue({ id: 'a1', createdAt: now });
+
+      await service.record('nexus', 'u1', {
+        actionType: CommunityModerationActionType.UNPIN_POST,
+        objectId: 'p1',
+      });
+
+      expect(postRepository.update).toHaveBeenCalledWith(
+        'p1',
+        expect.objectContaining({ isPinned: false, pinnedAt: null }),
+      );
+
+      expect(eventPublisher.publish).toHaveBeenCalledTimes(2);
+      expect(eventPublisher.publish).toHaveBeenNthCalledWith(
+        2,
+        'c1',
+        'community:post:updated',
+        expect.objectContaining({ postId: 'p1', isPinned: false }),
+      );
     });
   });
 
   describe('list', () => {
-    it('should list moderation actions with a next cursor', async () => {
+    it('should list moderation actions with a next cursor when hasMore', async () => {
       repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
       access.assertModerator.mockResolvedValue(undefined);
       actionRepository.list.mockResolvedValue([
@@ -157,15 +376,30 @@ describe('CommunityModerationService', () => {
 
       const result = await service.list('nexus', 'u1', undefined, undefined, 2);
 
-      expect(actionRepository.list).toHaveBeenCalledWith('c1', 2, undefined);
+      expect(actionRepository.list).toHaveBeenCalledWith('c1', 3, undefined);
       expect(result.items).toHaveLength(2);
-      expect(result.nextCursor).toBe('a2');
+      // Encoded two-field cursor, not a raw id.
+      expect(typeof result.nextCursor).toBe('string');
+      expect(result.nextCursor).toMatch(/^[A-Za-z0-9_-]+$/);
+    });
+
+    it('should return null nextCursor when the page is not full', async () => {
+      repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
+      access.assertModerator.mockResolvedValue(undefined);
+      actionRepository.list.mockResolvedValue([{ id: 'a1', createdAt: now }]);
+
+      const result = await service.list('nexus', 'u1', undefined, undefined, 20);
+
+      expect(result.items).toHaveLength(1);
+      expect(result.nextCursor).toBeNull();
     });
 
     it('should filter by action type', async () => {
       repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
       access.assertModerator.mockResolvedValue(undefined);
-      actionRepository.listByActionType.mockResolvedValue([{ id: 'a1', createdAt: now }]);
+      actionRepository.listByActionType.mockResolvedValue([
+        { id: 'a1', createdAt: now },
+      ]);
 
       await service.list(
         'nexus',
@@ -178,7 +412,7 @@ describe('CommunityModerationService', () => {
       expect(actionRepository.listByActionType).toHaveBeenCalledWith(
         'c1',
         CommunityModerationActionType.WARN,
-        20,
+        21,
         undefined,
       );
     });
