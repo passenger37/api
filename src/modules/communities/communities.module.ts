@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { PrismaModule } from '../../core/database/prisma.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
+import { ServersModule } from '../servers/servers.module';
 
 import { CommunityRepository } from './repositories/community.repository';
 import { CommunityCategoryRepository } from './repositories/community-category.repository';
@@ -19,13 +20,16 @@ import { CommunityMembershipService } from './services/community-membership.serv
 import { CommunityPostService } from './services/community-post.service';
 import { CommunityModerationService } from './services/community-moderation.service';
 import { CommunityDiscoveryService } from './services/community-discovery.service';
+import { CommunityRoomResolverService } from './services/community-room-resolver.service';
+
+import { CommunityEventPublisher } from './events/community-event-publisher';
 
 import { CommunityController } from './controllers/community.controller';
 import { CommunityPostController } from './controllers/community-post.controller';
 import { CommunityModerationController } from './controllers/community-moderation.controller';
 
 @Module({
-  imports: [PrismaModule, AuthorizationModule],
+  imports: [PrismaModule, AuthorizationModule, ServersModule],
   controllers: [
     CommunityController,
     CommunityPostController,
@@ -47,12 +51,15 @@ import { CommunityModerationController } from './controllers/community-moderatio
     CommunityPostService,
     CommunityModerationService,
     CommunityDiscoveryService,
+    CommunityRoomResolverService,
+    CommunityEventPublisher,
   ],
   exports: [
     CommunityCommandService,
     CommunityQueryService,
     CommunityPostService,
     CommunityDiscoveryService,
+    CommunityEventPublisher,
   ],
 })
 export class CommunitiesModule {}

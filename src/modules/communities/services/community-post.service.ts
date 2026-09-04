@@ -36,6 +36,8 @@ import {
   encodePostCursor,
 } from '../pagination/community-cursor';
 import { serializePost, serializeComment } from '../mappers/community.mapper';
+import { CommunityEventPublisher } from '../events/community-event-publisher';
+import { COMMUNITY_REALTIME_EVENTS } from '../realtime/community-realtime.constants';
 
 @Injectable()
 export class CommunityPostService {
@@ -46,6 +48,7 @@ export class CommunityPostService {
     private readonly categoryRepository: CommunityCategoryRepository,
     private readonly subscriptionRepository: CommunitySubscriptionRepository,
     private readonly access: CommunityAccessService,
+    private readonly eventPublisher: CommunityEventPublisher,
   ) {}
 
   async createPost(
@@ -81,7 +84,13 @@ export class CommunityPostService {
 
     const withRelations = (await this.postRepository.findById(post.id))!;
 
-    return serializePost(withRelations);
+    const response = serializePost(withRelations);
+
+    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_CREATED, {
+      post: response,
+    });
+
+    return response;
   }
 
   async updatePost(
@@ -127,7 +136,13 @@ export class CommunityPostService {
 
     const withRelations = (await this.postRepository.findById(postId))!;
 
-    return serializePost(withRelations);
+    const response = serializePost(withRelations);
+
+    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_UPDATED, {
+      post: response,
+    });
+
+    return response;
   }
 
   async softDeletePost(
@@ -146,6 +161,11 @@ export class CommunityPostService {
     }
 
     await this.postRepository.softDelete(postId);
+
+    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_DELETED, {
+      postId,
+      communityId: community.id,
+    });
   }
 
   async listPosts(
@@ -234,10 +254,17 @@ export class CommunityPostService {
 
     const withRelations = (await this.commentRepository.findById(comment.id))!;
 
-    return serializeComment({
+    const response = serializeComment({
       ...withRelations,
       replies: [],
     });
+
+    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.COMMENT_CREATED, {
+      postId: post.id,
+      comment: response,
+    });
+
+    return response;
   }
 
   async replyToComment(
@@ -272,10 +299,18 @@ export class CommunityPostService {
 
     const withRelations = (await this.commentRepository.findById(comment.id))!;
 
-    return serializeComment({
+    const response = serializeComment({
       ...withRelations,
       replies: [],
     });
+
+    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.COMMENT_CREATED, {
+      postId: post.id,
+      comment: response,
+      parentCommentId: parent.id,
+    });
+
+    return response;
   }
 
   async updateComment(
@@ -311,10 +346,17 @@ export class CommunityPostService {
 
     const withRelations = (await this.commentRepository.findById(commentId))!;
 
-    return serializeComment({
+    const response = serializeComment({
       ...withRelations,
       replies: [],
     });
+
+    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.COMMENT_UPDATED, {
+      postId: post.id,
+      comment: response,
+    });
+
+    return response;
   }
 
   async deleteComment(
@@ -343,6 +385,12 @@ export class CommunityPostService {
     }
 
     await this.commentRepository.softDelete(commentId);
+
+    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.COMMENT_DELETED, {
+      postId: post.id,
+      commentId,
+      communityId: community.id,
+    });
   }
 
   async listComments(

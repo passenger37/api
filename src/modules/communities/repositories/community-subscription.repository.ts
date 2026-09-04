@@ -55,6 +55,20 @@ export class CommunitySubscriptionRepository {
   }
 
   /**
+   * List every subscription for a community. Used by the realtime room
+   * resolver to compute the audience for a community event. Returns the
+   * raw rows so the caller can apply mute/role filters without the
+   * repository baking policy in.
+   */
+  async listForCommunity(
+    communityId: string,
+  ): Promise<CommunitySubscription[]> {
+    return this.prisma.communitySubscription.findMany({
+      where: { communityId },
+    });
+  }
+
+  /**
    * Atomically flip the muted flag. Returns the updated row, or null if no
    * subscription exists for (communityId, userId).
    */

@@ -19,6 +19,8 @@ import { CreateModerationActionRequest } from '../dto/request/create-moderation-
 import { ModerationListResponse } from '../dto/response';
 import { encodeTwoFieldCursor, decodeTwoFieldCursor } from '../pagination/community-cursor';
 import { serializeModerationAction } from '../mappers/community.mapper';
+import { CommunityEventPublisher } from '../events/community-event-publisher';
+import { COMMUNITY_REALTIME_EVENTS } from '../realtime/community-realtime.constants';
 
 @Injectable()
 export class CommunityModerationService {
@@ -29,6 +31,7 @@ export class CommunityModerationService {
     private readonly commentRepository: CommunityCommentRepository,
     private readonly subscriptionRepository: CommunitySubscriptionRepository,
     private readonly access: CommunityAccessService,
+    private readonly eventPublisher: CommunityEventPublisher,
   ) {}
 
   async record(
@@ -42,7 +45,7 @@ export class CommunityModerationService {
 
     await this.applyEffect(community.id, request);
 
-    await this.actionRepository.create({
+    const action = await this.actionRepository.create({
       community: { connect: { id: community.id } },
       moderatorUserId: userId,
       actionType: request.actionType,
@@ -50,6 +53,10 @@ export class CommunityModerationService {
       objectType: request.objectType ?? null,
       objectId: request.objectId ?? null,
       reason: request.reason ?? null,
+    });
+
+    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.MODERATION_RECORDED, {
+      action: serializeModerationAction(action),
     });
   }
 
@@ -149,6 +156,13 @@ export class CommunityModerationService {
         }
 
         await this.postRepository.softDelete(post.id);
+
+        await this.eventPublisher.publish(communityId, COMMUNITY_REALTIME_EVENTS.POST_DELETED, {
+          postId: post.id,
+          communityId,
+          reason: 'moderation',
+        });
+
         break;
       }
 
@@ -174,6 +188,14 @@ export class CommunityModerationService {
         }
 
         await this.commentRepository.softDelete(comment.id);
+
+        await this.eventPublisher.publish(communityId, COMMUNITY_REALTIME_EVENTS.COMMENT_DELETED, {
+          postId: post.id,
+          commentId: comment.id,
+          communityId,
+          reason: 'moderation',
+        });
+
         break;
       }
 
@@ -194,6 +216,14 @@ export class CommunityModerationService {
           isPinned: true,
           pinnedAt: new Date(),
         });
+
+        await this.eventPublisher.publish(communityId, COMMUNITY_REALTIME_EVENTS.POST_UPDATED, {
+          postId: post.id,
+          communityId,
+          isPinned: true,
+          reason: 'moderation',
+        });
+
         break;
       }
 
@@ -214,6 +244,14 @@ export class CommunityModerationService {
           isPinned: false,
           pinnedAt: null,
         });
+
+        await this.eventPublisher.publish(communityId, COMMUNITY_REALTIME_EVENTS.POST_UPDATED, {
+          postId: post.id,
+          communityId,
+          isPinned: false,
+          reason: 'moderation',
+        });
+
         break;
       }
 
