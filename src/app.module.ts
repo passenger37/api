@@ -40,6 +40,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { CommunitiesModule } from './modules/communities/communities.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { CallingModule } from './modules/calling/calling.module';
+import { ProductionHardeningModule } from './modules/production-hardening/production-hardening.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { CallingModule } from './modules/calling/calling.module';
     CommunitiesModule,
     RealtimeModule,
     CallingModule,
+    ProductionHardeningModule,
   ],
   controllers: [],
   // providers: [AppService],
