@@ -1451,6 +1451,9 @@ model E2eeRatchetState {
   /// Remote DH public key for pending ratchet step (base64)
   remoteDhPublicKey String?
 
+  /// Opaque libsignal SessionRecord (base64) — replaces individual ratchet fields when libsignal is fully adopted
+  sessionState String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

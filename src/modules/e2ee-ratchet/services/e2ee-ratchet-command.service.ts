@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { hkdf } from '@signalapp/libsignal-client';
 import * as crypto from 'crypto';
 import { E2eeRatchetStateRepository } from '../repositories/e2ee-ratchet-state.repository';
 import { E2eeSessionRepository } from '../../e2ee-sessions/repositories/e2ee-session.repository';
@@ -238,12 +239,11 @@ export class E2eeRatchetCommandService {
 
   private deriveBootstrapChain(rootKey: string, info: string): string {
     const derived = Buffer.from(
-      crypto.hkdfSync(
-        'sha256',
+      hkdf(
+        32,
         Buffer.from(rootKey, 'base64'),
         Buffer.alloc(0),
         Buffer.from(info),
-        32,
       ),
     );
     return derived.toString('base64');
@@ -253,13 +253,17 @@ export class E2eeRatchetCommandService {
     rootKey: string,
     dhSecret: Buffer,
   ): { rootKey: string; chainKey: string } {
+    const dhSecretArray = new Uint8Array(
+      dhSecret.buffer,
+      dhSecret.byteOffset,
+      dhSecret.byteLength,
+    ) as unknown as Uint8Array<ArrayBuffer>;
     const derived = Buffer.from(
-      crypto.hkdfSync(
-        'sha256',
-        dhSecret,
+      hkdf(
+        64,
+        dhSecretArray,
         Buffer.from(rootKey, 'base64'),
         Buffer.from(ROOT_INFO),
-        64,
       ),
     );
     return {

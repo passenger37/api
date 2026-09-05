@@ -18,6 +18,20 @@ export class E2eeRatchetStateRepository {
     return this.prisma.e2eeRatchetState.findUnique({ where: { sessionId } });
   }
 
+  async findBySenderAndRecipient(
+    senderDeviceId: string,
+    recipientDeviceId: string,
+  ): Promise<E2eeRatchetState | null> {
+    return this.prisma.e2eeRatchetState.findFirst({
+      where: {
+        session: {
+          senderDeviceId,
+          recipientDeviceId,
+        },
+      },
+    });
+  }
+
   async update(
     sessionId: string,
     data: Partial<E2eeRatchetState>,
@@ -25,6 +39,16 @@ export class E2eeRatchetStateRepository {
     return this.prisma.e2eeRatchetState.update({
       where: { sessionId },
       data,
+    });
+  }
+
+  async upsertSessionRecord(
+    sessionId: string,
+    sessionState: Uint8Array,
+  ): Promise<void> {
+    await this.prisma.e2eeRatchetState.update({
+      where: { sessionId },
+      data: { sessionState: Buffer.from(sessionState).toString('base64') },
     });
   }
 
