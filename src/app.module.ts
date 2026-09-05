@@ -39,6 +39,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { CommunitiesModule } from './modules/communities/communities.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { CallingModule } from './modules/calling/calling.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
     NotificationsModule,
     CommunitiesModule,
     RealtimeModule,
+    CallingModule,
   ],
   controllers: [],
   // providers: [AppService],

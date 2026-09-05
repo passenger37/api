@@ -47,7 +47,7 @@ describe('LoadModelService', () => {
       const targets = service.derivedTargets();
       const msg = targets.operations.find((o) => o.name === 'message.history');
       expect(msg).toBeDefined();
-      const expectedRps = (25 / 100) * targets.peakOpsPerSec;
+      const expectedRps = (20 / 100) * targets.peakOpsPerSec;
       expect(msg!.rps).toBeCloseTo(expectedRps, 0);
     });
 

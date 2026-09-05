@@ -1,0 +1,44 @@
+export const CALL_EVENT_CHANNEL = 'calling:events';
+
+export const CALL_ROOM = 'calling';
+
+export const CALL_EVENT_CREATE = 'call:create';
+export const CALL_EVENT_RING = 'call:ring';
+export const CALL_EVENT_ACCEPT = 'call:accept';
+export const CALL_EVENT_REJECT = 'call:reject';
+export const CALL_EVENT_CANCEL = 'call:cancel';
+export const CALL_EVENT_END = 'call:end';
+
+export const CALL_EVENT_WEBRTC_OFFER = 'webrtc:offer';
+export const CALL_EVENT_WEBRTC_ANSWER = 'webrtc:answer';
+export const CALL_EVENT_WEBRTC_ICE_CANDIDATE = 'webrtc:ice-candidate';
+
+export const CALL_EVENT_MUTE = 'call:mute';
+export const CALL_EVENT_UNMUTE = 'call:unmute';
+export const CALL_EVENT_CAMERA_ON = 'call:camera-on';
+export const CALL_EVENT_CAMERA_OFF = 'call:camera-off';
+
+export const CALL_EVENT_PARTICIPANT_JOINED = 'call:participant-joined';
+export const CALL_EVENT_PARTICIPANT_LEFT = 'call:participant-left';
+
+export const CALL_WS_RATE_LIMIT = {
+  CREATE: 5,
+  RING: 10,
+  ACCEPT: 5,
+  REJECT: 5,
+  CANCEL: 5,
+  END: 5,
+  SIGNAL: 30,
+  MUTE: 10,
+  CAMERA: 10,
+} as const;
+
+export const CALL_WINDOW_SECONDS = 10;
+
+export const callRoom = (callId: string): string => `call:${callId}`;
+export const callParticipantRoom = (userId: string): string => `call:user:${userId}`;
+
+export const DEFAULT_STUN_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+];

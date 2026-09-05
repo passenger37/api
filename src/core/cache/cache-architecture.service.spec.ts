@@ -49,8 +49,8 @@ describe('CacheArchitectureService', () => {
   describe('coverage', () => {
     it('reports the share of modelled read traffic served via the cache', () => {
       const report = architecture.architecture();
-      // message.history(25) + dm.open(8) + server.list(3) + search.query(5) = 41 / 100
-      expect(report.readCoverage).toBeCloseTo(0.41, 2);
+      // message.history(20) + dm.open(6) + server.list(3) + search.query(4) = 33 / 100
+      expect(report.readCoverage).toBeCloseTo(0.33, 2);
     });
 
     it('carries the load model version', () => {

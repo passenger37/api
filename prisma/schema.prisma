@@ -1522,6 +1522,100 @@ model E2eeEnvelope {
   @@map("e2ee_envelopes")
 }
 
+enum CallType {
+  VOICE
+  VIDEO
+}
+
+enum CallScope {
+  DM
+  GROUP
+  SERVER_CHANNEL
+  COMMUNITY
+}
+
+enum CallStatus {
+  RINGING
+  ACTIVE
+  ENDED
+  CANCELLED
+  REJECTED
+}
+
+enum CallParticipantState {
+  JOINED
+  LEFT
+  MUTED
+  CAMERA_OFF
+}
+
+model Call {
+  id String @id @default(cuid())
+
+  /// Type of call (VOICE or VIDEO)
+  type CallType
+
+  /// Scope of the call (DM, GROUP, SERVER_CHANNEL, COMMUNITY)
+  scope CallScope
+
+  /// Reference ID for the scope (DM channel ID, group ID, server channel ID, community ID)
+  scopeRef String
+
+  /// Creator user ID
+  creatorUserId String
+
+  /// Current call status
+  status CallStatus @default(RINGING)
+
+  /// Call start timestamp
+  startedAt DateTime?
+
+  /// Call end timestamp
+  endedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants CallParticipant[]
+
+  @@index([creatorUserId])
+  @@index([scope, scopeRef])
+  @@index([status])
+  @@map("calls")
+}
+
+model CallParticipant {
+  id String @id @default(cuid())
+
+  /// Call this participant belongs to
+  callId String
+
+  /// User ID of the participant
+  userId String
+
+  /// Device ID (optional, for multi-device support)
+  deviceId String?
+
+  /// When the participant joined
+  joinedAt DateTime @default(now())
+
+  /// When the participant left
+  leftAt DateTime?
+
+  /// Current participant state
+  state CallParticipantState @default(JOINED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  call Call @relation(fields: [callId], references: [id], onDelete: Cascade)
+
+  @@unique([callId, userId, deviceId])
+  @@index([userId])
+  @@index([callId])
+  @@map("call_participants")
+}
+
 model E2eeGroup {
   id String @id @default(cuid())
 

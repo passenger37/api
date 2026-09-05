@@ -109,15 +109,20 @@ export const LOAD_MODEL: LoadModelSpec = {
   // REST message-domain mix (weights sum to 100). These mirror the endpoints in
   // the messaging / dm / search / media / social modules.
   operations: [
-    { name: 'message.create', weightPct: 20, p50Ms: 150, p99Ms: 500, errorRateMax: 0.01 },
-    { name: 'message.history', weightPct: 25, p50Ms: 100, p99Ms: 400, errorRateMax: 0.01 },
-    { name: 'dm.open', weightPct: 8, p50Ms: 120, p99Ms: 450, errorRateMax: 0.01 },
-    { name: 'dm.send', weightPct: 10, p50Ms: 180, p99Ms: 550, errorRateMax: 0.01 },
-    { name: 'channel.typing', weightPct: 15, p50Ms: 60, p99Ms: 300, errorRateMax: 0.02 },
-    { name: 'presence', weightPct: 10, p50Ms: 80, p99Ms: 350, errorRateMax: 0.02 },
-    { name: 'search.query', weightPct: 5, p50Ms: 250, p99Ms: 900, errorRateMax: 0.01 },
-    { name: 'attachment.upload', weightPct: 4, p50Ms: 400, p99Ms: 2000, errorRateMax: 0.01 },
+    { name: 'message.create', weightPct: 15, p50Ms: 150, p99Ms: 500, errorRateMax: 0.01 },
+    { name: 'message.history', weightPct: 20, p50Ms: 100, p99Ms: 400, errorRateMax: 0.01 },
+    { name: 'dm.open', weightPct: 6, p50Ms: 120, p99Ms: 450, errorRateMax: 0.01 },
+    { name: 'dm.send', weightPct: 8, p50Ms: 180, p99Ms: 550, errorRateMax: 0.01 },
+    { name: 'channel.typing', weightPct: 12, p50Ms: 60, p99Ms: 300, errorRateMax: 0.02 },
+    { name: 'presence', weightPct: 8, p50Ms: 80, p99Ms: 350, errorRateMax: 0.02 },
+    { name: 'search.query', weightPct: 4, p50Ms: 250, p99Ms: 900, errorRateMax: 0.01 },
+    { name: 'attachment.upload', weightPct: 3, p50Ms: 400, p99Ms: 2000, errorRateMax: 0.01 },
     { name: 'server.list', weightPct: 3, p50Ms: 120, p99Ms: 450, errorRateMax: 0.01 },
+    { name: 'call.create', weightPct: 2, p50Ms: 200, p99Ms: 800, errorRateMax: 0.01 },
+    { name: 'call.ring', weightPct: 3, p50Ms: 100, p99Ms: 400, errorRateMax: 0.02 },
+    { name: 'call.accept', weightPct: 2, p50Ms: 150, p99Ms: 500, errorRateMax: 0.01 },
+    { name: 'call.end', weightPct: 1, p50Ms: 100, p99Ms: 300, errorRateMax: 0.01 },
+    { name: 'call.signal', weightPct: 13, p50Ms: 50, p99Ms: 200, errorRateMax: 0.02 },
   ],
   // Background job mix fed by the outbox + media pipeline + search indexing
   // (weights sum to 100). Workers must drain faster than they are produced.
