@@ -85,4 +85,11 @@ export class E2eeOneTimePreKeyRepository {
 
     return candidate;
   }
+
+  async markConsumed(preKeyId: string): Promise<void> {
+    await this.prisma.e2eeOneTimePreKey.update({
+      where: { id: preKeyId },
+      data: { isConsumed: true, consumedAt: new Date() },
+    });
+  }
 }

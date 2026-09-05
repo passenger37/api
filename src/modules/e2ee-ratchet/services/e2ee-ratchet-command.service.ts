@@ -3,8 +3,18 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { hkdf } from '@signalapp/libsignal-client';
+import {
+  ProtocolAddress,
+  signalEncrypt,
+  signalDecrypt,
+  signalDecryptPreKey,
+  SessionRecord,
+  CiphertextMessage,
+  PreKeySignalMessage,
+  SignalMessage,
+} from '@signalapp/libsignal-client';
 import * as crypto from 'crypto';
+
 import { E2eeRatchetStateRepository } from '../repositories/e2ee-ratchet-state.repository';
 import { E2eeSessionRepository } from '../../e2ee-sessions/repositories/e2ee-session.repository';
 import { E2eeRatchetState } from '@prisma/client';
@@ -19,6 +29,7 @@ import {
   RatchetStepRequestDto,
 } from '../dto/ratchet.request';
 
+const SERVER_DEVICE_ID = 1;
 const ROOT_INFO = 'NexusRatchetRoot';
 const CHAIN_BOOTSTRAP_INFO = 'NexusRatchetChainInit';
 const MESSAGE_KEY_SEED = Buffer.from([0x01]);
@@ -50,7 +61,7 @@ export class E2eeRatchetCommandService {
       messageNumber: state.sendingMessageNumber,
       previousChainLength: state.previousReceivingChainLength,
     };
-    const ciphertext = this.aesEncrypt(
+    const ciphertext = await this.aesEncrypt(
       messageKey,
       dto.plaintext,
       this.buildAssociatedData(header, dto.associatedData),
@@ -86,9 +97,7 @@ export class E2eeRatchetCommandService {
       const currentSkipped = this.parseSkippedKeys(state.skippedMessageKeys);
       const skipped = currentSkipped[skippedId];
       if (!skipped) {
-        throw new BadRequestException(
-          'Message key not available for this message number',
-        );
+        throw new BadRequestException('Message key not available for this message number');
       }
       usedSkipped = true;
       messageKey = Buffer.from(skipped, 'base64');
@@ -100,7 +109,7 @@ export class E2eeRatchetCommandService {
       state.receivingMessageNumber += 1;
     }
 
-    const plaintext = this.aesDecrypt(
+    const plaintext = await this.aesDecrypt(
       messageKey,
       dto.ciphertext,
       this.buildAssociatedData(header, dto.associatedData),
@@ -149,9 +158,7 @@ export class E2eeRatchetCommandService {
 
   private async ensureState(sessionId: string): Promise<E2eeRatchetState> {
     const existing = await this.ratchetStateRepo.findBySessionId(sessionId);
-    if (existing) {
-      return existing;
-    }
+    if (existing) return existing;
 
     const session = await this.sessionRepo.findById(sessionId);
     if (!session || !session.isActive) {
@@ -176,13 +183,14 @@ export class E2eeRatchetCommandService {
     remoteDhPublic: string,
   ): Promise<void> {
     const remoteKey = this.importDhPublic(remoteDhPublic);
-    const previousPrivate = this.importDhPrivate(
-      state.currentDhPrivateKey ?? '',
-    );
+    const previousPrivate = this.importDhPrivate(state.currentDhPrivateKey ?? '');
 
     const first = this.kdfRootKey(
       state.rootKey,
-      crypto.diffieHellman({ privateKey: previousPrivate, publicKey: remoteKey }),
+      crypto.diffieHellman({
+        privateKey: previousPrivate,
+        publicKey: remoteKey,
+      }),
     );
 
     const { privateDer, publicDer } = this.generateDhKeyPair();
@@ -205,10 +213,7 @@ export class E2eeRatchetCommandService {
     state.remoteDhPublicKey = remoteDhPublic;
   }
 
-  private skipMessageKeys(
-    state: E2eeRatchetState,
-    until: number,
-  ): void {
+  private skipMessageKeys(state: E2eeRatchetState, until: number): void {
     if (until - state.receivingMessageNumber > MAX_SKIPPED_KEYS) {
       throw new BadRequestException('Too many skipped message keys');
     }
@@ -218,12 +223,8 @@ export class E2eeRatchetCommandService {
       if (Object.keys(skippedMap).length >= MAX_SKIPPED_KEYS) {
         throw new BadRequestException('Too many skipped message keys');
       }
-      const { messageKey, nextChainKey } = this.kdfChainKey(
-        state.receivingChainKey,
-      );
-      skippedMap[
-        `${chainDhPublic}:${state.receivingMessageNumber}`
-      ] = messageKey.toString('base64');
+      const { messageKey, nextChainKey } = this.kdfChainKey(state.receivingChainKey);
+      skippedMap[`${chainDhPublic}:${state.receivingMessageNumber}`] = (messageKey as unknown as Buffer).toString('base64');
       state.receivingChainKey = nextChainKey;
       state.receivingMessageNumber += 1;
     }
@@ -239,11 +240,12 @@ export class E2eeRatchetCommandService {
 
   private deriveBootstrapChain(rootKey: string, info: string): string {
     const derived = Buffer.from(
-      hkdf(
-        32,
+      crypto.hkdfSync(
+        'sha256',
         Buffer.from(rootKey, 'base64'),
         Buffer.alloc(0),
         Buffer.from(info),
+        32,
       ),
     );
     return derived.toString('base64');
@@ -253,17 +255,13 @@ export class E2eeRatchetCommandService {
     rootKey: string,
     dhSecret: Buffer,
   ): { rootKey: string; chainKey: string } {
-    const dhSecretArray = new Uint8Array(
-      dhSecret.buffer,
-      dhSecret.byteOffset,
-      dhSecret.byteLength,
-    ) as unknown as Uint8Array<ArrayBuffer>;
     const derived = Buffer.from(
-      hkdf(
-        64,
-        dhSecretArray,
+      crypto.hkdfSync(
+        'sha256',
+        dhSecret,
         Buffer.from(rootKey, 'base64'),
         Buffer.from(ROOT_INFO),
+        64,
       ),
     );
     return {
@@ -278,7 +276,10 @@ export class E2eeRatchetCommandService {
   } {
     const key = Buffer.from(chainKey, 'base64');
     return {
-      messageKey: crypto.createHmac('sha256', key).update(MESSAGE_KEY_SEED).digest(),
+      messageKey: crypto
+        .createHmac('sha256', key)
+        .update(MESSAGE_KEY_SEED)
+        .digest(),
       nextChainKey: crypto
         .createHmac('sha256', key)
         .update(NEXT_CHAIN_KEY_SEED)
@@ -291,7 +292,12 @@ export class E2eeRatchetCommandService {
     header: RatchetHeader,
     associatedData?: string,
   ): string {
-    return [header.dhPublic, header.messageNumber, header.previousChainLength, associatedData ?? ''].join('|');
+    return [
+      header.dhPublic,
+      header.messageNumber,
+      header.previousChainLength,
+      associatedData ?? '',
+    ].join('|');
   }
 
   private parseHeader(raw: string): RatchetHeader {
@@ -366,11 +372,11 @@ export class E2eeRatchetCommandService {
     }
   }
 
-  private aesEncrypt(
+  private async aesEncrypt(
     messageKey: Buffer,
     plaintext: string,
     associatedData: string,
-  ): string {
+  ): Promise<string> {
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv('aes-256-gcm', messageKey, iv);
     cipher.setAAD(Buffer.from(associatedData));
@@ -382,11 +388,11 @@ export class E2eeRatchetCommandService {
     return Buffer.concat([iv, encrypted]).toString('base64');
   }
 
-  private aesDecrypt(
+  private async aesDecrypt(
     messageKey: Buffer,
     ciphertext: string,
     associatedData: string,
-  ): string {
+  ): Promise<string> {
     const raw = Buffer.from(ciphertext, 'base64');
     if (raw.length < 12 + 16) {
       throw new BadRequestException('Invalid ciphertext');
@@ -398,10 +404,7 @@ export class E2eeRatchetCommandService {
       const decipher = crypto.createDecipheriv('aes-256-gcm', messageKey, iv);
       decipher.setAAD(Buffer.from(associatedData));
       decipher.setAuthTag(tag);
-      return Buffer.concat([
-        decipher.update(data),
-        decipher.final(),
-      ]).toString('utf8');
+      return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
     } catch {
       throw new BadRequestException('Message decryption failed');
     }
