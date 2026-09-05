@@ -14,6 +14,7 @@ export const REDIS_TTL = {
   NOTIFICATION_UNREAD: 30 * 24 * 60 * 60,
   NOTIFICATION_RECENT: 30 * 24 * 60 * 60,
   NOTIFICATION_DEDUPE: 3600,
+  SESSION_PRESENCE: 60,
 } as const;
 
 /**
@@ -138,4 +139,13 @@ export const redisKeys = {
 
   notificationDedupe: (dedupeKey: string): string =>
     prefix(`notifications:dedupe:${dedupeKey}`),
+
+  // --- Realtime (typing / presence) ----------------------------------------
+  presenceSession: (sessionId: string): string =>
+    prefix(`presence:session:${sessionId}`),
+
+  presenceUser: (userId: string): string => prefix(`presence:user:${userId}`),
+
+  presenceUserSessions: (userId: string): string =>
+    prefix(`presence:user:${userId}:sessions`),
 };

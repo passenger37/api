@@ -1,0 +1,8 @@
+export { SetPresenceRequest } from './set-presence.request';
+export { GetPresenceRequest } from './get-presence.request';
+export { PresenceSubscribeRequest } from './presence-subscribe.request';
+export { PresenceUnsubscribeRequest } from './presence-unsubscribe.request';
+export { ChannelJoinRequest } from './channel-join.request';
+export { ChannelLeaveRequest } from './channel-leave.request';
+export { TypingStartRequest } from './typing-start.request';
+export { TypingStopRequest } from './typing-stop.request';
