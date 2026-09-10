@@ -7,6 +7,2276 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                         String                     @id @default(cuid())
+  email                      String                     @unique
+  username                   String                     @unique
+  passwordHash               String
+  displayName                String
+  bio                        String?
+  isVerified                 Boolean                    @default(false)
+  createdAt                  DateTime                   @default(now())
+  updatedAt                  DateTime                   @updatedAt
+  avatarUrl                  String?
+  city                       String?
+  country                    String?
+  dateOfBirth                DateTime?
+  deletedAt                  DateTime?
+  gender                     Gender?
+  isPrivate                  Boolean                    @default(false)
+  language                   String                     @default("en")
+  lastSeenAt                 DateTime?
+  phoneNumber                String?                    @unique
+  state                      String?
+  status                     UserStatus                 @default(ACTIVE)
+  timezone                   String                     @default("UTC")
+  permissionVersion          Int                        @default(1)
+  coverImageUrl              String?
+  website                    String?
+  location                   String?
+  AnonymousChatBan           AnonymousChatBan[]
+  AnonymousChatParticipant   AnonymousChatParticipant[]
+  AnonymousChatSession       AnonymousChatSession[]
+  blockedByUsers             Block[]                    @relation("UserBlockedBy")
+  blockedUsers               Block[]                    @relation("UserBlocks")
+  directMessages             DirectMessage[]
+  directMessageChannelsA     DirectMessageChannel[]     @relation("DirectMessageChannelA")
+  directMessageChannelsB     DirectMessageChannel[]     @relation("DirectMessageChannelB")
+  directMessageReadStates    DirectMessageReadState[]
+  following                  Follow[]                   @relation("UserFollowing")
+  followers                  Follow[]                   @relation("UserFollowers")
+  receivedFollowRequests     FollowRequest[]            @relation("UserReceivedFollowRequests")
+  sentFollowRequests         FollowRequest[]            @relation("UserSentFollowRequests")
+  mutedByUsers               Mute[]                     @relation("UserMutedBy")
+  mutedUsers                 Mute[]                     @relation("UserMutes")
+  PollVote                   PollVote[]
+  Post                       Post[]                   @relation("UserPersonalPosts")
+  PostComment                PostComment[]
+  PostMention                PostMention[]            @relation("UserPostMentions")
+  postReactions              PostReaction[]           @relation("UserPostReactions")
+  PostSave                   PostSave[]
+  PostShare                  PostShare[]
+  ownedServers               Server[]                   @relation("OwnedServers")
+  bansIssued                 ServerBan[]                @relation("UserBansIssued")
+  serverBans                 ServerBan[]                @relation("UserServerBans")
+  createdChannels            ServerChannel[]
+  ServerInvite               ServerInvite[]
+  serverMemberships          ServerMember[]
+  circlesOf                  UserCircle[]               @relation("UserCircleMember")
+  circleMembers              UserCircle[]               @relation("UserCircleOwner")
+  reportedInServers          UserReport[]               @relation("UserReportedTargets")
+  backgroundJobSchedules     BackgroundJobSchedule[]
+  backgroundJobs             BackgroundJob[]
+  e2eeDeviceRevocations      E2eeDeviceRevocation[]
+  e2eeDevices                E2eeDevice[]
+  e2eeEncryptedBackups       E2eeEncryptedBackup[]
+  e2eeGroupMemberships       E2eeGroupMember[]
+  e2eeGroupsCreated          E2eeGroup[]                @relation("GroupCreator")
+  e2eeKeyTransparencyEntries E2eeKeyTransparencyEntry[]
+  e2eeMetadataPolicy         E2eeMetadataPolicy?
+  e2eePirRequests            E2eePirRequest[]
+  e2eeSealedSenderKeys       E2eeSealedSenderKey[]
+  searchQueries              SearchQuery[]
+  assignedRoles              UserRole[]                 @relation("RoleAssignedBy")
+  roles                      UserRole[]
+  sessions                   UserSession[]
+
+  // Additional Personal Posts relations
+  postReportsFiled     PostReport[]     @relation("PostReportsFiled")
+  postReportsHandled   PostReport[]     @relation("PostReportsHandled")
+  uploadedMedia        MessageAttachment[] @relation("UserUploadedMedia")
+}
+
+model PostMedia {
+  id           String     @id @default(cuid())
+  postId       String
+  type         String
+  url          String
+  thumbnailUrl String?
+  width        Int?
+  height       Int?
+  duration     Int?
+  fileSize     BigInt
+  mimeType     String
+  metadata     Json?
+  order        Int        @default(0)
+  createdAt    DateTime   @default(now())
+  PostAudio    PostAudio?
+  PostImage    PostImage?
+  post         Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  PostVideo    PostVideo?
+
+  @@index([postId])
+}
+
+model PostReaction {
+  id        String       @id @default(cuid())
+  postId    String
+  userId    String
+  type      ReactionType
+  createdAt DateTime     @default(now())
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User         @relation("UserPostReactions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId, createdAt])
+  @@index([userId])
+  @@index([type])
+}
+
+model PostMention {
+  id                String @id @default(cuid())
+  postId            String
+  mentionedUserId   String
+  position          Int
+  length            Int
+  createdAt         DateTime @default(now())
+  post              Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  mentionedUser     User   @relation("UserPostMentions", fields: [mentionedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, mentionedUserId])
+  @@index([postId])
+  @@index([mentionedUserId])
+}
+
+model PostHashtag {
+  id        String   @id @default(cuid())
+  postId    String
+  tag       String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, tag])
+  @@index([tag])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model UserSession {
+  id               String   @id @default(cuid())
+  /// User who owns this session
+  userId           String
+  /// Hashed refresh token (never store plaintext)
+  refreshTokenHash String
+  /// Expiration of the refresh token
+  expiresAt        DateTime
+  /// Device information
+  deviceName       String?
+  userAgent        String?
+  ipAddress        String?
+  /// Session state
+  isRevoked        Boolean  @default(false)
+  /// Audit fields
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  /// Last time this session successfully refreshed
+  lastUsedAt       DateTime @default(now())
+  /// Public session identifier stored in JWT ("sid")
+  sessionId        String   @unique @default(uuid())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([expiresAt])
+  @@index([isRevoked])
+  @@map("user_sessions")
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  isSystem    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  permissions RolePermission[]
+  users       UserRole[]
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  resource    String
+  action      String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  isSystem    Boolean          @default(false)
+  roles       RolePermission[]
+
+  @@index([resource])
+  @@index([action])
+}
+
+model UserRole {
+  id           String   @id @default(cuid())
+  userId       String
+  roleId       String
+  assignedById String?
+  assignedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  assignedBy   User?    @relation("RoleAssignedBy", fields: [assignedById], references: [id])
+  role         Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+model AuthorizationAuditLog {
+  id           String   @id @default(uuid())
+  actorId      String?
+  action       String
+  targetUserId String?
+  roleId       String?
+  permissionId String?
+  ipAddress    String?
+  userAgent    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([actorId])
+  @@index([targetUserId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+  blocked   User     @relation("UserBlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
+  blocker   User     @relation("UserBlocks", fields: [blockerId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+}
+
+model Mute {
+  id        String   @id @default(cuid())
+  muterId   String
+  mutedId   String
+  createdAt DateTime @default(now())
+  muted     User     @relation("UserMutedBy", fields: [mutedId], references: [id], onDelete: Cascade)
+  muter     User     @relation("UserMutes", fields: [muterId], references: [id], onDelete: Cascade)
+
+  @@unique([muterId, mutedId])
+  @@index([muterId])
+  @@index([mutedId])
+}
+
+model FollowRequest {
+  id          String   @id @default(cuid())
+  requesterId String
+  receiverId  String
+  createdAt   DateTime @default(now())
+  receiver    User     @relation("UserReceivedFollowRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+  requester   User     @relation("UserSentFollowRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, receiverId])
+  @@index([requesterId])
+  @@index([receiverId])
+}
+
+model UserCircle {
+  id        String   @id @default(cuid())
+  ownerId   String
+  memberId  String
+  createdAt DateTime @default(now())
+  member    User     @relation("UserCircleMember", fields: [memberId], references: [id], onDelete: Cascade)
+  owner     User     @relation("UserCircleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, memberId])
+  @@index([ownerId])
+  @@index([memberId])
+}
+
+model Server {
+  id                  String               @id @default(cuid())
+  name                String
+  slug                String               @unique
+  description         String?
+  iconUrl             String?
+  bannerUrl           String?
+  visibility          ServerVisibility     @default(PUBLIC)
+  ownerId             String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  ChannelMessage      ChannelMessage[]
+  messageAttachments  MessageAttachment[]  @relation("AttachmentServer")
+  messageReports      MessageReport[]
+  moderationAuditLogs ModerationAuditLog[]
+  Post                Post[]
+  owner               User                 @relation("OwnedServers", fields: [ownerId], references: [id], onDelete: Cascade)
+  bans                ServerBan[]
+  categories          ServerCategory[]
+  channels            ServerChannel[]
+  invites             ServerInvite[]
+  members             ServerMember[]
+  roles               ServerRole[]
+  userReports         UserReport[]
+
+  @@index([ownerId])
+  @@index([visibility])
+}
+
+model ServerMember {
+  id                          String                             @id @default(cuid())
+  serverId                    String
+  userId                      String
+  nickname                    String?
+  joinedAt                    DateTime                           @default(now())
+  removedAt                   DateTime?
+  mentionTargets              ChannelMention[]
+  ChannelMessage              ChannelMessage[]
+  messageEdits                ChannelMessageEdit[]
+  messageReactions            ChannelMessageReaction[]
+  channelReadStates           ChannelReadState[]
+  attachments                 MessageAttachment[]                @relation("AttachmentUploads")
+  messageReportsHandled       MessageReport[]                    @relation("MessageReportsHandled")
+  messageReports              MessageReport[]                    @relation("MessageReportsAuthored")
+  moderationActions           ModerationAuditLog[]               @relation("ModerationAuditActor")
+  channelPermissionOverwrites ServerChannelPermissionOverwrite[]
+  server                      Server                             @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  user                        User                               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roles                       ServerMemberRole[]
+  userReportsHandled          UserReport[]                       @relation("UserReportsHandled")
+  userReports                 UserReport[]                       @relation("UserReportsAuthored")
+
+  @@unique([serverId, userId])
+  @@index([serverId])
+  @@index([userId])
+}
+
+model ServerRole {
+  id                          String                             @id @default(cuid())
+  serverId                    String
+  name                        String
+  position                    Int
+  createdAt                   DateTime                           @default(now())
+  updatedAt                   DateTime                           @updatedAt
+  mentionTargets              ChannelMention[]
+  channelPermissionOverwrites ServerChannelPermissionOverwrite[]
+  members                     ServerMemberRole[]
+  server                      Server                             @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  permissions                 ServerRolePermission[]
+
+  @@index([serverId])
+}
+
+model ServerMemberRole {
+  id         String       @id @default(cuid())
+  memberId   String
+  roleId     String
+  assignedAt DateTime     @default(now())
+  member     ServerMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  role       ServerRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, roleId])
+  @@index([memberId])
+  @@index([roleId])
+}
+
+model ServerRolePermission {
+  id         String           @id @default(cuid())
+  roleId     String
+  permission ServerPermission
+  role       ServerRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permission])
+  @@index([roleId])
+}
+
+model ServerInvite {
+  id          String         @id @default(cuid())
+  serverId    String
+  code        String         @unique
+  maxUses     Int?
+  uses        Int            @default(0)
+  expiresAt   DateTime?
+  createdAt   DateTime       @default(now())
+  channelId   String?
+  createdById String
+  revoked     Boolean        @default(false)
+  temporary   Boolean        @default(false)
+  updatedAt   DateTime       @updatedAt
+  channel     ServerChannel? @relation(fields: [channelId], references: [id])
+  createdBy   User           @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  server      Server         @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@index([serverId])
+  @@index([channelId])
+  @@index([createdById])
+  @@index([expiresAt])
+}
+
+model ServerCategory {
+  id        String          @id @default(cuid())
+  serverId  String
+  name      String
+  position  Int
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  server    Server          @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  channels  ServerChannel[]
+
+  @@unique([serverId, position])
+  @@unique([serverId, name])
+  @@index([serverId])
+}
+
+model ServerChannel {
+  id                   String                             @id @default(cuid())
+  categoryId           String?
+  name                 String
+  position             Int
+  createdAt            DateTime                           @default(now())
+  updatedAt            DateTime                           @updatedAt
+  createdById          String
+  description          String?
+  serverId             String
+  type                 ChannelType
+  topic                String?
+  lastMessageSeq       Int                                @default(0)
+  ChannelMessage       ChannelMessage[]
+  readStates           ChannelReadState[]
+  messageAttachments   MessageAttachment[]                @relation("AttachmentChannel")
+  messageReports       MessageReport[]
+  Post                 Post[]
+  category             ServerCategory?                    @relation(fields: [categoryId], references: [id])
+  createdBy            User                               @relation(fields: [createdById], references: [id])
+  server               Server                             @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  permissionOverwrites ServerChannelPermissionOverwrite[]
+  invites              ServerInvite[]
+
+  @@unique([serverId, name])
+  @@unique([serverId, position])
+  @@index([serverId])
+  @@index([categoryId])
+  @@index([createdById])
+}
+
+model ServerChannelPermissionOverwrite {
+  id         String           @id @default(cuid())
+  channelId  String
+  roleId     String?
+  memberId   String?
+  permission ServerPermission
+  allow      Boolean          @default(false)
+  deny       Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  channel    ServerChannel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  member     ServerMember?    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  role       ServerRole?      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, roleId, memberId, permission])
+  @@index([channelId])
+  @@index([roleId])
+  @@index([memberId])
+  @@index([permission])
+}
+
+model ChannelMessage {
+  id              String                   @id @default(cuid())
+  content         String
+  serverId        String
+  channelId       String
+  authorMemberId  String
+  parentMessageId String?
+  isEdited        Boolean                  @default(false)
+  editedAt        DateTime?
+  isDeleted       Boolean                  @default(false)
+  deletedAt       DateTime?
+  isPinned        Boolean                  @default(false)
+  pinnedAt        DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  clientMessageId String?
+  version         Int                      @default(1)
+  messageSeq      Int
+  mentions        ChannelMention[]
+  author          ServerMember             @relation(fields: [authorMemberId], references: [id], onDelete: Cascade)
+  channel         ServerChannel            @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  parentMessage   ChannelMessage?          @relation("MessageReplies", fields: [parentMessageId], references: [id])
+  replies         ChannelMessage[]         @relation("MessageReplies")
+  server          Server                   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  edits           ChannelMessageEdit[]
+  reactions       ChannelMessageReaction[]
+  readCursors     ChannelReadState[]       @relation("ChannelReadCursor")
+  attachments     MessageAttachment[]      @relation("MessageAttachments")
+  reports         MessageReport[]
+
+  @@unique([clientMessageId, authorMemberId])
+  @@index([channelId, createdAt, id])
+  @@index([channelId, messageSeq])
+  @@index([authorMemberId])
+  @@index([parentMessageId, createdAt, id])
+  @@index([serverId])
+  @@index([isPinned])
+  @@index([isDeleted])
+}
+
+model ChannelMessageEdit {
+  id               String         @id @default(cuid())
+  messageId        String
+  previousContent  String
+  editedAt         DateTime
+  editedByMemberId String
+  editedBy         ServerMember   @relation(fields: [editedByMemberId], references: [id], onDelete: Cascade)
+  message          ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId, editedAt, id])
+  @@index([editedByMemberId])
+}
+
+model ChannelMessageReaction {
+  id        String         @id @default(cuid())
+  messageId String
+  memberId  String
+  emoji     String
+  createdAt DateTime       @default(now())
+  member    ServerMember   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  message   ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, memberId, emoji])
+  @@index([messageId])
+  @@index([memberId])
+}
+
+model ChannelMention {
+  id              String         @id @default(cuid())
+  messageId       String
+  serverId        String
+  channelId       String
+  mentionType     MentionType
+  targetMemberId  String?
+  targetRoleId    String?
+  createdAt       DateTime       @default(now())
+  message         ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  mentionedMember ServerMember?  @relation(fields: [targetMemberId], references: [id])
+  mentionedRole   ServerRole?    @relation(fields: [targetRoleId], references: [id])
+
+  @@index([messageId])
+  @@index([serverId])
+  @@index([targetMemberId])
+  @@index([targetRoleId])
+}
+
+model ChannelReadState {
+  id                String          @id @default(cuid())
+  channelId         String
+  memberId          String
+  lastReadMessageId String?
+  lastReadAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  channel           ServerChannel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  lastReadMessage   ChannelMessage? @relation("ChannelReadCursor", fields: [lastReadMessageId], references: [id])
+  member            ServerMember    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, memberId])
+  @@index([memberId])
+  @@index([lastReadMessageId])
+}
+
+model OutboxEvent {
+  id          String    @id @default(cuid())
+  eventType   String
+  channelId   String?
+  payload     Json
+  status      String    @default("PENDING")
+  attempts    Int       @default(0)
+  lastError   String?
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model MessageAttachment {
+  id           String           @id @default(cuid())
+  messageId    String?
+  serverId     String
+  channelId    String
+  uploadedById String
+  userId       String?
+  status       AttachmentStatus @default(PENDING)
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String           @unique
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  channel      ServerChannel    @relation("AttachmentChannel", fields: [channelId], references: [id], onDelete: Cascade)
+  message      ChannelMessage?  @relation("MessageAttachments", fields: [messageId], references: [id], onDelete: Cascade)
+  server       Server           @relation("AttachmentServer", fields: [serverId], references: [id], onDelete: Cascade)
+  uploadedBy   ServerMember     @relation("AttachmentUploads", fields: [uploadedById], references: [id], onDelete: Cascade)
+  user         User?            @relation("UserUploadedMedia", fields: [userId], references: [id], onDelete: SetNull)
+  avScan       MediaAvScan?
+  mediaJobs    MediaJob[]
+  thumbnail    MediaThumbnail?
+  transcodes   MediaTranscode[]
+
+  @@index([messageId])
+  @@index([serverId])
+  @@index([channelId, createdAt])
+  @@index([uploadedById])
+  @@index([userId])
+}
+
+model ServerBan {
+  id         String   @id @default(cuid())
+  serverId   String
+  userId     String
+  bannedById String
+  reason     String?
+  createdAt  DateTime @default(now())
+  bannedBy   User     @relation("UserBansIssued", fields: [bannedById], references: [id], onDelete: Cascade)
+  server     Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  user       User     @relation("UserServerBans", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([serverId, userId])
+  @@index([serverId])
+  @@index([userId])
+  @@index([bannedById])
+}
+
+model MessageReport {
+  id                String              @id @default(cuid())
+  serverId          String
+  channelId         String
+  messageId         String
+  reporterMemberId  String
+  reason            MessageReportReason
+  detailText        String?
+  status            ReportStatus        @default(PENDING)
+  handledByMemberId String?
+  handledAt         DateTime?
+  createdAt         DateTime            @default(now())
+  channel           ServerChannel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  handledBy         ServerMember?       @relation("MessageReportsHandled", fields: [handledByMemberId], references: [id])
+  message           ChannelMessage      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  reporter          ServerMember        @relation("MessageReportsAuthored", fields: [reporterMemberId], references: [id], onDelete: Cascade)
+  server            Server              @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, reporterMemberId])
+  @@index([serverId])
+  @@index([channelId])
+  @@index([messageId])
+  @@index([status])
+  @@index([reporterMemberId])
+  @@index([handledByMemberId])
+}
+
+model UserReport {
+  id                String           @id @default(cuid())
+  serverId          String
+  reporterMemberId  String
+  targetUserId      String
+  reason            UserReportReason
+  detailText        String?
+  status            ReportStatus     @default(PENDING)
+  handledByMemberId String?
+  handledAt         DateTime?
+  createdAt         DateTime         @default(now())
+  handledBy         ServerMember?    @relation("UserReportsHandled", fields: [handledByMemberId], references: [id])
+  reporter          ServerMember     @relation("UserReportsAuthored", fields: [reporterMemberId], references: [id], onDelete: Cascade)
+  server            Server           @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  target            User             @relation("UserReportedTargets", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([reporterMemberId, targetUserId])
+  @@index([serverId])
+  @@index([targetUserId])
+  @@index([status])
+  @@index([reporterMemberId])
+  @@index([handledByMemberId])
+}
+
+model ModerationAuditLog {
+  id             String           @id @default(cuid())
+  serverId       String
+  actorMemberId  String
+  action         ModerationAction
+  targetUserId   String?
+  targetMemberId String?
+  reason         String?
+  metadata       Json?
+  createdAt      DateTime         @default(now())
+  actor          ServerMember     @relation("ModerationAuditActor", fields: [actorMemberId], references: [id], onDelete: Cascade)
+  server         Server           @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@index([serverId, createdAt])
+  @@index([actorMemberId])
+  @@index([action])
+}
+
+model DirectMessageChannel {
+  id             String                   @id @default(cuid())
+  userAId        String
+  userBId        String
+  messageCounter Int                      @default(0)
+  lastMessageAt  DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  messages       DirectMessage[]
+  userA          User                     @relation("DirectMessageChannelA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB          User                     @relation("DirectMessageChannelB", fields: [userBId], references: [id], onDelete: Cascade)
+  readStates     DirectMessageReadState[]
+
+  @@unique([userAId, userBId])
+  @@index([userBId])
+  @@index([lastMessageAt])
+}
+
+model DirectMessage {
+  id              String                   @id @default(cuid())
+  channelId       String
+  authorUserId    String
+  content         String
+  clientMessageId String?
+  isEdited        Boolean                  @default(false)
+  editedAt        DateTime?
+  isDeleted       Boolean                  @default(false)
+  deletedAt       DateTime?
+  version         Int                      @default(1)
+  messageSeq      Int
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  author          User                     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  channel         DirectMessageChannel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  readStates      DirectMessageReadState[] @relation("DirectMessageReadCursor")
+
+  @@unique([clientMessageId, authorUserId])
+  @@index([channelId, messageSeq])
+  @@index([channelId, createdAt, id])
+  @@index([authorUserId])
+}
+
+model DirectMessageReadState {
+  id                String               @id @default(cuid())
+  channelId         String
+  userId            String
+  lastReadMessageId String?
+  lastReadAt        DateTime?
+  unreadCount       Int                  @default(0)
+  updatedAt         DateTime             @updatedAt
+  channel           DirectMessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  lastReadMessage   DirectMessage?       @relation("DirectMessageReadCursor", fields: [lastReadMessageId], references: [id])
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([userId])
+}
+
+model E2eeDevice {
+  id                     String                     @id @default(cuid())
+  userId                 String
+  /// Human-friendly device label ("iPhone", "Laptop", ...)
+  name                   String
+  /// Client platform identifier supplied at registration ("web", "ios", "android", ...)
+  platform               String
+  /// Device identity public key (base64 blob). Private key never crosses the wire — not modeled at all.
+  identityKeyPublic      String
+  isRevoked              Boolean                    @default(false)
+  revokedAt              DateTime?
+  lastSeenAt             DateTime?
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  sentAttachments        E2eeAttachment[]
+  deliveryQueue          E2eeDeliveryQueue[]
+  revocations            E2eeDeviceRevocation[]
+  sentVerifications      E2eeDeviceVerification[]   @relation("LocalDeviceVerifications")
+  receivedVerifications  E2eeDeviceVerification[]   @relation("RemoteDeviceVerifications")
+  user                   User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  backups                E2eeEncryptedBackup[]
+  receivedEnvelopes      E2eeEnvelope[]             @relation("EnvelopeRecipient")
+  sentEnvelopes          E2eeEnvelope[]             @relation("EnvelopeSender")
+  groupDeliveryQueue     E2eeGroupDeliveryQueue[]
+  sentGroupEnvelopes     E2eeGroupEnvelope[]
+  groupMemberships       E2eeGroupMember[]
+  groupSessions          E2eeGroupSession[]
+  keyTransparencyEntries E2eeKeyTransparencyEntry[]
+  oneTimePreKeys         E2eeOneTimePreKey[]
+  pirRequests            E2eePirRequest[]
+  sealedSenderKeys       E2eeSealedSenderKey[]
+  recipientSessions      E2eeSession[]              @relation("RecipientSessions")
+  senderSessions         E2eeSession[]              @relation("SenderSessions")
+  signedPreKeys          E2eeSignedPreKey[]
+
+  @@index([userId])
+  @@index([userId, isRevoked])
+  @@map("e2ee_devices")
+}
+
+model E2eeDeviceVerification {
+  id             String     @id @default(cuid())
+  localDeviceId  String
+  remoteDeviceId String
+  verifiedAt     DateTime   @default(now())
+  createdAt      DateTime   @default(now())
+  localDevice    E2eeDevice @relation("LocalDeviceVerifications", fields: [localDeviceId], references: [id], onDelete: Cascade)
+  remoteDevice   E2eeDevice @relation("RemoteDeviceVerifications", fields: [remoteDeviceId], references: [id], onDelete: Cascade)
+
+  @@unique([localDeviceId, remoteDeviceId])
+  @@index([localDeviceId])
+  @@index([remoteDeviceId])
+  @@map("e2ee_device_verifications")
+}
+
+model E2eeSignedPreKey {
+  id             String     @id @default(cuid())
+  deviceId       String
+  /// Library-issued prekey id
+  signedPreKeyId Int
+  /// Signed prekey public half (base64 blob)
+  publicKey      String
+  /// Signature over the signed prekey by the device identity key (base64 blob)
+  signature      String
+  /// Exactly one active signed prekey per device; previous keys stay queryable for in-flight sessions
+  isActive       Boolean    @default(false)
+  rotatedAt      DateTime?
+  createdAt      DateTime   @default(now())
+  device         E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, signedPreKeyId])
+  @@index([deviceId, isActive])
+  @@map("e2ee_signed_prekeys")
+}
+
+model E2eeOneTimePreKey {
+  id         String     @id @default(uuid())
+  deviceId   String
+  /// Library-issued one-time prekey id
+  preKeyId   Int
+  /// One-time prekey public half (base64 blob); consumed exactly once
+  publicKey  String
+  isConsumed Boolean    @default(false)
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+  device     E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, preKeyId])
+  @@index([deviceId, isConsumed])
+  @@map("e2ee_one_time_prekeys")
+}
+
+model E2eeSession {
+  id                 String            @id @default(cuid())
+  /// The device that initiated the session (sender)
+  senderDeviceId     String
+  /// The device that received the session initiation (recipient)
+  recipientDeviceId  String
+  /// Session version for protocol upgrades
+  version            Int               @default(1)
+  /// Opaque encrypted session state blob (root key, chain keys, message numbers, AD)
+  /// Encrypted with the device's identity key; server never sees plaintext
+  sessionState       String
+  /// Associated data hash for integrity (e.g., identity keys involved)
+  associatedDataHash String
+  /// Whether this session is active (not archived/revoked)
+  isActive           Boolean           @default(true)
+  /// Archived at timestamp
+  archivedAt         DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  attachments        E2eeAttachment[]
+  envelopes          E2eeEnvelope[]
+  ratchetState       E2eeRatchetState?
+  recipientDevice    E2eeDevice        @relation("RecipientSessions", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
+  senderDevice       E2eeDevice        @relation("SenderSessions", fields: [senderDeviceId], references: [id], onDelete: Cascade)
+
+  @@unique([senderDeviceId, recipientDeviceId])
+  @@index([senderDeviceId, isActive])
+  @@index([recipientDeviceId, isActive])
+  @@map("e2ee_sessions")
+}
+
+model E2eeRatchetState {
+  id                           String      @id @default(cuid())
+  sessionId                    String      @unique
+  /// Current root key (base64, encrypted with device identity key)
+  rootKey                      String
+  /// Sending chain key (base64)
+  sendingChainKey              String
+  /// Receiving chain key (base64)
+  receivingChainKey            String
+  /// Current sending message number
+  sendingMessageNumber         Int         @default(0)
+  /// Current receiving message number
+  receivingMessageNumber       Int         @default(0)
+  /// Local ephemeral DH ratchet public key (base64, SPKI DER)
+  nextDhPublicKey              String?
+  /// Local ephemeral DH ratchet private key (base64, PKCS8 DER) — server-orchestrated scaffold until the Signal library lands (40.68)
+  currentDhPrivateKey          String?
+  /// Previous receiving chain length (for skipped message keys tracking)
+  previousReceivingChainLength Int         @default(0)
+  /// Skipped message keys map (JSON: messageNumber -> base64 message key)
+  /// Used for out-of-order decryption
+  skippedMessageKeys           String      @default("{}")
+  /// Remote DH public key for pending ratchet step (base64)
+  remoteDhPublicKey            String?
+  createdAt                    DateTime    @default(now())
+  updatedAt                    DateTime    @updatedAt
+  /// Opaque libsignal SessionRecord (base64) — replaces individual ratchet fields when libsignal is fully adopted
+  sessionState                 String?
+  session                      E2eeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("e2ee_ratchet_states")
+}
+
+model E2eeEnvelope {
+  id                String              @id @default(cuid())
+  /// The session this envelope belongs to
+  sessionId         String
+  /// Type of envelope (PRE_KEY for X3DH initiation, SIGNAL for regular ratchet messages, SENDER_KEY for group)
+  type              E2eeEnvelopeType
+  /// Encrypted ciphertext payload (base64 blob)
+  ciphertext        String
+  /// Associated data (base64 blob) - includes header, version, etc.
+  associatedData    String?
+  /// Sender device ID
+  senderDeviceId    String
+  /// Recipient device ID
+  recipientDeviceId String
+  /// Delivery status
+  status            E2eeEnvelopeStatus  @default(PENDING)
+  /// Number of delivery attempts
+  attempts          Int                 @default(0)
+  /// Last delivery error
+  lastError         String?
+  /// Delivered at timestamp
+  deliveredAt       DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deliveryQueue     E2eeDeliveryQueue[]
+  recipientDevice   E2eeDevice          @relation("EnvelopeRecipient", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
+  senderDevice      E2eeDevice          @relation("EnvelopeSender", fields: [senderDeviceId], references: [id], onDelete: Cascade)
+  session           E2eeSession         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([recipientDeviceId, status])
+  @@index([senderDeviceId])
+  @@index([sessionId])
+  @@map("e2ee_envelopes")
+}
+
+model Call {
+  id            String            @id @default(cuid())
+  /// Type of call (VOICE or VIDEO)
+  type          CallType
+  /// Scope of the call (DM, GROUP, SERVER_CHANNEL, COMMUNITY)
+  scope         CallScope
+  /// Reference ID for the scope (DM channel ID, group ID, server channel ID, community ID)
+  scopeRef      String
+  /// Creator user ID
+  creatorUserId String
+  /// Current call status
+  status        CallStatus        @default(RINGING)
+  /// Call start timestamp
+  startedAt     DateTime?
+  /// Call end timestamp
+  endedAt       DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  participants  CallParticipant[]
+
+  @@index([creatorUserId])
+  @@index([scope, scopeRef])
+  @@index([status])
+  @@map("calls")
+}
+
+model CallParticipant {
+  id        String               @id @default(cuid())
+  /// Call this participant belongs to
+  callId    String
+  /// User ID of the participant
+  userId    String
+  /// Device ID (optional, for multi-device support)
+  deviceId  String?
+  /// When the participant joined
+  joinedAt  DateTime             @default(now())
+  /// When the participant left
+  leftAt    DateTime?
+  /// Current participant state
+  state     CallParticipantState @default(JOINED)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  call      Call                 @relation(fields: [callId], references: [id], onDelete: Cascade)
+
+  @@unique([callId, userId, deviceId])
+  @@index([userId])
+  @@index([callId])
+  @@map("call_participants")
+}
+
+model E2eeGroup {
+  id            String              @id @default(cuid())
+  /// Group name/title
+  name          String
+  /// Optional description
+  description   String?
+  /// Creator user ID
+  creatorUserId String
+  /// Group avatar
+  avatarUrl     String?
+  /// Group version for protocol upgrades
+  version       Int                 @default(1)
+  /// Whether group is active
+  isActive      Boolean             @default(true)
+  /// Archived at timestamp
+  archivedAt    DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  attachments   E2eeAttachment[]
+  envelopes     E2eeGroupEnvelope[]
+  members       E2eeGroupMember[]
+  sessions      E2eeGroupSession[]
+  creator       User                @relation("GroupCreator", fields: [creatorUserId], references: [id], onDelete: Cascade)
+
+  @@index([creatorUserId])
+  @@index([isActive])
+  @@map("e2ee_groups")
+}
+
+model E2eeGroupMember {
+  id        String     @id @default(cuid())
+  groupId   String
+  userId    String
+  deviceId  String
+  /// Role in group (ADMIN, MEMBER)
+  role      String     @default("MEMBER")
+  /// Whether member is active
+  isActive  Boolean    @default(true)
+  /// Joined at
+  joinedAt  DateTime   @default(now())
+  /// Left at (if applicable)
+  leftAt    DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  device    E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  group     E2eeGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, deviceId])
+  @@index([groupId])
+  @@index([userId])
+  @@index([deviceId])
+  @@map("e2ee_group_members")
+}
+
+model E2eeGroupSession {
+  id                String     @id @default(cuid())
+  groupId           String
+  deviceId          String
+  /// Sender key distribution ID (UUID)
+  distributionId    String
+  /// Sender key chain ID
+  chainId           Int        @default(0)
+  /// Current chain iteration
+  iteration         Int        @default(0)
+  /// Sender key chain key (base64, encrypted with device identity key)
+  chainKey          String
+  /// Sender key signing key (base64, PKCS8 DER)
+  signingKeyPrivate String?
+  /// Sender key signing public key (base64, SPKI DER)
+  signingKeyPublic  String?
+  /// Whether this session is active
+  isActive          Boolean    @default(true)
+  /// Archived at
+  archivedAt        DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  device            E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  group             E2eeGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, deviceId])
+  @@index([groupId])
+  @@index([deviceId])
+  @@map("e2ee_group_sessions")
+}
+
+model E2eeGroupEnvelope {
+  id             String                   @id @default(cuid())
+  /// The group this envelope belongs to
+  groupId        String
+  /// Type of envelope (always SENDER_KEY for group messages)
+  type           E2eeEnvelopeType         @default(SENDER_KEY)
+  /// Encrypted ciphertext payload (base64 blob)
+  ciphertext     String
+  /// Associated data (base64 blob) - includes header, version, etc.
+  associatedData String?
+  /// Sender device ID
+  senderDeviceId String
+  /// Delivery status
+  status         E2eeEnvelopeStatus       @default(PENDING)
+  /// Number of delivery attempts
+  attempts       Int                      @default(0)
+  /// Last delivery error
+  lastError      String?
+  /// Delivered at timestamp
+  deliveredAt    DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  deliveryQueue  E2eeGroupDeliveryQueue[]
+  group          E2eeGroup                @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderDevice   E2eeDevice               @relation(fields: [senderDeviceId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, status])
+  @@index([senderDeviceId])
+  @@index([createdAt])
+  @@map("e2ee_group_envelopes")
+}
+
+model E2eeAttachment {
+  id                    String               @id @default(cuid())
+  /// The session this attachment belongs to (for 1:1 E2EE messages)
+  sessionId             String?
+  /// The group this attachment belongs to (for group E2EE messages)
+  groupId               String?
+  /// Original file name
+  fileName              String
+  /// MIME type
+  mimeType              String
+  /// File size in bytes
+  sizeBytes             Int
+  /// Storage key in object storage (R2/MinIO)
+  storageKey            String               @unique
+  /// Encrypted file encryption key (base64) - encrypted with session/group key
+  encryptedFileKey      String
+  /// Encrypted thumbnail key (base64) - if thumbnail exists
+  encryptedThumbnailKey String?
+  /// Thumbnail storage key
+  thumbnailStorageKey   String?
+  /// Thumbnail MIME type
+  thumbnailMimeType     String?
+  /// Thumbnail size in bytes
+  thumbnailSizeBytes    Int?
+  /// SHA-256 hash of the encrypted file for integrity verification
+  fileHash              String
+  /// SHA-256 hash of the encrypted thumbnail
+  thumbnailHash         String?
+  /// Status
+  status                E2eeAttachmentStatus @default(PENDING)
+  /// Upload error if failed
+  uploadError           String?
+  /// Associated message ID (for linking to specific message)
+  messageId             String?
+  /// Sender device ID
+  senderDeviceId        String
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  group                 E2eeGroup?           @relation(fields: [groupId], references: [id])
+  senderDevice          E2eeDevice           @relation(fields: [senderDeviceId], references: [id], onDelete: Cascade)
+  session               E2eeSession?         @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId])
+  @@index([groupId])
+  @@index([senderDeviceId])
+  @@index([status])
+  @@map("e2ee_attachments")
+}
+
+model E2eeDeliveryQueue {
+  id             String             @id @default(cuid())
+  /// The envelope to deliver
+  envelopeId     String
+  /// Target device ID
+  targetDeviceId String
+  /// Delivery status
+  status         E2eeDeliveryStatus @default(PENDING)
+  /// Number of delivery attempts
+  attempts       Int                @default(0)
+  /// Max delivery attempts
+  maxAttempts    Int                @default(10)
+  /// Last delivery error
+  lastError      String?
+  /// Next retry at
+  nextRetryAt    DateTime?
+  /// Delivered at
+  deliveredAt    DateTime?
+  /// Expired at (if delivery failed permanently)
+  expiredAt      DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  envelope       E2eeEnvelope       @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  targetDevice   E2eeDevice         @relation(fields: [targetDeviceId], references: [id], onDelete: Cascade)
+
+  @@index([targetDeviceId, status])
+  @@index([envelopeId])
+  @@index([status, nextRetryAt])
+  @@map("e2ee_delivery_queue")
+}
+
+model E2eeGroupDeliveryQueue {
+  id             String             @id @default(cuid())
+  /// The group envelope to deliver
+  envelopeId     String
+  /// Target device ID
+  targetDeviceId String
+  /// Delivery status
+  status         E2eeDeliveryStatus @default(PENDING)
+  /// Number of delivery attempts
+  attempts       Int                @default(0)
+  /// Max delivery attempts
+  maxAttempts    Int                @default(10)
+  /// Last delivery error
+  lastError      String?
+  /// Next retry at
+  nextRetryAt    DateTime?
+  /// Delivered at
+  deliveredAt    DateTime?
+  /// Expired at (if delivery failed permanently)
+  expiredAt      DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  envelope       E2eeGroupEnvelope  @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
+  targetDevice   E2eeDevice         @relation(fields: [targetDeviceId], references: [id], onDelete: Cascade)
+
+  @@index([targetDeviceId, status])
+  @@index([envelopeId])
+  @@index([status, nextRetryAt])
+  @@map("e2ee_group_delivery_queue")
+}
+
+model E2eeDeviceRevocation {
+  id                  String               @id @default(cuid())
+  /// The revoked device
+  deviceId            String
+  /// Reason for revocation
+  reason              E2eeRevocationReason
+  /// User who initiated revocation
+  initiatedByUserId   String
+  /// Whether revocation was acknowledged by device owner
+  acknowledged        Boolean              @default(false)
+  /// Revoked at
+  revokedAt           DateTime             @default(now())
+  /// Acknowledged at
+  acknowledgedAt      DateTime?
+  /// Replacement device ID (if migrated)
+  replacementDeviceId String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  device              E2eeDevice           @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  initiator           User                 @relation(fields: [initiatedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+  @@index([initiatedByUserId])
+  @@map("e2ee_device_revocations")
+}
+
+model E2eeEncryptedBackup {
+  id                   String           @id @default(cuid())
+  /// User who owns the backup
+  userId               String
+  /// Device that created the backup
+  deviceId             String
+  /// Encrypted backup payload (base64)
+  payload              String
+  /// Backup version
+  version              Int              @default(1)
+  /// SVR2 recovery password hash (Argon2id)
+  recoveryPasswordHash String?
+  /// Backup status
+  status               E2eeBackupStatus @default(PENDING)
+  /// Error if failed
+  error                String?
+  /// Created at
+  createdAt            DateTime         @default(now())
+  /// Completed at
+  completedAt          DateTime?
+  device               E2eeDevice       @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([status])
+  @@map("e2ee_encrypted_backups")
+}
+
+model E2eeKeyTransparencyEntry {
+  id         String     @id @default(cuid())
+  /// User ID
+  userId     String
+  /// Device ID
+  deviceId   String
+  /// Key commitment (base64)
+  commitment String
+  /// Epoch/timestamp
+  epoch      BigInt
+  /// Verified by user
+  verified   Boolean    @default(false)
+  /// Verified at
+  verifiedAt DateTime?
+  createdAt  DateTime   @default(now())
+  device     E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId, epoch])
+  @@index([userId, epoch])
+  @@map("e2ee_key_transparency_entries")
+}
+
+model E2eeSealedSenderKey {
+  id                  String     @id @default(cuid())
+  /// User ID who owns this sealed sender key
+  userId              String
+  /// Device ID that this key belongs to
+  deviceId            String
+  /// Sealed sender public key (base64)
+  publicKey           String
+  /// Sealed sender private key (encrypted, base64)
+  encryptedPrivateKey String
+  /// Key expiration
+  expiresAt           DateTime
+  /// Whether this key is active
+  isActive            Boolean    @default(true)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  device              E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user                User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([deviceId])
+  @@map("e2ee_sealed_sender_keys")
+}
+
+model E2eePirRequest {
+  id                String     @id @default(cuid())
+  /// User ID making the request
+  userId            String
+  /// Device ID making the request
+  deviceId          String
+  /// Encrypted query for PIR (what device/key they're looking for)
+  encryptedQuery    String
+  /// Server response (encrypted key bundle)
+  encryptedResponse String?
+  /// Request status
+  status            String     @default("PENDING")
+  /// Expires at
+  expiresAt         DateTime
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  device            E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([deviceId])
+  @@map("e2ee_pir_requests")
+}
+
+model E2eeMetadataPolicy {
+  id                  String   @id @default(cuid())
+  /// User ID this policy applies to
+  userId              String   @unique
+  /// Minimum padding size for envelopes (bytes)
+  minPaddingSize      Int      @default(256)
+  /// Maximum padding size for envelopes (bytes)
+  maxPaddingSize      Int      @default(1024)
+  /// Enable sealed sender for outgoing messages
+  enableSealedSender  Boolean  @default(true)
+  /// Enable PIR for key bundle fetching
+  enablePir           Boolean  @default(true)
+  /// Batch delivery window (ms) - group deliveries to hide timing
+  batchWindowMs       Int      @default(100)
+  /// Minimum batch size for delivery
+  minBatchSize        Int      @default(5)
+  /// Enable group membership hiding
+  hideGroupMembership Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("e2ee_metadata_policies")
+}
+
+model SearchIndex {
+  id             String   @id @default(cuid())
+  /// The type of content indexed (channel_message, direct_message, server, channel, user)
+  contentType    String
+  /// The ID of the content being indexed
+  contentId      String
+  /// The server ID this content belongs to (for authorization filtering)
+  serverId       String?
+  /// The channel ID this content belongs to
+  channelId      String?
+  /// The author user ID
+  authorId       String?
+  /// Full-text searchable content (title, content, etc.)
+  searchableText String
+  /// Additional metadata for filtering/ranking
+  metadata       Json?
+  /// Created at
+  createdAt      DateTime @default(now())
+  /// Updated at
+  updatedAt      DateTime @updatedAt
+
+  @@unique([contentType, contentId])
+  @@index([serverId])
+  @@index([channelId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([searchableText])
+  @@map("search_indexes")
+}
+
+model SearchQuery {
+  id          String   @id @default(cuid())
+  /// User who performed the search
+  userId      String
+  /// The search query text
+  queryText   String
+  /// Filters applied
+  filters     Json?
+  /// Number of results returned
+  resultCount Int
+  /// Time taken for search (ms)
+  latencyMs   Int
+  /// Search engine used (meilisearch, postgres, opensearch)
+  engine      String
+  /// Created at
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([queryText])
+  @@index([engine])
+  @@map("search_queries")
+}
+
+model SearchAnalytics {
+  id             String   @id @default(cuid())
+  /// Date bucket (day precision)
+  date           DateTime @db.Date
+  /// Search engine
+  engine         String
+  /// Total searches
+  totalSearches  Int      @default(0)
+  /// Unique users
+  uniqueUsers    Int      @default(0)
+  /// Average latency (ms)
+  avgLatencyMs   Float    @default(0)
+  /// Top queries (JSON array)
+  topQueries     Json?
+  /// Zero result rate
+  zeroResultRate Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([date, engine])
+  @@index([date])
+  @@index([engine])
+  @@map("search_analytics")
+}
+
+model MediaJob {
+  id           String                @id @default(cuid())
+  /// Related attachment
+  attachmentId String
+  /// Type of processing job
+  type         MediaJobType
+  /// Current status
+  status       MediaProcessingStatus @default(PENDING)
+  /// Priority (higher = more urgent)
+  priority     Int                   @default(0)
+  /// Input parameters (JSON)
+  input        Json?
+  /// Output results (JSON)
+  output       Json?
+  /// Error message if failed
+  error        String?
+  /// Progress percentage (0-100)
+  progress     Int                   @default(0)
+  /// Started at
+  startedAt    DateTime?
+  /// Completed at
+  completedAt  DateTime?
+  /// Number of retries
+  retries      Int                   @default(0)
+  /// Max retries allowed
+  maxRetries   Int                   @default(3)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  attachment   MessageAttachment     @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@index([attachmentId])
+  @@index([status])
+  @@index([type, status])
+  @@map("media_jobs")
+}
+
+model MediaProcessingConfig {
+  id          String   @id @default(cuid())
+  /// Config key
+  key         String   @unique
+  /// Config value (JSON)
+  value       Json
+  /// Description
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("media_processing_configs")
+}
+
+model MediaThumbnail {
+  id           String            @id @default(cuid())
+  /// Source attachment
+  attachmentId String            @unique
+  /// Thumbnail variants (JSON: { small: { key, width, height }, medium: ..., large: ... })
+  variants     Json
+  /// Generated at
+  generatedAt  DateTime          @default(now())
+  attachment   MessageAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@index([attachmentId])
+  @@map("media_thumbnails")
+}
+
+model MediaTranscode {
+  id           String                @id @default(cuid())
+  /// Source attachment
+  attachmentId String
+  /// Resolution variant (e.g., "480p", "720p", "1080p")
+  resolution   String
+  /// Output storage key
+  storageKey   String
+  /// Codec used (e.g., "h264", "vp9", "av1")
+  codec        String
+  /// Bitrate in kbps
+  bitrate      Int?
+  /// File size in bytes
+  sizeBytes    Int?
+  /// Duration in seconds
+  duration     Float?
+  /// Status
+  status       MediaProcessingStatus @default(PENDING)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  attachment   MessageAttachment     @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@unique([attachmentId, resolution])
+  @@index([attachmentId])
+  @@index([status])
+  @@map("media_transcodes")
+}
+
+model MediaAvScan {
+  id           String            @id @default(cuid())
+  /// Scanned attachment
+  attachmentId String            @unique
+  /// Scan result (clean, infected, suspicious, error)
+  result       String
+  /// Engine used (clamav, cloudav, etc.)
+  engine       String
+  /// Threat name if infected
+  threatName   String?
+  /// Scan duration in ms
+  durationMs   Int?
+  /// Raw engine output (JSON)
+  rawOutput    Json?
+  /// Scanned at
+  scannedAt    DateTime          @default(now())
+  attachment   MessageAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@index([attachmentId])
+  @@index([result])
+  @@map("media_av_scans")
+}
+
+model BackgroundJob {
+  id             String                @id @default(cuid())
+  /// Job name/identifier
+  name           String
+  /// Job queue name
+  queueName      String
+  /// Job payload (JSON)
+  payload        Json
+  /// Current status
+  status         BackgroundJobStatus   @default(PENDING)
+  /// Priority level
+  priority       BackgroundJobPriority @default(NORMAL)
+  /// Number of attempts made
+  attempts       Int                   @default(0)
+  /// Maximum retry attempts
+  maxRetries     Int                   @default(3)
+  /// Current retry attempt
+  currentRetry   Int                   @default(0)
+  /// Scheduled run time (for scheduled jobs)
+  scheduledAt    DateTime?
+  /// Started at
+  startedAt      DateTime?
+  /// Completed at
+  completedAt    DateTime?
+  /// Failed at
+  failedAt       DateTime?
+  /// Last error message
+  lastError      String?
+  /// Result data (JSON)
+  result         Json?
+  /// Progress percentage (0-100)
+  progress       Int                   @default(0)
+  /// Cron expression (for recurring jobs)
+  cronExpression String?
+  /// Job tags for filtering/grouping
+  tags           String[]
+  /// Correlation ID for tracing
+  correlationId  String?
+  /// Idempotency key
+  idempotencyKey String?               @unique
+  /// User who owns this job
+  userId         String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  user           User?                 @relation(fields: [userId], references: [id])
+
+  @@index([queueName, status])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([correlationId])
+  @@index([idempotencyKey])
+  @@index([userId])
+  @@map("background_jobs")
+}
+
+model BackgroundJobSchedule {
+  id             String    @id @default(cuid())
+  /// Schedule name
+  name           String    @unique
+  /// Cron expression
+  cronExpression String
+  /// Timezone
+  timezone       String    @default("UTC")
+  /// Job name to execute
+  jobName        String
+  /// Default payload
+  payload        Json?
+  /// Whether schedule is active
+  isActive       Boolean   @default(true)
+  /// Last run time
+  lastRunAt      DateTime?
+  /// Next run time
+  nextRunAt      DateTime?
+  /// Run count
+  runCount       Int       @default(0)
+  /// User who owns this schedule
+  userId         String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User?     @relation(fields: [userId], references: [id])
+
+  @@index([isActive])
+  @@index([nextRunAt])
+  @@index([userId])
+  @@map("background_job_schedules")
+}
+
+model BackgroundJobDeadLetter {
+  id              String    @id @default(cuid())
+  /// Original job ID
+  jobId           String
+  /// Job name
+  jobName         String
+  /// Queue name
+  queueName       String
+  /// Failed payload
+  payload         Json
+  /// Error message
+  error           String
+  /// Number of attempts
+  attempts        Int
+  /// Last error
+  lastError       String?
+  /// Failed at
+  failedAt        DateTime  @default(now())
+  /// Resolved at
+  resolvedAt      DateTime?
+  /// Resolution notes
+  resolutionNotes String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([jobId])
+  @@index([queueName])
+  @@index([failedAt])
+  @@map("background_job_dead_letters")
+}
+
+model BackgroundJobMetrics {
+  id                  String   @id @default(cuid())
+  /// Date bucket (day precision)
+  date                DateTime @db.Date
+  /// Queue name
+  queueName           String
+  /// Total jobs processed
+  totalProcessed      Int      @default(0)
+  /// Successful jobs
+  succeeded           Int      @default(0)
+  /// Failed jobs
+  failed              Int      @default(0)
+  /// Cancelled jobs
+  cancelled           Int      @default(0)
+  /// Average processing time (ms)
+  avgProcessingTimeMs Float    @default(0)
+  /// Peak concurrent jobs
+  peakConcurrent      Int      @default(0)
+  /// Average queue time (ms)
+  avgQueueTimeMs      Float    @default(0)
+  /// Retry rate
+  retryRate           Float    @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([date, queueName])
+  @@index([date])
+  @@index([queueName])
+  @@map("background_job_metrics")
+}
+
+model Notification {
+  id              String                 @id @default(cuid())
+  recipientUserId String
+  actorUserId     String?
+  type            NotificationType
+  entityType      NotificationEntityType
+  entityId        String
+  payload         Json
+  readAt          DateTime?
+  dedupeKey       String?
+  createdAt       DateTime               @default(now())
+  expiresAt       DateTime?
+  deliveries      NotificationDelivery[]
+
+  @@unique([recipientUserId, dedupeKey])
+  @@index([recipientUserId, createdAt])
+  @@index([recipientUserId, readAt])
+  @@index([recipientUserId, type, createdAt])
+}
+
+model NotificationPreference {
+  id               String           @id @default(cuid())
+  userId           String
+  notificationType NotificationType
+  inAppEnabled     Boolean          @default(true)
+  pushEnabled      Boolean          @default(true)
+  emailEnabled     Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([userId, notificationType])
+  @@index([userId])
+}
+
+model NotificationDelivery {
+  id             String                      @id @default(cuid())
+  notificationId String
+  channel        NotificationDeliveryChannel
+  status         NotificationDeliveryStatus  @default(PENDING)
+  deliveredAt    DateTime?
+  failedAt       DateTime?
+  retryCount     Int                         @default(0)
+  lastError      String?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+  notification   Notification                @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId])
+  @@index([status])
+  @@index([channel, status])
+}
+
+model Community {
+  id                String                      @id @default(cuid())
+  serverId          String
+  name              String
+  slug              String                      @unique
+  description       String?
+  iconUrl           String?
+  visibility        CommunityVisibility         @default(PUBLIC)
+  discoveryEnabled  Boolean                     @default(true)
+  rules             Json?
+  ownerId           String
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  categories        CommunityCategory[]
+  moderationActions CommunityModerationAction[]
+  moderators        CommunityModerator[]
+  posts             CommunityPost[]
+  subscriptions     CommunitySubscription[]
+  Post              Post[]
+
+  @@index([ownerId])
+  @@index([visibility, discoveryEnabled])
+  @@index([name])
+}
+
+model CommunityCategory {
+  id          String          @id @default(cuid())
+  communityId String
+  name        String
+  description String?
+  position    Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  community   Community       @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  posts       CommunityPost[]
+
+  @@unique([communityId, name])
+  @@index([communityId, position])
+}
+
+model CommunitySubscription {
+  id           String    @id @default(cuid())
+  communityId  String
+  userId       String
+  isMuted      Boolean   @default(false)
+  subscribedAt DateTime  @default(now())
+  community    Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([userId])
+}
+
+model CommunityModerator {
+  id          String                 @id @default(cuid())
+  communityId String
+  userId      String
+  role        CommunityModeratorRole @default(MODERATOR)
+  assignedAt  DateTime               @default(now())
+  community   Community              @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([communityId])
+}
+
+model CommunityPost {
+  id           String             @id @default(cuid())
+  communityId  String
+  categoryId   String?
+  authorUserId String
+  title        String
+  content      String
+  isPinned     Boolean            @default(false)
+  pinnedAt     DateTime?
+  isDeleted    Boolean            @default(false)
+  deletedAt    DateTime?
+  version      Int                @default(1)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  comments     CommunityComment[]
+  category     CommunityCategory? @relation(fields: [categoryId], references: [id])
+  community    Community          @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([communityId, createdAt])
+  @@index([communityId, isPinned, createdAt])
+  @@index([authorUserId])
+  @@index([categoryId])
+}
+
+model CommunityComment {
+  id           String             @id @default(cuid())
+  postId       String
+  parentId     String?
+  authorUserId String
+  content      String
+  isDeleted    Boolean            @default(false)
+  deletedAt    DateTime?
+  version      Int                @default(1)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  parent       CommunityComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies      CommunityComment[] @relation("CommentReplies")
+  post         CommunityPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([parentId, createdAt])
+  @@index([authorUserId])
+}
+
+model CommunityModerationAction {
+  id              String                        @id @default(cuid())
+  communityId     String
+  moderatorUserId String
+  actionType      CommunityModerationActionType
+  targetUserId    String?
+  objectType      String?
+  objectId        String?
+  reason          String?
+  createdAt       DateTime                      @default(now())
+  community       Community                     @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([communityId, createdAt])
+  @@index([targetUserId])
+  @@index([actionType])
+}
+
+model AnonymousChatBan {
+  id                String             @id
+  userId            String
+  roomId            String?
+  reason            String?
+  bannedById        String?
+  createdAt         DateTime           @default(now())
+  expiresAt         DateTime?
+  AnonymousChatRoom AnonymousChatRoom? @relation(fields: [roomId], references: [id])
+  User              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([userId])
+}
+
+model AnonymousChatMessage {
+  id                       String                   @id
+  roomId                   String
+  senderParticipantId      String
+  content                  String
+  clientMessageId          String?
+  createdAt                DateTime                 @default(now())
+  AnonymousChatRoom        AnonymousChatRoom        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  AnonymousChatParticipant AnonymousChatParticipant @relation(fields: [senderParticipantId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, clientMessageId])
+  @@index([roomId, createdAt])
+}
+
+model AnonymousChatParticipant {
+  id                                                                                      String                 @id
+  roomId                                                                                  String
+  sessionId                                                                               String                 @unique
+  userId                                                                                  String
+  anonId                                                                                  String
+  displayColor                                                                            String
+  avatarEmoji                                                                             String?
+  disconnectedAt                                                                          DateTime?
+  createdAt                                                                               DateTime               @default(now())
+  displayId                                                                               String
+  AnonymousChatMessage                                                                    AnonymousChatMessage[]
+  AnonymousChatRoom                                                                       AnonymousChatRoom      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  AnonymousChatSession                                                                    AnonymousChatSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  User                                                                                    User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  AnonymousChatReport_AnonymousChatReport_reporterParticipantIdToAnonymousChatParticipant AnonymousChatReport[]  @relation("AnonymousChatReport_reporterParticipantIdToAnonymousChatParticipant")
+  AnonymousChatReport_AnonymousChatReport_targetParticipantIdToAnonymousChatParticipant   AnonymousChatReport[]  @relation("AnonymousChatReport_targetParticipantIdToAnonymousChatParticipant")
+
+  @@unique([roomId, anonId])
+  @@unique([roomId, userId])
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model AnonymousChatReport {
+  id                                                                                           String                    @id
+  roomId                                                                                       String
+  reporterParticipantId                                                                        String
+  targetParticipantId                                                                          String
+  reason                                                                                       String
+  detail                                                                                       String?
+  status                                                                                       AnonymousChatReportStatus @default(PENDING)
+  createdAt                                                                                    DateTime                  @default(now())
+  handledAt                                                                                    DateTime?
+  handledByUserId                                                                              String?
+  AnonymousChatParticipant_AnonymousChatReport_reporterParticipantIdToAnonymousChatParticipant AnonymousChatParticipant  @relation("AnonymousChatReport_reporterParticipantIdToAnonymousChatParticipant", fields: [reporterParticipantId], references: [id], onDelete: Cascade)
+  AnonymousChatRoom                                                                            AnonymousChatRoom         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  AnonymousChatParticipant_AnonymousChatReport_targetParticipantIdToAnonymousChatParticipant   AnonymousChatParticipant  @relation("AnonymousChatReport_targetParticipantIdToAnonymousChatParticipant", fields: [targetParticipantId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([status, createdAt])
+  @@index([targetParticipantId])
+}
+
+model AnonymousChatRoom {
+  id                       String                     @id
+  topic                    String                     @default("general")
+  status                   AnonymousChatRoomStatus    @default(ACTIVE)
+  endReason                AnonymousChatEndReason?
+  endedByUserId            String?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime
+  endedAt                  DateTime?
+  lastMessageAt            DateTime?
+  AnonymousChatBan         AnonymousChatBan[]
+  AnonymousChatMessage     AnonymousChatMessage[]
+  AnonymousChatParticipant AnonymousChatParticipant[]
+  AnonymousChatReport      AnonymousChatReport[]
+
+  @@index([status, topic, createdAt])
+}
+
+model AnonymousChatSession {
+  id                       String                     @id
+  userId                   String
+  topic                    String                     @default("general")
+  status                   AnonymousChatSessionStatus @default(WAITING)
+  matchedRoomId            String?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime
+  expiresAt                DateTime
+  endedAt                  DateTime?
+  AnonymousChatParticipant AnonymousChatParticipant?
+  User                     User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, topic, createdAt])
+  @@index([userId, status])
+}
+
+model Poll {
+  id               String       @id
+  postId           String       @unique
+  question         String
+  isMultipleChoice Boolean      @default(false)
+  expiresAt        DateTime?
+  isAnonymous      Boolean      @default(false)
+  status           PollStatus   @default(OPEN)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime
+  Post             Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  PollOption       PollOption[]
+  PollVote         PollVote[]
+}
+
+model PollOption {
+  id        String     @id
+  pollId    String
+  text      String
+  order     Int        @default(0)
+  voteCount Int        @default(0)
+  createdAt DateTime   @default(now())
+  Poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  PollVote  PollVote[]
+
+  @@unique([pollId, order])
+  @@index([pollId])
+}
+
+model PollVote {
+  id         String     @id
+  pollId     String
+  optionId   String
+  userId     String
+  createdAt  DateTime   @default(now())
+  PollOption PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  Poll       Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  User       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([optionId])
+}
+
+model Post {
+  id              String         @id @default(cuid())
+  authorId        String
+  type            PostType       @default(POST)
+  content         String?        @db.Text
+  contentType     PostContentType @default(TEXT)
+  visibility      PostVisibility @default(PUBLIC)
+  status          PostStatus     @default(ACTIVE)
+  serverId        String?
+  communityId     String?
+  channelId       String?
+  isDeleted       Boolean        @default(false)
+  deletedAt       DateTime?
+  editedAt        DateTime?
+  hiddenAt        DateTime?
+  hiddenReason    String?
+  contentWarning  String?
+  isSensitive     Boolean        @default(false)
+  language        String?
+  version         Int            @default(1)
+  scheduledAt     DateTime?
+
+  // Denormalized counts for feed performance
+  viewCount       Int            @default(0)
+  reactionCount   Int            @default(0)
+  commentCount    Int            @default(0)
+  repostCount     Int            @default(0)
+
+  // Repost / Quote support
+  originalPostId  String?
+  quotedPostId    String?
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  Poll            Poll?
+  User            User           @relation("UserPersonalPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  ServerChannel   ServerChannel? @relation(fields: [channelId], references: [id])
+  Community       Community?     @relation(fields: [communityId], references: [id])
+  Server          Server?        @relation(fields: [serverId], references: [id])
+  PostAudio       PostAudio[]
+  PostComment     PostComment[]
+  hashtags        PostHashtag[]
+  PostImage       PostImage[]
+  media           PostMedia[]
+  mentions        PostMention[]
+  reactions       PostReaction[]
+  PostSave        PostSave[]
+  PostShare       PostShare[]
+  PostVideo       PostVideo[]
+  originalPost    Post?          @relation("PostReposts", fields: [originalPostId], references: [id], onDelete: SetNull)
+  reposts         Post[]         @relation("PostReposts")
+  quotedPost      Post?          @relation("PostQuotes", fields: [quotedPostId], references: [id], onDelete: SetNull)
+  quotes          Post[]         @relation("PostQuotes")
+  reports         PostReport[]
+
+  @@index([authorId, createdAt, id])
+  @@index([status, createdAt, id])
+  @@index([visibility, createdAt, id])
+  @@index([authorId, status])
+  @@index([isSensitive])
+  @@index([originalPostId])
+  @@index([quotedPostId])
+  @@index([channelId, createdAt])
+  @@index([communityId, createdAt])
+  @@index([serverId, createdAt])
+  @@index([type, createdAt])
+}
+
+model PostAudio {
+  id        String    @id
+  postId    String
+  mediaId   String    @unique
+  waveform  String?
+  duration  Int?
+  title     String?
+  artist    String?
+  createdAt DateTime  @default(now())
+  PostMedia PostMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  Post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model PostComment {
+  id                String        @id
+  postId            String
+  parentId          String?
+  authorId          String
+  content           String
+  isDeleted         Boolean       @default(false)
+  deletedAt         DateTime?
+  version           Int           @default(1)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime
+  User              User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  PostComment       PostComment?  @relation("PostCommentToPostComment", fields: [parentId], references: [id])
+  other_PostComment PostComment[] @relation("PostCommentToPostComment")
+  Post              Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([parentId, createdAt])
+  @@index([postId, createdAt])
+}
+
+model PostImage {
+  id            String    @id
+  postId        String
+  mediaId       String    @unique
+  blurHash      String?
+  dominantColor String?
+  altText       String?
+  createdAt     DateTime  @default(now())
+  PostMedia     PostMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  Post          Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model PostSave {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  Post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+model PostShare {
+  id              String   @id @default(cuid())
+  postId          String
+  createdAt       DateTime @default(now())
+  actorUserId     String
+  clientRequestId String?
+  destinationId   String?
+  destinationType String
+  User            User     @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+  Post            Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([actorUserId, clientRequestId])
+  @@index([actorUserId, createdAt])
+  @@index([destinationType, createdAt])
+  @@index([postId, createdAt])
+}
+
+model PostReport {
+  id              String         @id @default(cuid())
+  postId          String
+  reporterUserId  String
+  reason          PostReportReason
+  detailText      String?
+  status          ReportStatus   @default(PENDING)
+  handledByUserId String?
+  handledAt       DateTime?
+  createdAt       DateTime       @default(now())
+
+  post            Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter        User           @relation("PostReportsFiled", fields: [reporterUserId], references: [id], onDelete: Cascade)
+  handledBy       User?          @relation("PostReportsHandled", fields: [handledByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([postId, reporterUserId])
+  @@index([postId])
+  @@index([reporterUserId])
+  @@index([status])
+  @@index([handledByUserId])
+}
+
+model PostVideo {
+  id        String    @id
+  postId    String
+  mediaId   String    @unique
+  hlsUrl    String?
+  posterUrl String?
+  duration  Int?
+  codec     String?
+  bitrate   Int?
+  framerate Float?
+  createdAt DateTime  @default(now())
+  PostMedia PostMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  Post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -40,382 +2310,50 @@ enum ServerTemplateType {
   CUSTOM
 }
 
-model User {
-  // ===========================
-  // Identity
-  // ===========================
-
-  id String @id @default(cuid())
-
-  // ===========================
-  // Authentication
-  // ===========================
-
-  email        String @unique
-  username     String @unique
-  passwordHash String
-
-  // ===========================
-  // Profile
-  // ===========================
-
-  displayName String
-
-  avatarUrl     String?
-  coverImageUrl String?
-
-  bio     String?
-  website String?
-  // ===========================
-  // Contact
-  // ===========================
-
-  phoneNumber String? @unique
-
-  // ===========================
-  // Personal
-  // ===========================
-
-  dateOfBirth DateTime?
-
-  gender Gender?
-
-  // ===========================
-  // Location
-  // ===========================
-
-  country String?
-  state   String?
-  city    String?
-
-  // ===========================
-  // Preferences
-  // ===========================
-  location String?
-  language String  @default("en")
-  timezone String  @default("UTC")
-
-  // ===========================
-  // Privacy
-  // ===========================
-
-  isPrivate Boolean @default(false)
-
-  // ===========================
-  // Verification
-  // ===========================
-
-  isVerified Boolean @default(false)
-
-  // ===========================
-  // Presence
-  // ===========================
-
-  lastSeenAt DateTime?
-
-  // ===========================
-  // Account Status
-  // ===========================
-
-  status UserStatus @default(ACTIVE)
-
-  deletedAt DateTime?
-
-  // ===========================
-  // Audit
-  // ===========================
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  //=============================
-  //Token
-  //=============================
-
-  sessions UserSession[]
-
-  roles UserRole[]
-
-  assignedRoles UserRole[] @relation("RoleAssignedBy")
-
-  permissionVersion Int @default(1)
-
-  // =====================================================
-  // Social Graph
-  // =====================================================
-
-  following Follow[] @relation("UserFollowing")
-
-  followers Follow[] @relation("UserFollowers")
-
-  blockedUsers Block[] @relation("UserBlocks")
-
-  blockedByUsers Block[] @relation("UserBlockedBy")
-
-  mutedUsers   Mute[] @relation("UserMutes")
-  mutedByUsers Mute[] @relation("UserMutedBy")
-
-  sentFollowRequests     FollowRequest[] @relation("UserSentFollowRequests")
-  receivedFollowRequests FollowRequest[] @relation("UserReceivedFollowRequests")
-
-  circleMembers UserCircle[] @relation("UserCircleOwner")
-  circlesOf     UserCircle[] @relation("UserCircleMember")
-
-  ownedServers Server[] @relation("OwnedServers")
-
-  serverMemberships ServerMember[]
-  ServerInvite      ServerInvite[]
-
-  createdChannels ServerChannel[]
-
-  serverBans ServerBan[] @relation("UserServerBans")
-
-  bansIssued ServerBan[] @relation("UserBansIssued")
-
-  reportedInServers UserReport[] @relation("UserReportedTargets")
-
-  directMessageChannelsA  DirectMessageChannel[]   @relation("DirectMessageChannelA")
-  directMessageChannelsB  DirectMessageChannel[]   @relation("DirectMessageChannelB")
-  directMessages          DirectMessage[]
-  directMessageReadStates DirectMessageReadState[]
-
-  e2eeDevices E2eeDevice[]
-  e2eeGroupsCreated E2eeGroup[] @relation("GroupCreator")
-  e2eeGroupMemberships E2eeGroupMember[]
-  e2eeDeviceRevocations E2eeDeviceRevocation[]
-  e2eeEncryptedBackups E2eeEncryptedBackup[]
-  e2eeKeyTransparencyEntries E2eeKeyTransparencyEntry[]
-  e2eeSealedSenderKeys E2eeSealedSenderKey[]
-  e2eePirRequests E2eePirRequest[]
-  e2eeMetadataPolicy E2eeMetadataPolicy?
-  searchQueries SearchQuery[]
-  backgroundJobs BackgroundJob[]
-  backgroundJobSchedules BackgroundJobSchedule[]
+enum PostVisibility {
+  PUBLIC
+  FOLLOWERS
+  FRIENDS
+  COMMUNITY
+  SERVER
+  PRIVATE
+  CUSTOM
 }
 
-model Follow {
-  id String @id @default(cuid())
-
-  followerId  String
-  followingId String
-
-  follower User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
-
-  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([followerId, followingId])
-  @@index([followerId])
-  @@index([followingId])
+enum PostContentType {
+  TEXT
+  MEDIA
+  MIXED
 }
 
-model UserSession {
-  id String @id @default(cuid())
-
-  /// Public session identifier stored in JWT ("sid")
-  sessionId String @unique @default(uuid())
-
-  /// User who owns this session
-  userId String
-
-  /// Hashed refresh token (never store plaintext)
-  refreshTokenHash String
-
-  /// Expiration of the refresh token
-  expiresAt DateTime
-
-  /// Last time this session successfully refreshed
-  lastUsedAt DateTime @default(now())
-
-  /// Device information
-  deviceName String?
-  userAgent  String?
-  ipAddress  String?
-
-  /// Session state
-  isRevoked Boolean @default(false)
-
-  /// Audit fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  /// Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  /// Indexes
-  @@index([userId])
-  @@index([sessionId])
-  @@index([expiresAt])
-  @@index([isRevoked])
-  @@map("user_sessions")
+enum PostStatus {
+  ACTIVE
+  DELETED
+  HIDDEN
+  MODERATION_PENDING
 }
 
-model Role {
-  id          String  @id @default(cuid())
-  name        String  @unique
-  description String?
-
-  isSystem Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  users       UserRole[]
-  permissions RolePermission[]
+enum ReactionType {
+  LIKE
+  LOVE
+  HAHA
+  WOW
+  SAD
+  ANGRY
+  FIRE
+  CELEBRATE
 }
 
-model Permission {
-  id String @id @default(cuid())
-
-  name String @unique
-
-  description String?
-
-  resource String
-
-  action String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  roles RolePermission[]
-
-  isSystem Boolean @default(false)
-
-  @@index([resource])
-  @@index([action])
-}
-
-model UserRole {
-  id String @id @default(cuid())
-
-  userId       String
-  roleId       String
-  assignedById String?
-
-  assignedBy User? @relation("RoleAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
-
-  assignedAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@unique([userId, roleId])
-  @@index([userId])
-  @@index([roleId])
-  @@map("user_roles")
-}
-
-model RolePermission {
-  id String @id @default(cuid())
-
-  roleId       String
-  permissionId String
-  createdAt    DateTime @default(now())
-  role         Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permissionId])
-  @@index([roleId])
-  @@index([permissionId])
-}
-
-model AuthorizationAuditLog {
-  id String @id @default(uuid())
-
-  actorId String?
-
-  action String
-
-  targetUserId String?
-
-  roleId String?
-
-  permissionId String?
-
-  ipAddress String?
-
-  userAgent String?
-
-  metadata Json?
-
-  createdAt DateTime @default(now())
-
-  @@index([actorId])
-  @@index([targetUserId])
-  @@index([action])
-  @@index([createdAt])
-}
-
-model Block {
-  id String @id @default(cuid())
-
-  blockerId String
-  blockedId String
-
-  blocker User @relation("UserBlocks", fields: [blockerId], references: [id], onDelete: Cascade)
-
-  blocked User @relation("UserBlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([blockerId, blockedId])
-  @@index([blockerId])
-  @@index([blockedId])
-}
-
-model Mute {
-  id String @id @default(cuid())
-
-  muterId String
-  mutedId String
-
-  muter User @relation("UserMutes", fields: [muterId], references: [id], onDelete: Cascade)
-  muted User @relation("UserMutedBy", fields: [mutedId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([muterId, mutedId])
-  @@index([muterId])
-  @@index([mutedId])
-}
-
-model FollowRequest {
-  id String @id @default(cuid())
-
-  requesterId String
-  receiverId  String
-
-  requester User @relation("UserSentFollowRequests", fields: [requesterId], references: [id], onDelete: Cascade)
-
-  receiver User @relation("UserReceivedFollowRequests", fields: [receiverId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([requesterId, receiverId])
-  @@index([requesterId])
-  @@index([receiverId])
-}
-
-model UserCircle {
-  id String @id @default(cuid())
-
-  ownerId  String
-  memberId String
-
-  owner User @relation("UserCircleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-
-  member User @relation("UserCircleMember", fields: [memberId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([ownerId, memberId])
-  @@index([ownerId])
-  @@index([memberId])
+enum PostReportReason {
+  HARASSMENT
+  HATE_SPEECH
+  SPAM
+  NSFW_CONTENT
+  VIOLENCE
+  SELF_HARM
+  MISINFORMATION
+  COPYRIGHT
+  OTHER
 }
 
 enum ServerVisibility {
@@ -424,236 +2362,36 @@ enum ServerVisibility {
   INVITE_ONLY
 }
 
-model Server {
-  id String @id @default(cuid())
-
-  name String
-  slug String @unique
-
-  description String?
-  iconUrl     String?
-  bannerUrl   String?
-
-  visibility ServerVisibility @default(PUBLIC)
-
-  ownerId String
-  owner   User   @relation("OwnedServers", fields: [ownerId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  members ServerMember[]
-
-  categories ServerCategory[]
-
-  channels ServerChannel[]
-
-  roles ServerRole[]
-
-  invites ServerInvite[]
-
-  ChannelMessage ChannelMessage[]
-
-  messageAttachments MessageAttachment[] @relation("AttachmentServer")
-
-  bans ServerBan[]
-
-  messageReports MessageReport[]
-
-  userReports UserReport[]
-
-  moderationAuditLogs ModerationAuditLog[]
-
-  @@index([ownerId])
-  @@index([visibility])
-}
-
-model ServerMember {
-  id String @id @default(cuid())
-
-  serverId String
-  userId   String
-
-  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  nickname String?
-
-  joinedAt DateTime @default(now())
-
-  removedAt DateTime?
-
-  roles ServerMemberRole[]
-
-  channelPermissionOverwrites ServerChannelPermissionOverwrite[]
-  ChannelMessage              ChannelMessage[]
-
-  messageReactions ChannelMessageReaction[]
-
-  messageEdits ChannelMessageEdit[]
-
-  mentionTargets ChannelMention[]
-
-  channelReadStates ChannelReadState[]
-
-  attachments MessageAttachment[] @relation("AttachmentUploads")
-
-  messageReports MessageReport[] @relation("MessageReportsAuthored")
-
-  messageReportsHandled MessageReport[] @relation("MessageReportsHandled")
-
-  userReports UserReport[] @relation("UserReportsAuthored")
-
-  userReportsHandled UserReport[] @relation("UserReportsHandled")
-
-  moderationActions ModerationAuditLog[] @relation("ModerationAuditActor")
-
-  @@unique([serverId, userId])
-  @@index([serverId])
-  @@index([userId])
-}
-
-model ServerRole {
-  id String @id @default(cuid())
-
-  serverId String
-  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-
-  name String
-
-  position Int
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime           @updatedAt
-  members   ServerMemberRole[]
-
-  permissions ServerRolePermission[]
-
-  channelPermissionOverwrites ServerChannelPermissionOverwrite[]
-
-  mentionTargets ChannelMention[]
-
-  @@index([serverId])
-}
-
-model ServerMemberRole {
-  id String @id @default(cuid())
-
-  memberId String
-  roleId   String
-
-  assignedAt DateTime @default(now())
-
-  member ServerMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  role   ServerRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([memberId, roleId])
-  @@index([memberId])
-  @@index([roleId])
-}
-
 enum ServerPermission {
-  // ===== Server =====
   SERVER_VIEW
   SERVER_UPDATE
   SERVER_DELETE
-
-  // ===== Invites =====
   INVITE_CREATE
   INVITE_DELETE
-
-  // ===== Categories =====
   CATEGORY_CREATE
   CATEGORY_UPDATE
   CATEGORY_DELETE
-
-  // ===== Channels =====
   CHANNEL_VIEW
   CHANNEL_CREATE
   CHANNEL_UPDATE
   CHANNEL_DELETE
-
-  // ===== Messages =====
   MESSAGE_SEND
   MESSAGE_UPDATE
   MESSAGE_DELETE
   MESSAGE_PIN
-  MANAGE_MESSAGES
-
-  // ===== Members =====
   MEMBER_INVITE
   MEMBER_KICK
   MEMBER_BAN
   MEMBER_TIMEOUT
-
-  // ===== Roles =====
   ROLE_CREATE
   ROLE_UPDATE
   ROLE_DELETE
   ROLE_ASSIGN
-
-  // ===== Webhooks =====
   WEBHOOK_MANAGE
-
-  // ===== Emojis =====
   EMOJI_MANAGE
-
-  // ===== Audit =====
   AUDIT_LOG_VIEW
-
-  // ===== Administration =====
   ADMINISTRATOR
-}
-
-model ServerRolePermission {
-  id String @id @default(cuid())
-
-  roleId String
-
-  role ServerRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  permission ServerPermission
-
-  @@unique([roleId, permission])
-  @@index([roleId])
-}
-
-model ServerInvite {
-  id String @id @default(cuid())
-
-  code String @unique
-
-  // Relations
-  serverId String
-  server   Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-
-  channelId String?
-  channel   ServerChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
-
-  createdById String
-  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
-
-  // Settings
-  maxUses Int?
-
-  uses Int @default(0)
-
-  expiresAt DateTime?
-
-  temporary Boolean @default(false)
-
-  revoked Boolean @default(false)
-
-  // Audit
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  @@index([serverId])
-  @@index([channelId])
-  @@index([createdById])
-  @@index([expiresAt])
+  MANAGE_MESSAGES
 }
 
 enum ChannelType {
@@ -664,342 +2402,16 @@ enum ChannelType {
   STAGE
 }
 
-model ServerCategory {
-  id String @id @default(cuid())
-
-  serverId String
-
-  name String
-
-  position Int
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-
-  channels ServerChannel[]
-
-  @@unique([serverId, position])
-  @@unique([serverId, name])
-  @@index([serverId])
-}
-
-model ServerChannel {
-  id String @id @default(cuid())
-
-  serverId String
-
-  categoryId String?
-
-  createdById String
-
-  name String
-
-  description String?
-
-  type ChannelType
-
-  position Int
-
-  lastMessageSeq Int @default(0)
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-
-  category ServerCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-
-  createdBy User @relation(fields: [createdById], references: [id])
-
-  topic String?
-
-  invites ServerInvite[]
-
-  permissionOverwrites ServerChannelPermissionOverwrite[]
-  ChannelMessage       ChannelMessage[]
-
-  messageAttachments MessageAttachment[] @relation("AttachmentChannel")
-
-  messageReports MessageReport[]
-
-  readStates ChannelReadState[]
-
-  @@unique([serverId, name])
-  @@unique([serverId, position])
-  @@index([serverId])
-  @@index([categoryId])
-  @@index([createdById])
-}
-
-model ServerChannelPermissionOverwrite {
-  id String @id @default(cuid())
-
-  channelId String
-  roleId    String?
-  memberId  String?
-
-  permission ServerPermission
-
-  allow Boolean @default(false)
-  deny  Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  channel ServerChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-
-  role ServerRole? @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  member ServerMember? @relation(fields: [memberId], references: [id], onDelete: Cascade)
-
-  @@unique([channelId, roleId, memberId, permission])
-  @@index([channelId])
-  @@index([roleId])
-  @@index([memberId])
-  @@index([permission])
-}
-
-model ChannelMessage {
-  id String @id @default(cuid())
-
-  content String @db.Text
-
-  serverId String
-
-  channelId String
-
-  authorMemberId String
-
-  parentMessageId String?
-
-  isEdited Boolean @default(false)
-
-  editedAt DateTime?
-
-  isDeleted Boolean @default(false)
-
-  deletedAt DateTime?
-
-  isPinned Boolean @default(false)
-
-  pinnedAt DateTime?
-
-  clientMessageId String?
-
-  version Int @default(1)
-
-  messageSeq Int
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-
-  channel ServerChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-
-  author ServerMember @relation(fields: [authorMemberId], references: [id], onDelete: Cascade)
-
-  parentMessage ChannelMessage? @relation("MessageReplies", fields: [parentMessageId], references: [id], onDelete: SetNull)
-
-  replies ChannelMessage[] @relation("MessageReplies")
-
-  reactions ChannelMessageReaction[]
-
-  edits ChannelMessageEdit[]
-
-  mentions ChannelMention[]
-
-  readCursors ChannelReadState[] @relation("ChannelReadCursor")
-
-  attachments MessageAttachment[] @relation("MessageAttachments")
-
-  reports MessageReport[]
-
-  @@unique([clientMessageId, authorMemberId])
-  @@index([channelId, createdAt, id])
-  @@index([channelId, messageSeq])
-  @@index([authorMemberId])
-  @@index([parentMessageId, createdAt, id])
-  @@index([serverId])
-  @@index([isPinned])
-  @@index([isDeleted])
-}
-
-model ChannelMessageEdit {
-  id String @id @default(cuid())
-
-  messageId String
-
-  previousContent String @db.Text
-
-  editedAt DateTime
-
-  editedByMemberId String
-
-  message ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  editedBy ServerMember @relation(fields: [editedByMemberId], references: [id], onDelete: Cascade)
-
-  @@index([messageId, editedAt, id])
-  @@index([editedByMemberId])
-}
-
-model ChannelMessageReaction {
-  id        String   @id @default(cuid())
-  messageId String
-  memberId  String
-  emoji     String
-  createdAt DateTime @default(now())
-
-  message ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  member  ServerMember   @relation(fields: [memberId], references: [id], onDelete: Cascade)
-
-  @@unique([messageId, memberId, emoji])
-  @@index([messageId])
-  @@index([memberId])
-}
-
 enum MentionType {
   MEMBER
   ROLE
   EVERYONE
 }
 
-model ChannelMention {
-  id String @id @default(cuid())
-
-  messageId String
-
-  serverId String
-
-  channelId String
-
-  mentionType MentionType
-
-  targetMemberId String?
-
-  targetRoleId String?
-
-  createdAt DateTime @default(now())
-
-  message ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  mentionedMember ServerMember? @relation(fields: [targetMemberId], references: [id], onDelete: SetNull)
-
-  mentionedRole ServerRole? @relation(fields: [targetRoleId], references: [id], onDelete: SetNull)
-
-  @@index([messageId])
-  @@index([serverId])
-  @@index([targetMemberId])
-  @@index([targetRoleId])
-}
-
-model ChannelReadState {
-  id String @id @default(cuid())
-
-  channelId String
-
-  memberId String
-
-  lastReadMessageId String?
-
-  lastReadAt DateTime?
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  channel ServerChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-
-  member ServerMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
-
-  lastReadMessage ChannelMessage? @relation("ChannelReadCursor", fields: [lastReadMessageId], references: [id], onDelete: SetNull)
-
-  @@unique([channelId, memberId])
-  @@index([memberId])
-  @@index([lastReadMessageId])
-}
-
-model OutboxEvent {
-  id String @id @default(cuid())
-
-  eventType String
-
-  channelId String?
-
-  payload Json
-
-  status String @default("PENDING")
-
-  attempts Int @default(0)
-
-  lastError String?
-
-  processedAt DateTime?
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  @@index([status, createdAt])
-}
-
 enum AttachmentStatus {
   PENDING
   UPLOADED
   FAILED
-}
-
-model MessageAttachment {
-  id String @id @default(cuid())
-
-  messageId String?
-
-  serverId String
-
-  channelId String
-
-  uploadedById String
-
-  status AttachmentStatus @default(PENDING)
-
-  fileName String
-
-  mimeType String
-
-  sizeBytes Int
-
-  storageKey String @unique
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  message ChannelMessage? @relation("MessageAttachments", fields: [messageId], references: [id], onDelete: Cascade)
-
-  server Server @relation("AttachmentServer", fields: [serverId], references: [id], onDelete: Cascade)
-
-  channel ServerChannel @relation("AttachmentChannel", fields: [channelId], references: [id], onDelete: Cascade)
-
-  uploadedBy ServerMember @relation("AttachmentUploads", fields: [uploadedById], references: [id], onDelete: Cascade)
-
-  mediaJobs MediaJob[]
-
-  thumbnail MediaThumbnail?
-
-  transcodes MediaTranscode[]
-
-  avScan MediaAvScan?
-
-  @@index([messageId])
-  @@index([serverId])
-  @@index([channelId, createdAt])
-  @@index([uploadedById])
 }
 
 enum ReportStatus {
@@ -1042,426 +2454,6 @@ enum ModerationAction {
   USER_REPORT_RESOLVED
 }
 
-model ServerBan {
-  id String @id @default(cuid())
-
-  serverId String
-  userId   String
-
-  bannedById String
-
-  reason String?
-
-  createdAt DateTime @default(now())
-
-  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-
-  user User @relation("UserServerBans", fields: [userId], references: [id], onDelete: Cascade)
-
-  bannedBy User @relation("UserBansIssued", fields: [bannedById], references: [id], onDelete: Cascade)
-
-  @@unique([serverId, userId])
-  @@index([serverId])
-  @@index([userId])
-  @@index([bannedById])
-}
-
-model MessageReport {
-  id String @id @default(cuid())
-
-  serverId         String
-  channelId        String
-  messageId        String
-  reporterMemberId String
-
-  reason MessageReportReason
-
-  detailText String?
-
-  status ReportStatus @default(PENDING)
-
-  handledByMemberId String?
-
-  handledAt DateTime?
-
-  createdAt DateTime @default(now())
-
-  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-
-  channel ServerChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-
-  message ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  reporter ServerMember @relation("MessageReportsAuthored", fields: [reporterMemberId], references: [id], onDelete: Cascade)
-
-  handledBy ServerMember? @relation("MessageReportsHandled", fields: [handledByMemberId], references: [id], onDelete: SetNull)
-
-  @@unique([messageId, reporterMemberId])
-  @@index([serverId])
-  @@index([channelId])
-  @@index([messageId])
-  @@index([status])
-  @@index([reporterMemberId])
-  @@index([handledByMemberId])
-}
-
-model UserReport {
-  id String @id @default(cuid())
-
-  serverId         String
-  reporterMemberId String
-  targetUserId     String
-
-  reason UserReportReason
-
-  detailText String?
-
-  status ReportStatus @default(PENDING)
-
-  handledByMemberId String?
-
-  handledAt DateTime?
-
-  createdAt DateTime @default(now())
-
-  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-
-  reporter ServerMember @relation("UserReportsAuthored", fields: [reporterMemberId], references: [id], onDelete: Cascade)
-
-  target User @relation("UserReportedTargets", fields: [targetUserId], references: [id], onDelete: Cascade)
-
-  handledBy ServerMember? @relation("UserReportsHandled", fields: [handledByMemberId], references: [id], onDelete: SetNull)
-
-  @@unique([reporterMemberId, targetUserId])
-  @@index([serverId])
-  @@index([targetUserId])
-  @@index([status])
-  @@index([reporterMemberId])
-  @@index([handledByMemberId])
-}
-
-model ModerationAuditLog {
-  id String @id @default(cuid())
-
-  serverId      String
-  actorMemberId String
-
-  action ModerationAction
-
-  targetUserId String?
-
-  targetMemberId String?
-
-  reason String?
-
-  metadata Json?
-
-  createdAt DateTime @default(now())
-
-  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
-
-  actor ServerMember @relation("ModerationAuditActor", fields: [actorMemberId], references: [id], onDelete: Cascade)
-
-  @@index([serverId, createdAt])
-  @@index([actorMemberId])
-  @@index([action])
-}
-
-model DirectMessageChannel {
-  id String @id @default(cuid())
-
-  userAId String
-  userBId String
-
-  messageCounter Int @default(0)
-
-  lastMessageAt DateTime?
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  userA User @relation("DirectMessageChannelA", fields: [userAId], references: [id], onDelete: Cascade)
-
-  userB User @relation("DirectMessageChannelB", fields: [userBId], references: [id], onDelete: Cascade)
-
-  messages DirectMessage[]
-
-  readStates DirectMessageReadState[]
-
-  @@unique([userAId, userBId])
-  @@index([userBId])
-  @@index([lastMessageAt])
-}
-
-model DirectMessage {
-  id String @id @default(cuid())
-
-  channelId String
-
-  authorUserId String
-
-  content String @db.Text
-
-  clientMessageId String?
-
-  isEdited Boolean @default(false)
-
-  editedAt DateTime?
-
-  isDeleted Boolean @default(false)
-
-  deletedAt DateTime?
-
-  version Int @default(1)
-
-  messageSeq Int
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  channel DirectMessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-
-  author User @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
-
-  readStates DirectMessageReadState[] @relation("DirectMessageReadCursor")
-
-  @@unique([clientMessageId, authorUserId])
-  @@index([channelId, messageSeq])
-  @@index([channelId, createdAt, id])
-  @@index([authorUserId])
-}
-
-model DirectMessageReadState {
-  id String @id @default(cuid())
-
-  channelId String
-
-  userId String
-
-  lastReadMessageId String?
-
-  lastReadAt DateTime?
-
-  unreadCount Int @default(0)
-
-  updatedAt DateTime @updatedAt
-
-  channel DirectMessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  lastReadMessage DirectMessage? @relation("DirectMessageReadCursor", fields: [lastReadMessageId], references: [id], onDelete: SetNull)
-
-  @@unique([channelId, userId])
-  @@index([userId])
-}
-
-model E2eeDevice {
-  id String @id @default(cuid())
-
-  userId String
-
-  /// Human-friendly device label ("iPhone", "Laptop", ...)
-  name String
-
-  /// Client platform identifier supplied at registration ("web", "ios", "android", ...)
-  platform String
-
-  /// Device identity public key (base64 blob). Private key never crosses the wire — not modeled at all.
-  identityKeyPublic String
-
-  isRevoked Boolean  @default(false)
-  revokedAt DateTime?
-
-  lastSeenAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  signedPreKeys  E2eeSignedPreKey[]
-  oneTimePreKeys E2eeOneTimePreKey[]
-  senderSessions   E2eeSession[] @relation("SenderSessions")
-  recipientSessions E2eeSession[] @relation("RecipientSessions")
-  sentEnvelopes     E2eeEnvelope[] @relation("EnvelopeSender")
-  receivedEnvelopes E2eeEnvelope[] @relation("EnvelopeRecipient")
-  sentVerifications     E2eeDeviceVerification[] @relation("LocalDeviceVerifications")
-  receivedVerifications E2eeDeviceVerification[] @relation("RemoteDeviceVerifications")
-  groupMemberships E2eeGroupMember[]
-  groupSessions E2eeGroupSession[]
-  sentGroupEnvelopes E2eeGroupEnvelope[]
-  sentAttachments E2eeAttachment[]
-  deliveryQueue E2eeDeliveryQueue[]
-  groupDeliveryQueue E2eeGroupDeliveryQueue[]
-  revocations E2eeDeviceRevocation[]
-  backups E2eeEncryptedBackup[]
-  keyTransparencyEntries E2eeKeyTransparencyEntry[]
-  sealedSenderKeys E2eeSealedSenderKey[]
-  pirRequests E2eePirRequest[]
-
-  @@index([userId])
-  @@index([userId, isRevoked])
-  @@map("e2ee_devices")
-}
-
-model E2eeDeviceVerification {
-  id String @id @default(cuid())
-
-  localDeviceId  String
-  remoteDeviceId String
-
-  verifiedAt DateTime @default(now())
-  createdAt  DateTime @default(now())
-
-  localDevice  E2eeDevice @relation("LocalDeviceVerifications", fields: [localDeviceId], references: [id], onDelete: Cascade)
-  remoteDevice E2eeDevice @relation("RemoteDeviceVerifications", fields: [remoteDeviceId], references: [id], onDelete: Cascade)
-
-  @@unique([localDeviceId, remoteDeviceId])
-  @@index([localDeviceId])
-  @@index([remoteDeviceId])
-  @@map("e2ee_device_verifications")
-}
-
-model E2eeSignedPreKey {
-  id String @id @default(cuid())
-
-  deviceId String
-
-  /// Library-issued prekey id
-  signedPreKeyId Int
-
-  /// Signed prekey public half (base64 blob)
-  publicKey String
-
-  /// Signature over the signed prekey by the device identity key (base64 blob)
-  signature String
-
-  /// Exactly one active signed prekey per device; previous keys stay queryable for in-flight sessions
-  isActive Boolean  @default(false)
-  rotatedAt DateTime?
-
-  createdAt DateTime @default(now())
-
-  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-
-  @@unique([deviceId, signedPreKeyId])
-  @@index([deviceId, isActive])
-  @@map("e2ee_signed_prekeys")
-}
-
-model E2eeOneTimePreKey {
-  id String @id @default(uuid())
-
-  deviceId String
-
-  /// Library-issued one-time prekey id
-  preKeyId Int
-
-  /// One-time prekey public half (base64 blob); consumed exactly once
-  publicKey String
-
-  isConsumed Boolean  @default(false)
-  consumedAt DateTime?
-
-  createdAt DateTime @default(now())
-
-  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-
-  @@unique([deviceId, preKeyId])
-  @@index([deviceId, isConsumed])
-  @@map("e2ee_one_time_prekeys")
-}
-
-model E2eeSession {
-  id String @id @default(cuid())
-
-  /// The device that initiated the session (sender)
-  senderDeviceId String
-
-  /// The device that received the session initiation (recipient)
-  recipientDeviceId String
-
-  /// Session version for protocol upgrades
-  version Int @default(1)
-
-  /// Opaque encrypted session state blob (root key, chain keys, message numbers, AD)
-  /// Encrypted with the device's identity key; server never sees plaintext
-  sessionState String
-
-  /// Associated data hash for integrity (e.g., identity keys involved)
-  associatedDataHash String
-
-  /// Whether this session is active (not archived/revoked)
-  isActive Boolean @default(true)
-
-  /// Archived at timestamp
-  archivedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  senderDevice   E2eeDevice @relation("SenderSessions", fields: [senderDeviceId], references: [id], onDelete: Cascade)
-  recipientDevice E2eeDevice @relation("RecipientSessions", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
-  ratchetState E2eeRatchetState?
-  envelopes E2eeEnvelope[]
-  attachments E2eeAttachment[]
-
-  @@unique([senderDeviceId, recipientDeviceId])
-  @@index([senderDeviceId, isActive])
-  @@index([recipientDeviceId, isActive])
-  @@map("e2ee_sessions")
-}
-
-model E2eeRatchetState {
-  id String @id @default(cuid())
-
-  sessionId String @unique
-
-  /// Current root key (base64, encrypted with device identity key)
-  rootKey String
-
-  /// Sending chain key (base64)
-  sendingChainKey String
-
-  /// Receiving chain key (base64)
-  receivingChainKey String
-
-  /// Current sending message number
-  sendingMessageNumber Int @default(0)
-
-  /// Current receiving message number
-  receivingMessageNumber Int @default(0)
-
-  /// Local ephemeral DH ratchet public key (base64, SPKI DER)
-  nextDhPublicKey String?
-
-  /// Local ephemeral DH ratchet private key (base64, PKCS8 DER) — server-orchestrated scaffold until the Signal library lands (40.68)
-  currentDhPrivateKey String?
-
-  /// Previous receiving chain length (for skipped message keys tracking)
-  previousReceivingChainLength Int @default(0)
-
-  /// Skipped message keys map (JSON: messageNumber -> base64 message key)
-  /// Used for out-of-order decryption
-  skippedMessageKeys String @default("{}")
-
-  /// Remote DH public key for pending ratchet step (base64)
-  remoteDhPublicKey String?
-
-  /// Opaque libsignal SessionRecord (base64) — replaces individual ratchet fields when libsignal is fully adopted
-  sessionState String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  session E2eeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  @@map("e2ee_ratchet_states")
-}
-
 enum E2eeEnvelopeType {
   PRE_KEY
   SIGNAL
@@ -1473,53 +2465,6 @@ enum E2eeEnvelopeStatus {
   DELIVERED
   FAILED
   EXPIRED
-}
-
-model E2eeEnvelope {
-  id String @id @default(cuid())
-
-  /// The session this envelope belongs to
-  sessionId String
-
-  /// Type of envelope (PRE_KEY for X3DH initiation, SIGNAL for regular ratchet messages, SENDER_KEY for group)
-  type E2eeEnvelopeType
-
-  /// Encrypted ciphertext payload (base64 blob)
-  ciphertext String
-
-  /// Associated data (base64 blob) - includes header, version, etc.
-  associatedData String?
-
-  /// Sender device ID
-  senderDeviceId String
-
-  /// Recipient device ID
-  recipientDeviceId String
-
-  /// Delivery status
-  status E2eeEnvelopeStatus @default(PENDING)
-
-  /// Number of delivery attempts
-  attempts Int @default(0)
-
-  /// Last delivery error
-  lastError String?
-
-  /// Delivered at timestamp
-  deliveredAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  session E2eeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  senderDevice   E2eeDevice @relation("EnvelopeSender", fields: [senderDeviceId], references: [id], onDelete: Cascade)
-  recipientDevice E2eeDevice @relation("EnvelopeRecipient", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
-  deliveryQueue E2eeDeliveryQueue[]
-
-  @@index([recipientDeviceId, status])
-  @@index([senderDeviceId])
-  @@index([sessionId])
-  @@map("e2ee_envelopes")
 }
 
 enum CallType {
@@ -1549,302 +2494,11 @@ enum CallParticipantState {
   CAMERA_OFF
 }
 
-model Call {
-  id String @id @default(cuid())
-
-  /// Type of call (VOICE or VIDEO)
-  type CallType
-
-  /// Scope of the call (DM, GROUP, SERVER_CHANNEL, COMMUNITY)
-  scope CallScope
-
-  /// Reference ID for the scope (DM channel ID, group ID, server channel ID, community ID)
-  scopeRef String
-
-  /// Creator user ID
-  creatorUserId String
-
-  /// Current call status
-  status CallStatus @default(RINGING)
-
-  /// Call start timestamp
-  startedAt DateTime?
-
-  /// Call end timestamp
-  endedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  participants CallParticipant[]
-
-  @@index([creatorUserId])
-  @@index([scope, scopeRef])
-  @@index([status])
-  @@map("calls")
-}
-
-model CallParticipant {
-  id String @id @default(cuid())
-
-  /// Call this participant belongs to
-  callId String
-
-  /// User ID of the participant
-  userId String
-
-  /// Device ID (optional, for multi-device support)
-  deviceId String?
-
-  /// When the participant joined
-  joinedAt DateTime @default(now())
-
-  /// When the participant left
-  leftAt DateTime?
-
-  /// Current participant state
-  state CallParticipantState @default(JOINED)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  call Call @relation(fields: [callId], references: [id], onDelete: Cascade)
-
-  @@unique([callId, userId, deviceId])
-  @@index([userId])
-  @@index([callId])
-  @@map("call_participants")
-}
-
-model E2eeGroup {
-  id String @id @default(cuid())
-
-  /// Group name/title
-  name String
-
-  /// Optional description
-  description String?
-
-  /// Creator user ID
-  creatorUserId String
-
-  /// Group avatar
-  avatarUrl String?
-
-  /// Group version for protocol upgrades
-  version Int @default(1)
-
-  /// Whether group is active
-  isActive Boolean @default(true)
-
-  /// Archived at timestamp
-  archivedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  creator User @relation("GroupCreator", fields: [creatorUserId], references: [id], onDelete: Cascade)
-  members E2eeGroupMember[]
-  sessions E2eeGroupSession[]
-  envelopes E2eeGroupEnvelope[]
-  attachments E2eeAttachment[]
-
-  @@index([creatorUserId])
-  @@index([isActive])
-  @@map("e2ee_groups")
-}
-
-model E2eeGroupMember {
-  id String @id @default(cuid())
-
-  groupId String
-  userId String
-  deviceId String
-
-  /// Role in group (ADMIN, MEMBER)
-  role String @default("MEMBER")
-
-  /// Whether member is active
-  isActive Boolean @default(true)
-
-  /// Joined at
-  joinedAt DateTime @default(now())
-
-  /// Left at (if applicable)
-  leftAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  group E2eeGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-
-  @@unique([groupId, deviceId])
-  @@index([groupId])
-  @@index([userId])
-  @@index([deviceId])
-  @@map("e2ee_group_members")
-}
-
-model E2eeGroupSession {
-  id String @id @default(cuid())
-
-  groupId String
-  deviceId String
-
-  /// Sender key distribution ID (UUID)
-  distributionId String
-
-  /// Sender key chain ID
-  chainId Int @default(0)
-
-  /// Current chain iteration
-  iteration Int @default(0)
-
-  /// Sender key chain key (base64, encrypted with device identity key)
-  chainKey String
-
-  /// Sender key signing key (base64, PKCS8 DER)
-  signingKeyPrivate String?
-
-  /// Sender key signing public key (base64, SPKI DER)
-  signingKeyPublic String?
-
-  /// Whether this session is active
-  isActive Boolean @default(true)
-
-  /// Archived at
-  archivedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  group E2eeGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-
-  @@unique([groupId, deviceId])
-  @@index([groupId])
-  @@index([deviceId])
-  @@map("e2ee_group_sessions")
-}
-
-model E2eeGroupEnvelope {
-  id String @id @default(cuid())
-
-  /// The group this envelope belongs to
-  groupId String
-
-  /// Type of envelope (always SENDER_KEY for group messages)
-  type E2eeEnvelopeType @default(SENDER_KEY)
-
-  /// Encrypted ciphertext payload (base64 blob)
-  ciphertext String
-
-  /// Associated data (base64 blob) - includes header, version, etc.
-  associatedData String?
-
-  /// Sender device ID
-  senderDeviceId String
-
-  /// Delivery status
-  status E2eeEnvelopeStatus @default(PENDING)
-
-  /// Number of delivery attempts
-  attempts Int @default(0)
-
-  /// Last delivery error
-  lastError String?
-
-  /// Delivered at timestamp
-  deliveredAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  group E2eeGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  senderDevice E2eeDevice @relation(fields: [senderDeviceId], references: [id], onDelete: Cascade)
-  deliveryQueue E2eeGroupDeliveryQueue[]
-
-  @@index([groupId, status])
-  @@index([senderDeviceId])
-  @@index([createdAt])
-  @@map("e2ee_group_envelopes")
-}
-
 enum E2eeAttachmentStatus {
   PENDING
   UPLOADED
   FAILED
   DELETED
-}
-
-model E2eeAttachment {
-  id String @id @default(cuid())
-
-  /// The session this attachment belongs to (for 1:1 E2EE messages)
-  sessionId String?
-
-  /// The group this attachment belongs to (for group E2EE messages)
-  groupId String?
-
-  /// Original file name
-  fileName String
-
-  /// MIME type
-  mimeType String
-
-  /// File size in bytes
-  sizeBytes Int
-
-  /// Storage key in object storage (R2/MinIO)
-  storageKey String @unique
-
-  /// Encrypted file encryption key (base64) - encrypted with session/group key
-  encryptedFileKey String
-
-  /// Encrypted thumbnail key (base64) - if thumbnail exists
-  encryptedThumbnailKey String?
-
-  /// Thumbnail storage key
-  thumbnailStorageKey String?
-
-  /// Thumbnail MIME type
-  thumbnailMimeType String?
-
-  /// Thumbnail size in bytes
-  thumbnailSizeBytes Int?
-
-  /// SHA-256 hash of the encrypted file for integrity verification
-  fileHash String
-
-  /// SHA-256 hash of the encrypted thumbnail
-  thumbnailHash String?
-
-  /// Status
-  status E2eeAttachmentStatus @default(PENDING)
-
-  /// Upload error if failed
-  uploadError String?
-
-  /// Associated message ID (for linking to specific message)
-  messageId String?
-
-  /// Sender device ID
-  senderDeviceId String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  session E2eeSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  group E2eeGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  senderDevice E2eeDevice @relation(fields: [senderDeviceId], references: [id], onDelete: Cascade)
-
-  @@index([sessionId])
-  @@index([groupId])
-  @@index([senderDeviceId])
-  @@index([status])
-  @@map("e2ee_attachments")
 }
 
 enum E2eeDeliveryStatus {
@@ -1854,90 +2508,6 @@ enum E2eeDeliveryStatus {
   EXPIRED
 }
 
-model E2eeDeliveryQueue {
-  id String @id @default(cuid())
-
-  /// The envelope to deliver
-  envelopeId String
-
-  /// Target device ID
-  targetDeviceId String
-
-  /// Delivery status
-  status E2eeDeliveryStatus @default(PENDING)
-
-  /// Number of delivery attempts
-  attempts Int @default(0)
-
-  /// Max delivery attempts
-  maxAttempts Int @default(10)
-
-  /// Last delivery error
-  lastError String?
-
-  /// Next retry at
-  nextRetryAt DateTime?
-
-  /// Delivered at
-  deliveredAt DateTime?
-
-  /// Expired at (if delivery failed permanently)
-  expiredAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  envelope E2eeEnvelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
-  targetDevice E2eeDevice @relation(fields: [targetDeviceId], references: [id], onDelete: Cascade)
-
-  @@index([targetDeviceId, status])
-  @@index([envelopeId])
-  @@index([status, nextRetryAt])
-  @@map("e2ee_delivery_queue")
-}
-
-model E2eeGroupDeliveryQueue {
-  id String @id @default(cuid())
-
-  /// The group envelope to deliver
-  envelopeId String
-
-  /// Target device ID
-  targetDeviceId String
-
-  /// Delivery status
-  status E2eeDeliveryStatus @default(PENDING)
-
-  /// Number of delivery attempts
-  attempts Int @default(0)
-
-  /// Max delivery attempts
-  maxAttempts Int @default(10)
-
-  /// Last delivery error
-  lastError String?
-
-  /// Next retry at
-  nextRetryAt DateTime?
-
-  /// Delivered at
-  deliveredAt DateTime?
-
-  /// Expired at (if delivery failed permanently)
-  expiredAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  envelope E2eeGroupEnvelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
-  targetDevice E2eeDevice @relation(fields: [targetDeviceId], references: [id], onDelete: Cascade)
-
-  @@index([targetDeviceId, status])
-  @@index([envelopeId])
-  @@index([status, nextRetryAt])
-  @@map("e2ee_group_delivery_queue")
-}
-
 enum E2eeRevocationReason {
   USER_REQUEST
   COMPROMISE
@@ -1945,318 +2515,10 @@ enum E2eeRevocationReason {
   ADMIN_ACTION
 }
 
-model E2eeDeviceRevocation {
-  id String @id @default(cuid())
-
-  /// The revoked device
-  deviceId String
-
-  /// Reason for revocation
-  reason E2eeRevocationReason
-
-  /// User who initiated revocation
-  initiatedByUserId String
-
-  /// Whether revocation was acknowledged by device owner
-  acknowledged Boolean @default(false)
-
-  /// Revoked at
-  revokedAt DateTime @default(now())
-
-  /// Acknowledged at
-  acknowledgedAt DateTime?
-
-  /// Replacement device ID (if migrated)
-  replacementDeviceId String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  initiator User @relation(fields: [initiatedByUserId], references: [id], onDelete: Cascade)
-
-  @@index([deviceId])
-  @@index([initiatedByUserId])
-  @@map("e2ee_device_revocations")
-}
-
 enum E2eeBackupStatus {
   PENDING
   COMPLETED
   FAILED
-}
-
-model E2eeEncryptedBackup {
-  id String @id @default(cuid())
-
-  /// User who owns the backup
-  userId String
-
-  /// Device that created the backup
-  deviceId String
-
-  /// Encrypted backup payload (base64)
-  payload String
-
-  /// Backup version
-  version Int @default(1)
-
-  /// SVR2 recovery password hash (Argon2id)
-  recoveryPasswordHash String?
-
-  /// Backup status
-  status E2eeBackupStatus @default(PENDING)
-
-  /// Error if failed
-  error String?
-
-  /// Created at
-  createdAt DateTime @default(now())
-
-  /// Completed at
-  completedAt DateTime?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([deviceId])
-  @@index([status])
-  @@map("e2ee_encrypted_backups")
-}
-
-model E2eeKeyTransparencyEntry {
-  id String @id @default(cuid())
-
-  /// User ID
-  userId String
-
-  /// Device ID
-  deviceId String
-
-  /// Key commitment (base64)
-  commitment String
-
-  /// Epoch/timestamp
-  epoch BigInt
-
-  /// Verified by user
-  verified Boolean @default(false)
-
-  /// Verified at
-  verifiedAt DateTime?
-
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, deviceId, epoch])
-  @@index([userId, epoch])
-  @@map("e2ee_key_transparency_entries")
-}
-
-model E2eeSealedSenderKey {
-  id String @id @default(cuid())
-
-  /// User ID who owns this sealed sender key
-  userId String
-
-  /// Device ID that this key belongs to
-  deviceId String
-
-  /// Sealed sender public key (base64)
-  publicKey String
-
-  /// Sealed sender private key (encrypted, base64)
-  encryptedPrivateKey String
-
-  /// Key expiration
-  expiresAt DateTime
-
-  /// Whether this key is active
-  isActive Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-
-  @@index([userId, isActive])
-  @@index([deviceId])
-  @@map("e2ee_sealed_sender_keys")
-}
-
-model E2eePirRequest {
-  id String @id @default(cuid())
-
-  /// User ID making the request
-  userId String
-
-  /// Device ID making the request
-  deviceId String
-
-  /// Encrypted query for PIR (what device/key they're looking for)
-  encryptedQuery String
-
-  /// Server response (encrypted key bundle)
-  encryptedResponse String?
-
-  /// Request status
-  status String @default("PENDING")
-
-  /// Expires at
-  expiresAt DateTime
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  device E2eeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-
-  @@index([userId, status])
-  @@index([deviceId])
-  @@map("e2ee_pir_requests")
-}
-
-model E2eeMetadataPolicy {
-  id String @id @default(cuid())
-
-  /// User ID this policy applies to
-  userId String @unique
-
-  /// Minimum padding size for envelopes (bytes)
-  minPaddingSize Int @default(256)
-
-  /// Maximum padding size for envelopes (bytes)
-  maxPaddingSize Int @default(1024)
-
-  /// Enable sealed sender for outgoing messages
-  enableSealedSender Boolean @default(true)
-
-  /// Enable PIR for key bundle fetching
-  enablePir Boolean @default(true)
-
-  /// Batch delivery window (ms) - group deliveries to hide timing
-  batchWindowMs Int @default(100)
-
-  /// Minimum batch size for delivery
-  minBatchSize Int @default(5)
-
-  /// Enable group membership hiding
-  hideGroupMembership Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("e2ee_metadata_policies")
-}
-
-model SearchIndex {
-  id String @id @default(cuid())
-
-  /// The type of content indexed (channel_message, direct_message, server, channel, user)
-  contentType String
-
-  /// The ID of the content being indexed
-  contentId String
-
-  /// The server ID this content belongs to (for authorization filtering)
-  serverId String?
-
-  /// The channel ID this content belongs to
-  channelId String?
-
-  /// The author user ID
-  authorId String?
-
-  /// Full-text searchable content (title, content, etc.)
-  searchableText String
-
-  /// Additional metadata for filtering/ranking
-  metadata Json?
-
-  /// Created at
-  createdAt DateTime @default(now())
-
-  /// Updated at
-  updatedAt DateTime @updatedAt
-
-  @@unique([contentType, contentId])
-  @@index([serverId])
-  @@index([channelId])
-  @@index([authorId])
-  @@index([createdAt])
-  @@index([searchableText])
-  @@map("search_indexes")
-}
-
-model SearchQuery {
-  id String @id @default(cuid())
-
-  /// User who performed the search
-  userId String
-
-  /// The search query text
-  queryText String
-
-  /// Filters applied
-  filters Json?
-
-  /// Number of results returned
-  resultCount Int
-
-  /// Time taken for search (ms)
-  latencyMs Int
-
-  /// Search engine used (meilisearch, postgres, opensearch)
-  engine String
-
-  /// Created at
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt])
-  @@index([queryText])
-  @@index([engine])
-  @@map("search_queries")
-}
-
-model SearchAnalytics {
-  id String @id @default(cuid())
-
-  /// Date bucket (day precision)
-  date DateTime @db.Date
-
-  /// Search engine
-  engine String
-
-  /// Total searches
-  totalSearches Int @default(0)
-
-  /// Unique users
-  uniqueUsers Int @default(0)
-
-  /// Average latency (ms)
-  avgLatencyMs Float @default(0)
-
-  /// Top queries (JSON array)
-  topQueries Json?
-
-  /// Zero result rate
-  zeroResultRate Float @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([date, engine])
-  @@index([date])
-  @@index([engine])
-  @@map("search_analytics")
 }
 
 enum MediaProcessingStatus {
@@ -2276,161 +2538,6 @@ enum MediaJobType {
   METADATA_EXTRACTION
 }
 
-model MediaJob {
-  id String @id @default(cuid())
-
-  /// Related attachment
-  attachmentId String
-
-  /// Type of processing job
-  type MediaJobType
-
-  /// Current status
-  status MediaProcessingStatus @default(PENDING)
-
-  /// Priority (higher = more urgent)
-  priority Int @default(0)
-
-  /// Input parameters (JSON)
-  input Json?
-
-  /// Output results (JSON)
-  output Json?
-
-  /// Error message if failed
-  error String?
-
-  /// Progress percentage (0-100)
-  progress Int @default(0)
-
-  /// Started at
-  startedAt DateTime?
-
-  /// Completed at
-  completedAt DateTime?
-
-  /// Number of retries
-  retries Int @default(0)
-
-  /// Max retries allowed
-  maxRetries Int @default(3)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  attachment MessageAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
-
-  @@index([attachmentId])
-  @@index([status])
-  @@index([type, status])
-  @@map("media_jobs")
-}
-
-model MediaProcessingConfig {
-  id String @id @default(cuid())
-
-  /// Config key
-  key String @unique
-
-  /// Config value (JSON)
-  value Json
-
-  /// Description
-  description String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("media_processing_configs")
-}
-
-model MediaThumbnail {
-  id String @id @default(cuid())
-
-  /// Source attachment
-  attachmentId String @unique
-
-  /// Thumbnail variants (JSON: { small: { key, width, height }, medium: ..., large: ... })
-  variants Json
-
-  /// Generated at
-  generatedAt DateTime @default(now())
-
-  attachment MessageAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
-
-  @@index([attachmentId])
-  @@map("media_thumbnails")
-}
-
-model MediaTranscode {
-  id String @id @default(cuid())
-
-  /// Source attachment
-  attachmentId String
-
-  /// Resolution variant (e.g., "480p", "720p", "1080p")
-  resolution String
-
-  /// Output storage key
-  storageKey String
-
-  /// Codec used (e.g., "h264", "vp9", "av1")
-  codec String
-
-  /// Bitrate in kbps
-  bitrate Int?
-
-  /// File size in bytes
-  sizeBytes Int?
-
-  /// Duration in seconds
-  duration Float?
-
-  /// Status
-  status MediaProcessingStatus @default(PENDING)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  attachment MessageAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
-
-  @@unique([attachmentId, resolution])
-  @@index([attachmentId])
-  @@index([status])
-  @@map("media_transcodes")
-}
-
-model MediaAvScan {
-  id String @id @default(cuid())
-
-  /// Scanned attachment
-  attachmentId String @unique
-
-  /// Scan result (clean, infected, suspicious, error)
-  result String
-
-  /// Engine used (clamav, cloudav, etc.)
-  engine String
-
-  /// Threat name if infected
-  threatName String?
-
-  /// Scan duration in ms
-  durationMs Int?
-
-  /// Raw engine output (JSON)
-  rawOutput Json?
-
-  /// Scanned at
-  scannedAt DateTime @default(now())
-
-  attachment MessageAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
-
-  @@index([attachmentId])
-  @@index([result])
-  @@map("media_av_scans")
-}
-
 enum BackgroundJobStatus {
   PENDING
   QUEUED
@@ -2448,217 +2555,6 @@ enum BackgroundJobPriority {
   HIGH
   CRITICAL
 }
-
-model BackgroundJob {
-  id String @id @default(cuid())
-
-  /// Job name/identifier
-  name String
-
-  /// Job queue name
-  queueName String
-
-  /// Job payload (JSON)
-  payload Json
-
-  /// Current status
-  status BackgroundJobStatus @default(PENDING)
-
-  /// Priority level
-  priority BackgroundJobPriority @default(NORMAL)
-
-  /// Number of attempts made
-  attempts Int @default(0)
-
-  /// Maximum retry attempts
-  maxRetries Int @default(3)
-
-  /// Current retry attempt
-  currentRetry Int @default(0)
-
-  /// Scheduled run time (for scheduled jobs)
-  scheduledAt DateTime?
-
-  /// Started at
-  startedAt DateTime?
-
-  /// Completed at
-  completedAt DateTime?
-
-  /// Failed at
-  failedAt DateTime?
-
-  /// Last error message
-  lastError String?
-
-  /// Result data (JSON)
-  result Json?
-
-  /// Progress percentage (0-100)
-  progress Int @default(0)
-
-  /// Cron expression (for recurring jobs)
-  cronExpression String?
-
-  /// Job tags for filtering/grouping
-  tags String[]
-
-  /// Correlation ID for tracing
-  correlationId String?
-
-  /// Idempotency key
-  idempotencyKey String? @unique
-
-  /// User who owns this job
-  userId String?
-
-  /// User relation
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([queueName, status])
-  @@index([status])
-  @@index([scheduledAt])
-  @@index([correlationId])
-  @@index([idempotencyKey])
-  @@index([userId])
-  @@map("background_jobs")
-}
-
-model BackgroundJobSchedule {
-  id String @id @default(cuid())
-
-  /// Schedule name
-  name String @unique
-
-  /// Cron expression
-  cronExpression String
-
-  /// Timezone
-  timezone String @default("UTC")
-
-  /// Job name to execute
-  jobName String
-
-  /// Default payload
-  payload Json?
-
-  /// Whether schedule is active
-  isActive Boolean @default(true)
-
-  /// Last run time
-  lastRunAt DateTime?
-
-  /// Next run time
-  nextRunAt DateTime?
-
-  /// Run count
-  runCount Int @default(0)
-
-  /// User who owns this schedule
-  userId String?
-
-  /// User relation
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([isActive])
-  @@index([nextRunAt])
-  @@index([userId])
-  @@map("background_job_schedules")
-}
-
-model BackgroundJobDeadLetter {
-  id String @id @default(cuid())
-
-  /// Original job ID
-  jobId String
-
-  /// Job name
-  jobName String
-
-  /// Queue name
-  queueName String
-
-  /// Failed payload
-  payload Json
-
-  /// Error message
-  error String
-
-  /// Number of attempts
-  attempts Int
-
-  /// Last error
-  lastError String?
-
-  /// Failed at
-  failedAt DateTime @default(now())
-
-  /// Resolved at
-  resolvedAt DateTime?
-
-  /// Resolution notes
-  resolutionNotes String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([jobId])
-  @@index([queueName])
-  @@index([failedAt])
-  @@map("background_job_dead_letters")
-}
-
-model BackgroundJobMetrics {
-  id String @id @default(cuid())
-
-  /// Date bucket (day precision)
-  date DateTime @db.Date
-
-  /// Queue name
-  queueName String
-
-  /// Total jobs processed
-  totalProcessed Int @default(0)
-
-  /// Successful jobs
-  succeeded Int @default(0)
-
-  /// Failed jobs
-  failed Int @default(0)
-
-  /// Cancelled jobs
-  cancelled Int @default(0)
-
-  /// Average processing time (ms)
-  avgProcessingTimeMs Float @default(0)
-
-  /// Peak concurrent jobs
-  peakConcurrent Int @default(0)
-
-  /// Average queue time (ms)
-  avgQueueTimeMs Float @default(0)
-
-  /// Retry rate
-  retryRate Float @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([date, queueName])
-  @@index([date])
-  @@index([queueName])
-  @@map("background_job_metrics")
-}
-
-// ===========================
-// Notifications
-// ===========================
 
 enum NotificationType {
   DIRECT_MESSAGE
@@ -2691,77 +2587,6 @@ enum NotificationDeliveryStatus {
   FAILED
 }
 
-model Notification {
-  id String @id @default(cuid())
-
-  recipientUserId String
-  actorUserId String?
-
-  type NotificationType
-  entityType NotificationEntityType
-  entityId String
-
-  payload Json
-
-  readAt DateTime?
-
-  dedupeKey String?
-
-  createdAt DateTime @default(now())
-  expiresAt DateTime?
-
-  deliveries NotificationDelivery[]
-
-  @@index([recipientUserId, createdAt])
-  @@index([recipientUserId, readAt])
-  @@index([recipientUserId, type, createdAt])
-  @@unique([recipientUserId, dedupeKey])
-}
-
-model NotificationPreference {
-  id String @id @default(cuid())
-
-  userId String
-  notificationType NotificationType
-
-  inAppEnabled Boolean @default(true)
-  pushEnabled Boolean @default(true)
-  emailEnabled Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, notificationType])
-  @@index([userId])
-}
-
-model NotificationDelivery {
-  id String @id @default(cuid())
-
-  notificationId String
-  channel NotificationDeliveryChannel
-  status NotificationDeliveryStatus @default(PENDING)
-
-  deliveredAt DateTime?
-  failedAt DateTime?
-
-  retryCount Int @default(0)
-  lastError String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
-
-  @@index([notificationId])
-  @@index([status])
-  @@index([channel, status])
-}
-
-// ===========================
-// Communities
-// ===========================
-
 enum CommunityVisibility {
   PUBLIC
   PRIVATE
@@ -2782,141 +2607,44 @@ enum CommunityModeratorRole {
   MODERATOR
 }
 
-model Community {
-  id               String   @id @default(cuid())
-  serverId         String
-  name             String
-  slug             String   @unique
-  description      String?
-  iconUrl          String?
-  visibility       CommunityVisibility @default(PUBLIC)
-  discoveryEnabled Boolean  @default(true)
-  rules            Json?
-
-  ownerId          String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  categories       CommunityCategory[]
-  subscriptions    CommunitySubscription[]
-  posts            CommunityPost[]
-  moderators       CommunityModerator[]
-  moderationActions CommunityModerationAction[]
-
-  @@index([ownerId])
-  @@index([visibility, discoveryEnabled])
-  @@index([name])
+enum AnonymousChatEndReason {
+  NEXT
+  DISCONNECT
+  REPORT
+  BLOCK
+  EXPIRED
 }
 
-model CommunityCategory {
-  id          String  @id @default(cuid())
-  communityId String
-  name        String
-  description String?
-  position    Int     @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  posts     CommunityPost[]
-
-  @@unique([communityId, name])
-  @@index([communityId, position])
+enum AnonymousChatReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
 }
 
-model CommunitySubscription {
-  id          String   @id @default(cuid())
-  communityId String
-  userId      String
-  isMuted     Boolean  @default(false)
-
-  subscribedAt DateTime @default(now())
-
-  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-
-  @@unique([communityId, userId])
-  @@index([userId])
+enum AnonymousChatRoomStatus {
+  ACTIVE
+  CLOSED
 }
 
-model CommunityModerator {
-  id          String   @id @default(cuid())
-  communityId String
-  userId      String
-  role        CommunityModeratorRole @default(MODERATOR)
-  assignedAt  DateTime @default(now())
-
-  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-
-  @@unique([communityId, userId])
-  @@index([communityId])
+enum AnonymousChatSessionStatus {
+  WAITING
+  MATCHED
+  CANCELLED
+  EXPIRED
 }
 
-model CommunityPost {
-  id          String   @id @default(cuid())
-  communityId String
-  categoryId  String?
-  authorUserId String
-  title       String
-  content     String   @db.Text
-
-  isPinned    Boolean  @default(false)
-  pinnedAt    DateTime?
-  isDeleted   Boolean  @default(false)
-  deletedAt   DateTime?
-  version     Int      @default(1)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  category  CommunityCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  comments  CommunityComment[]
-
-  @@index([communityId, createdAt])
-  @@index([communityId, isPinned, createdAt])
-  @@index([authorUserId])
-  @@index([categoryId])
+enum PollStatus {
+  OPEN
+  CLOSED
+  EXPIRED
 }
 
-model CommunityComment {
-  id          String   @id @default(cuid())
-  postId      String
-  parentId    String?
-  authorUserId String
-  content     String   @db.Text
-
-  isDeleted   Boolean  @default(false)
-  deletedAt   DateTime?
-  version     Int      @default(1)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  post    CommunityPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
-  parent  CommunityComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
-  replies CommunityComment[] @relation("CommentReplies")
-
-  @@index([postId, createdAt])
-  @@index([parentId, createdAt])
-  @@index([authorUserId])
-}
-
-model CommunityModerationAction {
-  id            String   @id @default(cuid())
-  communityId   String
-  moderatorUserId String
-  actionType    CommunityModerationActionType
-  targetUserId  String?
-  objectType    String?
-  objectId      String?
-  reason        String?
-  createdAt     DateTime @default(now())
-
-  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-
-  @@index([communityId, createdAt])
-  @@index([targetUserId])
-  @@index([actionType])
+enum PostType {
+  POST
+  IMAGE
+  VIDEO
+  AUDIO
+  POLL
+  MIXED_MEDIA
+  LINK
 }

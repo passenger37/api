@@ -70,6 +70,7 @@ import { ServerMemberController } from './controllers/server-member.controller';
 import { ServerChannelController } from './controllers/server-channel.controller';
 import { ServerChannelPermissionOverwriteController } from './controllers/server-channel-permission-overwrite.controller';
 import { ServerModerationController } from './controllers/server-moderation.controller';
+import { ServerModerationHubController } from './controllers/server-moderation-hub.controller';
 import { ServerAuditLogController } from './controllers/server-audit-log.controller';
 import { ServerBanRepository } from './repositories/server-ban.repository';
 import { ModerationAuditRepository } from './repositories/moderation-audit.repository';
@@ -88,6 +89,7 @@ import { ServerAuditLogQueryService } from './services/server-audit-log-query.se
     ServerChannelController,
     ServerChannelPermissionOverwriteController,
     ServerModerationController,
+    ServerModerationHubController,
     ServerAuditLogController,
   ],
 
@@ -164,6 +166,7 @@ import { ServerAuditLogQueryService } from './services/server-audit-log-query.se
     ServerRoleQueryService,
     ModerationAuditRepository,
     ServerBanRepository,
+    ServerMemberRepository,
   ],
 })
 export class ServersModule {}
