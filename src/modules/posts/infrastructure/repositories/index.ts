@@ -1,0 +1,1 @@
+export { PostShareRepository } from './post-share.repository';

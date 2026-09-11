@@ -8,6 +8,7 @@ export const POST_LIST_SELECT = {
   contentType: true,
   visibility: true,
   status: true,
+  isDeleted: true,
   reactionCount: true,
   commentCount: true,
   repostCount: true,

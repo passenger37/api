@@ -35,6 +35,9 @@ import { DmOpenRequest } from '../dto/request/dm-open.request';
 import { DmSendRequest } from '../dto/request/dm-send.request';
 import { DmSyncRequest } from '../dto/request/dm-sync.request';
 import { DmReadRequest } from '../dto/request/dm-read.request';
+import { DmTypingStartRequest } from '../dto/request/dm-typing-start.request';
+import { DmTypingStopRequest } from '../dto/request/dm-typing-stop.request';
+import { TypingService } from '../../messages/services/typing.service';
 
 const dmRoom = (channelId: string): string => `dm:${channelId}`;
 
@@ -62,6 +65,7 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly queryService: DmQueryService,
     private readonly connectionAuth: WebSocketConnectionAuthService,
     private readonly connectionLimit: WebSocketConnectionLimitService,
+    private readonly typingService: TypingService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -239,6 +243,72 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   broadcastMessageRead(channelId: string, payload: unknown) {
     this.server.to(dmRoom(channelId)).emit('dm-message-read', payload);
+  }
+
+  @SubscribeMessage('dm:typing-start')
+  async typingStart(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmTypingStartRequest,
+  ) {
+    const event = 'dm:typing-start';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm:typing-start', userId),
+        limit: 10,
+        windowSeconds: 10,
+      });
+
+      await this.queryService.getChannel(request.channelId, userId);
+
+      await this.typingService.startTyping(request.channelId, userId);
+
+      client.broadcast.to(dmRoom(request.channelId)).emit('dm-typing-started', {
+        channelId: request.channelId,
+        userId,
+      });
+
+      return {
+        success: true,
+        channelId: request.channelId,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm:typing-stop')
+  async typingStop(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmTypingStopRequest,
+  ) {
+    const event = 'dm:typing-stop';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm:typing-stop', userId),
+        limit: 10,
+        windowSeconds: 10,
+      });
+
+      await this.queryService.getChannel(request.channelId, userId);
+
+      await this.typingService.stopTyping(request.channelId, userId);
+
+      client.broadcast.to(dmRoom(request.channelId)).emit('dm-typing-stopped', {
+        channelId: request.channelId,
+        userId,
+      });
+
+      return {
+        success: true,
+        channelId: request.channelId,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
   }
 
   private reject(client: Socket, statusCode: number, message: string) {

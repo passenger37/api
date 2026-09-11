@@ -11,6 +11,7 @@ import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { SearchModule } from '../search/search.module';
+import { TypingService } from '../messages/services/typing.service';
 
 import { DirectMessageChannelRepository } from './repositories/direct-message-channel.repository';
 import { DirectMessageRepository } from './repositories/direct-message.repository';
@@ -40,6 +41,7 @@ import { SystemDmController } from './controllers/system-dm.controller';
     SystemDmService,
     RolesGuard,
     DmGateway,
+    TypingService,
     WebSocketJwtGuard,
     WebSocketConnectionAuthService,
     WebSocketConnectionLimitService,

@@ -54,6 +54,15 @@ export class CommunitySubscriptionRepository {
     });
   }
 
+  async isMuted(communityId: string, userId: string): Promise<boolean> {
+    const subscription = await this.prisma.communitySubscription.findUnique({
+      where: { communityId_userId: { communityId, userId } },
+      select: { isMuted: true },
+    });
+
+    return subscription?.isMuted ?? false;
+  }
+
   /**
    * List every subscription for a community. Used by the realtime room
    * resolver to compute the audience for a community event. Returns the

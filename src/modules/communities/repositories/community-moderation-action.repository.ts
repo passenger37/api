@@ -60,6 +60,17 @@ export class CommunityModerationActionRepository {
     });
   }
 
+  async findLatest(
+    communityId: string,
+    targetUserId: string,
+    actionType: CommunityModerationActionType,
+  ): Promise<CommunityModerationAction | null> {
+    return this.prisma.communityModerationAction.findFirst({
+      where: { communityId, targetUserId, actionType },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   /**
    * Build a "rows strictly before this cursor in [createdAt desc, id desc]
    * order" predicate. Without this, two rows with identical `createdAt`

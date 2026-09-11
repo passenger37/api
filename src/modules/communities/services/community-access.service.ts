@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { CommunityModeratorRole } from '@prisma/client';
+import { CommunityModerationActionType, CommunityModeratorRole } from '@prisma/client';
 
 import { CommunityAccessDeniedException } from '../exceptions/community.exceptions';
 import { CommunityRepository } from '../repositories/community.repository';
 import { CommunityModeratorRepository } from '../repositories/community-moderator.repository';
+import { CommunityModerationActionRepository } from '../repositories/community-moderation-action.repository';
 
 @Injectable()
 export class CommunityAccessService {
   constructor(
     private readonly communityRepository: CommunityRepository,
     private readonly moderatorRepository: CommunityModeratorRepository,
+    private readonly moderationActionRepository: CommunityModerationActionRepository,
   ) {}
 
   async assertOwner(communityId: string, userId: string): Promise<void> {
@@ -86,5 +88,25 @@ export class CommunityAccessService {
     const moderator = await this.moderatorRepository.find(communityId, userId);
 
     return moderator?.role ?? null;
+  }
+
+  async isBanned(communityId: string, userId: string): Promise<boolean> {
+    // The schema has no CommunityBan model yet. A member is considered
+    // banned while a BAN moderation action is recorded against them.
+    const latest = await this.moderationActionRepository.findLatest(
+      communityId,
+      userId,
+      CommunityModerationActionType.BAN,
+    );
+
+    return Boolean(latest);
+  }
+
+  async isBannedFromPosting(communityId: string, userId: string): Promise<boolean> {
+    return this.isBanned(communityId, userId);
+  }
+
+  async isBannedFromVoting(communityId: string, userId: string): Promise<boolean> {
+    return this.isBanned(communityId, userId);
   }
 }

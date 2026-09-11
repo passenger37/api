@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CommunityPostContentType } from '@prisma/client';
 
 import { CommunityAccessService } from './community-access.service';
 import {
@@ -15,6 +16,9 @@ import { CommunityPostRepository } from '../repositories/community-post.reposito
 import { CommunityCommentRepository } from '../repositories/community-comment.repository';
 import { CommunitySubscriptionRepository } from '../repositories/community-subscription.repository';
 import { CommunityCategoryRepository } from '../repositories/community-category.repository';
+import { CommunityPostMediaRepository } from '../repositories/community-post-media.repository';
+import { CommunityPostHashtagRepository } from '../repositories/community-post-hashtag.repository';
+import { CommunityPostMentionRepository } from '../repositories/community-post-mention.repository';
 import {
   CreatePostRequest,
   UpdatePostRequest,
@@ -40,6 +44,13 @@ import {
 import { serializePost, serializeComment } from '../mappers/community.mapper';
 import { CommunityEventPublisher } from '../events/community-event-publisher';
 import { COMMUNITY_REALTIME_EVENTS } from '../realtime/community-realtime.constants';
+import { DbCacheService } from '../../../core/cache/db-cache.service';
+import {
+  COMMUNITY_FEED_CACHE,
+  COMMUNITY_FEED_CACHE_LIMITS,
+  COMMUNITY_FEED_SORTS_ALL,
+  communityFeedCacheKey,
+} from '../constants/community-post.constants';
 
 @Injectable()
 export class CommunityPostService {
@@ -49,8 +60,12 @@ export class CommunityPostService {
     private readonly commentRepository: CommunityCommentRepository,
     private readonly categoryRepository: CommunityCategoryRepository,
     private readonly subscriptionRepository: CommunitySubscriptionRepository,
+    private readonly mediaRepository: CommunityPostMediaRepository,
+    private readonly hashtagRepository: CommunityPostHashtagRepository,
+    private readonly mentionRepository: CommunityPostMentionRepository,
     private readonly access: CommunityAccessService,
     private readonly eventPublisher: CommunityEventPublisher,
+    private readonly dbCache: DbCacheService,
   ) {}
 
   async createPost(
@@ -79,10 +94,44 @@ export class CommunityPostService {
       category: request.categoryId
         ? { connect: { id: request.categoryId } }
         : undefined,
-      authorUserId: userId,
+      author: { connect: { id: userId } },
       title: request.title,
       content: request.content,
+      contentType:
+        request.contentType ??
+        (request.media && request.media.length > 0
+          ? request.content
+            ? CommunityPostContentType.MIXED
+            : CommunityPostContentType.MEDIA
+          : CommunityPostContentType.TEXT),
     });
+
+    if (request.media && request.media.length > 0) {
+      await this.mediaRepository.createMany(
+        post.id,
+        request.media.map((item, index) => ({
+          mediaId: item.mediaId,
+          type: item.type,
+          url: item.url,
+          thumbnailUrl: item.thumbnailUrl ?? null,
+          width: item.width ?? null,
+          height: item.height ?? null,
+          duration: item.duration ?? null,
+          mimeType: item.mimeType,
+          sortOrder: item.sortOrder ?? index,
+          altText: item.altText ?? null,
+          userId,
+        })),
+      );
+    }
+
+    if (request.hashtags && request.hashtags.length > 0) {
+      await this.hashtagRepository.createMany(post.id, request.hashtags);
+    }
+
+    if (request.mentions && request.mentions.length > 0) {
+      await this.mentionRepository.createMany(post.id, request.mentions);
+    }
 
     const withRelations = (await this.postRepository.findById(post.id))!;
 
@@ -91,6 +140,8 @@ export class CommunityPostService {
     await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_CREATED, {
       post: response,
     });
+
+    await this.invalidateFeed(community.id);
 
     return response;
   }
@@ -144,6 +195,8 @@ export class CommunityPostService {
       post: response,
     });
 
+    await this.invalidateFeed(community.id);
+
     return response;
   }
 
@@ -163,6 +216,8 @@ export class CommunityPostService {
     }
 
     await this.postRepository.softDelete(postId);
+
+    await this.invalidateFeed(community.id);
 
     await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_DELETED, {
       postId,
@@ -479,6 +534,20 @@ export class CommunityPostService {
 
     if (!subscribed) {
       throw new CommunityNotSubscribedException();
+    }
+  }
+
+  private async invalidateFeed(communityId: string): Promise<void> {
+    const keys: string[] = [];
+
+    for (const sort of COMMUNITY_FEED_SORTS_ALL) {
+      for (const limit of COMMUNITY_FEED_CACHE_LIMITS) {
+        keys.push(communityFeedCacheKey(communityId, sort, null, limit, 'first'));
+      }
+    }
+
+    if (keys.length > 0) {
+      await this.dbCache.delMany(COMMUNITY_FEED_CACHE, keys);
     }
   }
 

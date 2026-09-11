@@ -9,3 +9,8 @@ export * from './update-comment.request';
 export * from './create-moderation-action.request';
 export * from './set-muted.request';
 export * from './moderator-assignment.request';
+export * from './cast-vote.request';
+export * from './report-post.request';
+export * from './resolve-report.request';
+export * from './moderate-post.request';
+export * from './edit-post.request';

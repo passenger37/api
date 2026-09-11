@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommunityModerationActionType } from '@prisma/client';
+import { CommunityModerationActionType, CommunityPost, CommunityPostStatus } from '@prisma/client';
 
 import { CommunityAccessService } from './community-access.service';
 import {
@@ -285,5 +285,107 @@ export class CommunityModerationService {
     }
 
     return community;
+  }
+
+  async lockPost(
+    postId: string,
+    moderatorId: string,
+    reason?: string,
+  ): Promise<CommunityPost> {
+    const post = await this.postRepository.findById(postId);
+
+    if (!post) {
+      throw new CommunityPostNotFoundException();
+    }
+
+    return this.postRepository.update(postId, {
+      status: CommunityPostStatus.LOCKED,
+      lockedAt: new Date(),
+      lockedReason: reason ?? null,
+      version: { increment: 1 },
+    });
+  }
+
+  async unlockPost(
+    postId: string,
+    moderatorId: string,
+    reason?: string,
+  ): Promise<CommunityPost> {
+    const post = await this.postRepository.findById(postId);
+
+    if (!post) {
+      throw new CommunityPostNotFoundException();
+    }
+
+    return this.postRepository.update(postId, {
+      status: CommunityPostStatus.ACTIVE,
+      lockedAt: null,
+      lockedReason: null,
+      version: { increment: 1 },
+    });
+  }
+
+  async hidePost(
+    postId: string,
+    moderatorId: string,
+    reason?: string,
+  ): Promise<CommunityPost> {
+    const post = await this.postRepository.findById(postId);
+
+    if (!post) {
+      throw new CommunityPostNotFoundException();
+    }
+
+    return this.postRepository.update(postId, {
+      status: CommunityPostStatus.HIDDEN,
+      hiddenAt: new Date(),
+      hiddenReason: reason ?? null,
+      version: { increment: 1 },
+    });
+  }
+
+  async unhidePost(
+    postId: string,
+    moderatorId: string,
+    reason?: string,
+  ): Promise<CommunityPost> {
+    const post = await this.postRepository.findById(postId);
+
+    if (!post) {
+      throw new CommunityPostNotFoundException();
+    }
+
+    return this.postRepository.update(postId, {
+      status: CommunityPostStatus.ACTIVE,
+      hiddenAt: null,
+      hiddenReason: null,
+      version: { increment: 1 },
+    });
+  }
+
+  async pinPost(postId: string, moderatorId: string): Promise<CommunityPost> {
+    const post = await this.postRepository.findById(postId);
+
+    if (!post) {
+      throw new CommunityPostNotFoundException();
+    }
+
+    return this.postRepository.update(postId, {
+      isPinned: true,
+      pinnedAt: new Date(),
+    });
+  }
+
+  async unpinPost(postId: string, moderatorId: string): Promise<CommunityPost> {
+    const post = await this.postRepository.findById(postId);
+
+    if (!post) {
+      throw new CommunityPostNotFoundException();
+    }
+
+    return this.postRepository.update(postId, {
+      isPinned: false,
+      pinnedAt: null,
+    });
   }
 }

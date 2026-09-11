@@ -81,3 +81,15 @@ export class CommunityInvalidCursorException extends BadRequestException {
     super('Invalid pagination cursor.');
   }
 }
+
+export class CommunityDuplicateReportException extends BadRequestException {
+  constructor() {
+    super('You have already reported this post.');
+  }
+}
+
+export class CommunityPostLockedException extends BadRequestException {
+  constructor() {
+    super('This post is locked.');
+  }
+}

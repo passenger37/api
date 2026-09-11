@@ -47,13 +47,25 @@ model User {
   followers                  Follow[]                   @relation("UserFollowers")
   receivedFollowRequests     FollowRequest[]            @relation("UserReceivedFollowRequests")
   sentFollowRequests         FollowRequest[]            @relation("UserSentFollowRequests")
+  uploadedMedia              MessageAttachment[]        @relation("UserUploadedMedia")
+  communityPosts             CommunityPost[]          @relation("UserCommunityPosts")
+  communityPostVotes         CommunityPostVote[]      @relation("UserCommunityPostVotes")
+  communityPostReportsFiled  CommunityPostReport[]    @relation("CommunityPostReportsFiled")
+  communityPostReportsHandled CommunityPostReport[]   @relation("CommunityPostReportsHandled")
+  communityPostBookmarks     CommunityPostBookmark[]  @relation("UserCommunityPostBookmarks")
+  communityPostMentions      CommunityPostMention[]   @relation("UserCommunityPostMentions")
+  communityPostMedia         CommunityPostMedia[]     @relation("UserCommunityPostMedia")
+  communityPostEditHistory   CommunityPostEditHistory[] @relation("UserCommunityPostEditHistory")
+  communityPostModerated     CommunityPost[]          @relation("PostModeratedBy")
   mutedByUsers               Mute[]                     @relation("UserMutedBy")
   mutedUsers                 Mute[]                     @relation("UserMutes")
   PollVote                   PollVote[]
-  Post                       Post[]                   @relation("UserPersonalPosts")
+  Post                       Post[]                     @relation("UserPersonalPosts")
   PostComment                PostComment[]
-  PostMention                PostMention[]            @relation("UserPostMentions")
-  postReactions              PostReaction[]           @relation("UserPostReactions")
+  PostMention                PostMention[]              @relation("UserPostMentions")
+  postReactions              PostReaction[]             @relation("UserPostReactions")
+  postReportsHandled         PostReport[]               @relation("PostReportsHandled")
+  postReportsFiled           PostReport[]               @relation("PostReportsFiled")
   PostSave                   PostSave[]
   PostShare                  PostShare[]
   ownedServers               Server[]                   @relation("OwnedServers")
@@ -80,11 +92,6 @@ model User {
   assignedRoles              UserRole[]                 @relation("RoleAssignedBy")
   roles                      UserRole[]
   sessions                   UserSession[]
-
-  // Additional Personal Posts relations
-  postReportsFiled     PostReport[]     @relation("PostReportsFiled")
-  postReportsHandled   PostReport[]     @relation("PostReportsHandled")
-  uploadedMedia        MessageAttachment[] @relation("UserUploadedMedia")
 }
 
 model PostMedia {
@@ -113,8 +120,8 @@ model PostReaction {
   id        String       @id @default(cuid())
   postId    String
   userId    String
-  type      ReactionType
   createdAt DateTime     @default(now())
+  type      ReactionType
   post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
   user      User         @relation("UserPostReactions", fields: [userId], references: [id], onDelete: Cascade)
 
@@ -125,14 +132,14 @@ model PostReaction {
 }
 
 model PostMention {
-  id                String @id @default(cuid())
-  postId            String
-  mentionedUserId   String
-  position          Int
-  length            Int
-  createdAt         DateTime @default(now())
-  post              Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  mentionedUser     User   @relation("UserPostMentions", fields: [mentionedUserId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  postId          String
+  createdAt       DateTime @default(now())
+  length          Int
+  mentionedUserId String
+  position        Int
+  mentionedUser   User     @relation("UserPostMentions", fields: [mentionedUserId], references: [id], onDelete: Cascade)
+  post            Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, mentionedUserId])
   @@index([postId])
@@ -629,7 +636,6 @@ model MessageAttachment {
   serverId     String
   channelId    String
   uploadedById String
-  userId       String?
   status       AttachmentStatus @default(PENDING)
   fileName     String
   mimeType     String
@@ -637,11 +643,13 @@ model MessageAttachment {
   storageKey   String           @unique
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+  userId       String?
   channel      ServerChannel    @relation("AttachmentChannel", fields: [channelId], references: [id], onDelete: Cascade)
   message      ChannelMessage?  @relation("MessageAttachments", fields: [messageId], references: [id], onDelete: Cascade)
   server       Server           @relation("AttachmentServer", fields: [serverId], references: [id], onDelete: Cascade)
   uploadedBy   ServerMember     @relation("AttachmentUploads", fields: [uploadedById], references: [id], onDelete: Cascade)
-  user         User?            @relation("UserUploadedMedia", fields: [userId], references: [id], onDelete: SetNull)
+  user         User?            @relation("UserUploadedMedia", fields: [userId], references: [id])
+  postMedia    CommunityPostMedia?
   avScan       MediaAvScan?
   mediaJobs    MediaJob[]
   thumbnail    MediaThumbnail?
@@ -1878,28 +1886,97 @@ model CommunityModerator {
   @@index([communityId])
 }
 
+enum CommunityPostVisibility {
+  COMMUNITY_MEMBERS
+  PUBLIC
+}
+
+enum CommunityPostContentType {
+  TEXT
+  MEDIA
+  MIXED
+  LINK
+  POLL
+}
+
+enum CommunityPostStatus {
+  ACTIVE
+  HIDDEN
+  LOCKED
+  MODERATION_PENDING
+  DELETED
+}
+
 model CommunityPost {
-  id           String             @id @default(cuid())
-  communityId  String
-  categoryId   String?
-  authorUserId String
-  title        String
-  content      String
-  isPinned     Boolean            @default(false)
-  pinnedAt     DateTime?
-  isDeleted    Boolean            @default(false)
-  deletedAt    DateTime?
-  version      Int                @default(1)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  comments     CommunityComment[]
-  category     CommunityCategory? @relation(fields: [categoryId], references: [id])
-  community    Community          @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  id              String                     @id @default(cuid())
+  communityId     String
+  categoryId      String?
+  authorUserId    String
+  title           String
+  content         String
+  contentType     CommunityPostContentType   @default(TEXT)
+  visibility      CommunityPostVisibility    @default(COMMUNITY_MEMBERS)
+  status          CommunityPostStatus        @default(ACTIVE)
+  isPinned        Boolean                    @default(false)
+  pinnedAt        DateTime?
+  isDeleted       Boolean                    @default(false)
+  deletedAt       DateTime?
+  contentWarning  String?
+  isSensitive     Boolean                    @default(false)
+  language        String?
+  version         Int                        @default(1)
+
+  // Denormalized counts
+  upvoteCount     Int                        @default(0)
+  downvoteCount   Int                        @default(0)
+  commentCount    Int                        @default(0)
+  bookmarkCount   Int                        @default(0)
+  repostCount     Int                        @default(0)
+  viewCount       Int                        @default(0)
+
+  // Repost / Quote
+  originalPostId  String?
+  quotedPostId    String?
+
+  // Moderation
+  lockedAt        DateTime?
+  lockedReason    String?
+  hiddenAt        DateTime?
+  hiddenReason    String?
+  moderatedAt     DateTime?
+  moderatedByUserId String?
+
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  editedAt        DateTime?
+
+  // Relations
+  community       Community                  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  category        CommunityCategory?         @relation(fields: [categoryId], references: [id])
+  author          User                       @relation("UserCommunityPosts", fields: [authorUserId], references: [id], onDelete: Cascade)
+  originalPost    CommunityPost?             @relation("PostReposts", fields: [originalPostId], references: [id], onDelete: SetNull)
+  reposts         CommunityPost[]            @relation("PostReposts")
+  quotedPost      CommunityPost?             @relation("PostQuotes", fields: [quotedPostId], references: [id], onDelete: SetNull)
+  quotes          CommunityPost[]            @relation("PostQuotes")
+  comments        CommunityComment[]
+  votes           CommunityPostVote[]
+  media           CommunityPostMedia[]
+  hashtags        CommunityPostHashtag[]
+  mentions        CommunityPostMention[]
+  reports         CommunityPostReport[]
+  bookmarks       CommunityPostBookmark[]
+  editHistory     CommunityPostEditHistory[]
+  moderatedBy     User?                      @relation("PostModeratedBy", fields: [moderatedByUserId], references: [id], onDelete: SetNull)
 
   @@index([communityId, createdAt])
   @@index([communityId, isPinned, createdAt])
+  @@index([communityId, status, createdAt])
+  @@index([communityId, visibility, createdAt])
   @@index([authorUserId])
   @@index([categoryId])
+  @@index([originalPostId])
+  @@index([quotedPostId])
+  @@index([status, createdAt])
 }
 
 model CommunityComment {
@@ -1937,6 +2014,125 @@ model CommunityModerationAction {
   @@index([communityId, createdAt])
   @@index([targetUserId])
   @@index([actionType])
+}
+
+model CommunityPostVote {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  vote      VoteType
+  createdAt DateTime @default(now())
+
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation("UserCommunityPostVotes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model CommunityPostMedia {
+  id           String   @id @default(cuid())
+  postId       String
+  mediaId      String?  @unique
+  type         String
+  url          String
+  thumbnailUrl String?
+  width        Int?
+  height       Int?
+  duration     Int?
+  mimeType     String
+  sortOrder    Int
+  altText      String?
+  focalPointX  Float?
+  focalPointY  Float?
+  userId       String?
+
+  post         CommunityPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  media        MessageAttachment? @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  uploadedBy   User?              @relation("UserCommunityPostMedia", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([postId, sortOrder])
+  @@index([postId])
+  @@index([mediaId])
+  @@index([userId])
+}
+
+model CommunityPostHashtag {
+  id        String @id @default(cuid())
+  postId    String
+  tag       String
+
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, tag])
+  @@index([tag])
+  @@index([postId])
+}
+
+model CommunityPostMention {
+  id                String @id @default(cuid())
+  postId            String
+  mentionedUserId   String
+  position          Int
+  length            Int
+
+  post              CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  mentionedUser     User          @relation("UserCommunityPostMentions", fields: [mentionedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, mentionedUserId])
+  @@index([postId])
+  @@index([mentionedUserId])
+}
+
+model CommunityPostReport {
+  id              String         @id @default(cuid())
+  postId          String
+  reporterUserId  String
+  reason          PostReportReason
+  detailText      String?
+  status          ReportStatus   @default(PENDING)
+  handledByUserId String?
+  handledAt       DateTime?
+  createdAt       DateTime       @default(now())
+
+  post            CommunityPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter        User            @relation("CommunityPostReportsFiled", fields: [reporterUserId], references: [id], onDelete: Cascade)
+  handledBy       User?           @relation("CommunityPostReportsHandled", fields: [handledByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([postId, reporterUserId])
+  @@index([postId])
+  @@index([reporterUserId])
+  @@index([status])
+  @@index([handledByUserId])
+}
+
+model CommunityPostBookmark {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation("UserCommunityPostBookmarks", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId, createdAt])
+  @@index([postId])
+}
+
+model CommunityPostEditHistory {
+  id              String   @id @default(cuid())
+  postId          String
+  previousContent String
+  editedAt        DateTime @default(now())
+  editedByUserId  String
+
+  post            CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  editedBy        User          @relation("UserCommunityPostEditHistory", fields: [editedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([postId, editedAt])
+  @@index([editedByUserId])
 }
 
 model AnonymousChatBan {
@@ -2091,60 +2287,54 @@ model PollVote {
 }
 
 model Post {
-  id              String         @id @default(cuid())
-  authorId        String
-  type            PostType       @default(POST)
-  content         String?        @db.Text
-  contentType     PostContentType @default(TEXT)
-  visibility      PostVisibility @default(PUBLIC)
-  status          PostStatus     @default(ACTIVE)
-  serverId        String?
-  communityId     String?
-  channelId       String?
-  isDeleted       Boolean        @default(false)
-  deletedAt       DateTime?
-  editedAt        DateTime?
-  hiddenAt        DateTime?
-  hiddenReason    String?
-  contentWarning  String?
-  isSensitive     Boolean        @default(false)
-  language        String?
-  version         Int            @default(1)
-  scheduledAt     DateTime?
-
-  // Denormalized counts for feed performance
-  viewCount       Int            @default(0)
-  reactionCount   Int            @default(0)
-  commentCount    Int            @default(0)
-  repostCount     Int            @default(0)
-
-  // Repost / Quote support
-  originalPostId  String?
-  quotedPostId    String?
-
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-
-  Poll            Poll?
-  User            User           @relation("UserPersonalPosts", fields: [authorId], references: [id], onDelete: Cascade)
-  ServerChannel   ServerChannel? @relation(fields: [channelId], references: [id])
-  Community       Community?     @relation(fields: [communityId], references: [id])
-  Server          Server?        @relation(fields: [serverId], references: [id])
-  PostAudio       PostAudio[]
-  PostComment     PostComment[]
-  hashtags        PostHashtag[]
-  PostImage       PostImage[]
-  media           PostMedia[]
-  mentions        PostMention[]
-  reactions       PostReaction[]
-  PostSave        PostSave[]
-  PostShare       PostShare[]
-  PostVideo       PostVideo[]
-  originalPost    Post?          @relation("PostReposts", fields: [originalPostId], references: [id], onDelete: SetNull)
-  reposts         Post[]         @relation("PostReposts")
-  quotedPost      Post?          @relation("PostQuotes", fields: [quotedPostId], references: [id], onDelete: SetNull)
-  quotes          Post[]         @relation("PostQuotes")
-  reports         PostReport[]
+  id             String          @id @default(cuid())
+  authorId       String
+  type           PostType        @default(POST)
+  content        String?
+  visibility     PostVisibility  @default(PUBLIC)
+  serverId       String?
+  communityId    String?
+  channelId      String?
+  isDeleted      Boolean         @default(false)
+  deletedAt      DateTime?
+  version        Int             @default(1)
+  scheduledAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  commentCount   Int             @default(0)
+  contentType    PostContentType @default(TEXT)
+  contentWarning String?
+  editedAt       DateTime?
+  hiddenAt       DateTime?
+  hiddenReason   String?
+  isSensitive    Boolean         @default(false)
+  language       String?
+  originalPostId String?
+  quotedPostId   String?
+  reactionCount  Int             @default(0)
+  repostCount    Int             @default(0)
+  status         PostStatus      @default(ACTIVE)
+  viewCount      Int             @default(0)
+  Poll           Poll?
+  User           User            @relation("UserPersonalPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  ServerChannel  ServerChannel?  @relation(fields: [channelId], references: [id])
+  Community      Community?      @relation(fields: [communityId], references: [id])
+  originalPost   Post?           @relation("PostReposts", fields: [originalPostId], references: [id])
+  reposts        Post[]          @relation("PostReposts")
+  quotedPost     Post?           @relation("PostQuotes", fields: [quotedPostId], references: [id])
+  quotes         Post[]          @relation("PostQuotes")
+  Server         Server?         @relation(fields: [serverId], references: [id])
+  PostAudio      PostAudio[]
+  PostComment    PostComment[]
+  hashtags       PostHashtag[]
+  PostImage      PostImage[]
+  media          PostMedia[]
+  mentions       PostMention[]
+  reactions      PostReaction[]
+  reports        PostReport[]
+  PostSave       PostSave[]
+  PostShare      PostShare[]
+  PostVideo      PostVideo[]
 
   @@index([authorId, createdAt, id])
   @@index([status, createdAt, id])
@@ -2222,15 +2412,15 @@ model PostSave {
 }
 
 model PostShare {
-  id              String   @id @default(cuid())
+  id              String               @id @default(cuid())
   postId          String
-  createdAt       DateTime @default(now())
+  createdAt       DateTime             @default(now())
   actorUserId     String
   clientRequestId String?
   destinationId   String?
-  destinationType String
-  User            User     @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
-  Post            Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  destinationType ShareDestinationType
+  User            User                 @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+  Post            Post                 @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([actorUserId, clientRequestId])
   @@index([actorUserId, createdAt])
@@ -2239,19 +2429,18 @@ model PostShare {
 }
 
 model PostReport {
-  id              String         @id @default(cuid())
+  id              String           @id @default(cuid())
   postId          String
   reporterUserId  String
   reason          PostReportReason
   detailText      String?
-  status          ReportStatus   @default(PENDING)
+  status          ReportStatus     @default(PENDING)
   handledByUserId String?
   handledAt       DateTime?
-  createdAt       DateTime       @default(now())
-
-  post            Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reporter        User           @relation("PostReportsFiled", fields: [reporterUserId], references: [id], onDelete: Cascade)
-  handledBy       User?          @relation("PostReportsHandled", fields: [handledByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime         @default(now())
+  handledBy       User?            @relation("PostReportsHandled", fields: [handledByUserId], references: [id])
+  post            Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter        User             @relation("PostReportsFiled", fields: [reporterUserId], references: [id], onDelete: Cascade)
 
   @@unique([postId, reporterUserId])
   @@index([postId])
@@ -2275,6 +2464,56 @@ model PostVideo {
   Post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
+}
+
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
+enum PostContentType {
+  TEXT
+  MEDIA
+  MIXED
+  LINK
+  POLL
+}
+
+enum PostVisibility {
+  PUBLIC
+  FOLLOWERS
+  FRIENDS
+  COMMUNITY
+  SERVER
+  PRIVATE
+  CUSTOM
+}
+
+enum PostStatus {
+  ACTIVE
+  DELETED
+  HIDDEN
+  MODERATION_PENDING
+  LOCKED
+}
+
+enum PostReportReason {
+  HARASSMENT
+  HATE_SPEECH
+  SPAM
+  NSFW_CONTENT
+  VIOLENCE
+  SELF_HARM
+  MISINFORMATION
+  COPYRIGHT
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
 }
 
 enum UserStatus {
@@ -2310,27 +2549,11 @@ enum ServerTemplateType {
   CUSTOM
 }
 
-enum PostVisibility {
-  PUBLIC
-  FOLLOWERS
-  FRIENDS
-  COMMUNITY
-  SERVER
-  PRIVATE
-  CUSTOM
-}
-
-enum PostContentType {
-  TEXT
-  MEDIA
-  MIXED
-}
-
-enum PostStatus {
-  ACTIVE
-  DELETED
-  HIDDEN
-  MODERATION_PENDING
+enum ShareDestinationType {
+  DM
+  SERVER_CHANNEL
+  COPY_LINK
+  EXTERNAL
 }
 
 enum ReactionType {
@@ -2342,18 +2565,6 @@ enum ReactionType {
   ANGRY
   FIRE
   CELEBRATE
-}
-
-enum PostReportReason {
-  HARASSMENT
-  HATE_SPEECH
-  SPAM
-  NSFW_CONTENT
-  VIOLENCE
-  SELF_HARM
-  MISINFORMATION
-  COPYRIGHT
-  OTHER
 }
 
 enum ServerVisibility {
@@ -2412,13 +2623,6 @@ enum AttachmentStatus {
   PENDING
   UPLOADED
   FAILED
-}
-
-enum ReportStatus {
-  PENDING
-  REVIEWED
-  RESOLVED
-  DISMISSED
 }
 
 enum MessageReportReason {
@@ -2600,6 +2804,12 @@ enum CommunityModerationActionType {
   DELETE_COMMENT
   PIN_POST
   UNPIN_POST
+  POST_LOCKED
+  POST_UNLOCKED
+  POST_HIDDEN
+  POST_UNHIDDEN
+  POST_PINNED
+  POST_UNPINNED
 }
 
 enum CommunityModeratorRole {

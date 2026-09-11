@@ -8,6 +8,7 @@ describe('DmGateway Integration', () => {
   let queryService: any;
   let connectionAuth: any;
   let connectionLimit: any;
+  let typingService: any;
 
   const mockServer = {
     to: jest.fn().mockReturnThis(),
@@ -37,6 +38,11 @@ describe('DmGateway Integration', () => {
     queryService = {
       getHistory: jest.fn().mockResolvedValue([{ id: 'msg2' }]),
       getMessagesAfter: jest.fn().mockResolvedValue([{ id: 'msg2' }]),
+      getChannel: jest.fn().mockResolvedValue({
+        id: 'dm1',
+        userAId: 'u1',
+        userBId: 'u2',
+      }),
     };
     connectionAuth = {
       authenticate: jest.fn().mockResolvedValue({ userId: 'u1' }),
@@ -44,6 +50,10 @@ describe('DmGateway Integration', () => {
     connectionLimit = {
       acquire: jest.fn().mockResolvedValue(true),
       release: jest.fn().mockResolvedValue(undefined),
+    };
+    typingService = {
+      startTyping: jest.fn().mockResolvedValue(undefined),
+      stopTyping: jest.fn().mockResolvedValue(undefined),
     };
 
     gateway = new DmGateway(
@@ -53,6 +63,7 @@ describe('DmGateway Integration', () => {
       queryService,
       connectionAuth,
       connectionLimit,
+      typingService,
     );
 
     // @ts-ignore
@@ -162,6 +173,72 @@ describe('DmGateway Integration', () => {
       lastReadAt: new Date('2026-01-01T00:00:00.000Z'),
       unreadCount: 0,
     });
+  });
+
+  it('should start typing and broadcast to the dm room', async () => {
+    const broadcast = { to: jest.fn().mockReturnThis(), emit: jest.fn() };
+    const client = {
+      data: { userId: 'u1' },
+      broadcast,
+    } as any;
+    const request = { channelId: 'dm1' };
+
+    const result = await gateway.typingStart(client, request as any);
+
+    expect(rateLimit.consume).toHaveBeenCalledWith({
+      key: 'ws:dm:typing-start:u1',
+      limit: 10,
+      windowSeconds: 10,
+    });
+    expect(queryService.getChannel).toHaveBeenCalledWith('dm1', 'u1');
+    expect(typingService.startTyping).toHaveBeenCalledWith('dm1', 'u1');
+    expect(broadcast.to).toHaveBeenCalledWith('dm:dm1');
+    expect(broadcast.emit).toHaveBeenCalledWith('dm-typing-started', {
+      channelId: 'dm1',
+      userId: 'u1',
+    });
+    expect(result).toEqual({ success: true, channelId: 'dm1' });
+  });
+
+  it('should stop typing and broadcast to the dm room', async () => {
+    const broadcast = { to: jest.fn().mockReturnThis(), emit: jest.fn() };
+    const client = {
+      data: { userId: 'u1' },
+      broadcast,
+    } as any;
+    const request = { channelId: 'dm1' };
+
+    const result = await gateway.typingStop(client, request as any);
+
+    expect(rateLimit.consume).toHaveBeenCalledWith({
+      key: 'ws:dm:typing-stop:u1',
+      limit: 10,
+      windowSeconds: 10,
+    });
+    expect(queryService.getChannel).toHaveBeenCalledWith('dm1', 'u1');
+    expect(typingService.stopTyping).toHaveBeenCalledWith('dm1', 'u1');
+    expect(broadcast.to).toHaveBeenCalledWith('dm:dm1');
+    expect(broadcast.emit).toHaveBeenCalledWith('dm-typing-stopped', {
+      channelId: 'dm1',
+      userId: 'u1',
+    });
+    expect(result).toEqual({ success: true, channelId: 'dm1' });
+  });
+
+  it('should normalize errors on typing start failure', async () => {
+    queryService.getChannel.mockRejectedValueOnce(
+      new Error('Channel denied.'),
+    );
+    const client = { data: { userId: 'u1' } } as any;
+    const request = { channelId: 'dm1' };
+
+    const result = await gateway.typingStart(client, request as any);
+
+    expect(errorNormalizer.normalize).toHaveBeenCalledWith(
+      expect.any(Error),
+      'dm:typing-start',
+    );
+    expect(result).toEqual({ error: true });
   });
 
   it('should broadcast message created events to the dm room', () => {
