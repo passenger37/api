@@ -44,6 +44,34 @@ export class CommentAuthorizationService {
   ) {}
 
   /**
+   * Determine the canonical post type for a postId by inspecting the owning
+   * tables. Personal and channel posts live in the unified Post model; channel
+   * posts are distinguished by a non-null channelId. Community posts live in
+   * their own model.
+   */
+  async resolvePostType(postId: string): Promise<CommentPostType> {
+    const communityPost = await this.prisma.communityPost.findUnique({
+      where: { id: postId },
+      select: { id: true },
+    });
+
+    if (communityPost) {
+      return 'COMMUNITY';
+    }
+
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true, channelId: true },
+    });
+
+    if (post) {
+      return post.channelId ? 'CHANNEL' : 'PERSONAL';
+    }
+
+    throw new PostNotFoundException(postId);
+  }
+
+  /**
    * Resolve a postId into its owning domain context and verify the post exists.
    * The comment module delegates post ownership/visibility to the owning domains.
    */

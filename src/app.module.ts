@@ -41,6 +41,7 @@ import { CommunitiesModule } from './modules/communities/communities.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { CallingModule } from './modules/calling/calling.module';
 import { ProductionHardeningModule } from './modules/production-hardening/production-hardening.module';
+import { CommentsModule } from './modules/comments/comments.module';
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { ProductionHardeningModule } from './modules/production-hardening/produc
     RealtimeModule,
     CallingModule,
     ProductionHardeningModule,
+    CommentsModule,
   ],
   controllers: [],
   // providers: [AppService],
