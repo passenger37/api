@@ -3,7 +3,7 @@ import {
   Logger,
   BadRequestException,
 } from '@nestjs/common';
-import { CommentPostType, VoteType } from '@prisma/client';
+import { CommentPostType, VoteType, CommentStatus } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
 import { CommentRepository } from '../repositories/comment.repository';
@@ -20,6 +20,7 @@ import { CommentResponseData } from '../types/comment.types';
 import { CommentMapper } from '../mappers/comment.mapper';
 import { CommentAuthorizationService } from './comment-authorization.service';
 import { CommentNotificationPublisher } from './comment-notification.publisher';
+import { CommentRealtimePublisher } from './comment-realtime.publisher';
 
 interface CreateCommentInput {
   postId: string;
@@ -51,6 +52,7 @@ export class CommentCommandService {
     private readonly reactionRepository: CommentReactionRepository,
     private readonly authorizationService: CommentAuthorizationService,
     private readonly notificationPublisher: CommentNotificationPublisher,
+    private readonly realtimePublisher: CommentRealtimePublisher,
   ) {}
 
   async createComment(input: CreateCommentInput): Promise<CommentResponseData> {
@@ -134,12 +136,16 @@ export class CommentCommandService {
 
     const commentWithAuthor = await this.commentRepository.findByIdWithAuthor(comment.id);
 
-    return CommentMapper.toResponse(commentWithAuthor!, {
+    const response = CommentMapper.toResponse(commentWithAuthor!, {
       viewerVote: null,
       viewerCanEdit: true,
       viewerCanDelete: true,
       viewerCanModerate: false,
     });
+
+    await this.realtimePublisher.publishCommentCreated(response);
+
+    return response;
   }
 
   async editComment(input: EditCommentInput): Promise<CommentResponseData> {
@@ -171,7 +177,7 @@ export class CommentCommandService {
       },
     );
 
-    return CommentMapper.toResponse(
+    const response = CommentMapper.toResponse(
       { ...updated, author: existing.author } as any,
       {
         viewerVote: null,
@@ -180,6 +186,10 @@ export class CommentCommandService {
         viewerCanModerate: false,
       },
     );
+
+    await this.realtimePublisher.publishCommentUpdated(response);
+
+    return response;
   }
 
   async deleteComment(commentId: string, userId: string): Promise<void> {
@@ -201,6 +211,13 @@ export class CommentCommandService {
     }
 
     await this.commentRepository.softDelete(commentId);
+
+    await this.realtimePublisher.publishCommentDeleted({
+      postId: existing.postId,
+      postType: existing.postType,
+      commentId,
+      status: 'DELETED' as CommentStatus,
+    });
   }
 
   async removeComment(commentId: string, moderatorId: string): Promise<void> {
@@ -227,7 +244,14 @@ export class CommentCommandService {
     }
 
     await this.commentRepository.update(commentId, {
-      status: 'REMOVED' as any,
+      status: CommentStatus.REMOVED,
+    });
+
+    await this.realtimePublisher.publishCommentDeleted({
+      postId: existing.postId,
+      postType: existing.postType,
+      commentId,
+      status: 'REMOVED' as CommentStatus,
     });
   }
 
@@ -286,6 +310,14 @@ export class CommentCommandService {
       commentAuthorId: existing.authorId,
       actorUserId: input.userId,
       vote: input.vote,
+    });
+
+    await this.realtimePublisher.publishCommentReaction({
+      postId: existing.postId,
+      postType: existing.postType,
+      commentId: input.commentId,
+      vote: input.vote,
+      scoreDelta: result.scoreDelta,
     });
 
     return result;

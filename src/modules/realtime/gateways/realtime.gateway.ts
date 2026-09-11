@@ -34,6 +34,7 @@ import {
   REALTIME_WS_RATE_LIMIT,
   REALTIME_WINDOW_SECONDS,
   realtimeChannelRoom,
+  realtimePostRoom,
   realtimeUserRoom,
 } from '../constants/realtime.constants';
 import {
@@ -45,10 +46,13 @@ import { RealtimeAccessService } from '../services/realtime-access.service';
 import { RealtimePresenceService } from '../services/realtime-presence.service';
 import { RealtimeTypingService } from '../services/realtime-typing.service';
 import { RealtimeEventBridgeService } from '../services/realtime-event-bridge.service';
+import { CommentAuthorizationService } from '../../comments/services/comment-authorization.service';
 import {
   ChannelJoinRequest,
   ChannelLeaveRequest,
   GetPresenceRequest,
+  PostJoinRequest,
+  PostLeaveRequest,
   PresenceSubscribeRequest,
   PresenceUnsubscribeRequest,
   SetPresenceRequest,
@@ -83,6 +87,7 @@ export class RealtimeGateway
     private readonly bridge: RealtimeEventBridgeService,
     private readonly connectionAuth: WebSocketConnectionAuthService,
     private readonly connectionLimit: WebSocketConnectionLimitService,
+    private readonly commentAuthorizationService: CommentAuthorizationService,
   ) {}
 
   onModuleInit() {
@@ -346,6 +351,67 @@ export class RealtimeGateway
     }
   }
 
+  @SubscribeMessage('post:join')
+  async joinPost(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: PostJoinRequest,
+  ) {
+    const event = 'post:join';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('post-join', userId),
+        limit: REALTIME_WS_RATE_LIMIT.POST_JOIN,
+        windowSeconds: REALTIME_WINDOW_SECONDS,
+      });
+
+      const postType = await this.commentAuthorizationService.resolvePostType(
+        request.postId,
+      );
+      const postContext = await this.commentAuthorizationService.resolvePost(
+        request.postId,
+        postType,
+      );
+      await this.commentAuthorizationService.assertCanAccessPost(
+        postContext,
+        userId,
+        false,
+      );
+
+      await client.join(realtimePostRoom(request.postId));
+
+      return {
+        success: true,
+        event,
+        postId: request.postId,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('post:leave')
+  async leavePost(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: PostLeaveRequest,
+  ) {
+    const event = 'post:leave';
+    try {
+      const userId = client.data.userId;
+
+      await client.leave(realtimePostRoom(request.postId));
+
+      return {
+        success: true,
+        event,
+        postId: request.postId,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
   @SubscribeMessage('typing:start')
   async typingStart(
     @ConnectedSocket() client: Socket,
@@ -448,6 +514,17 @@ export class RealtimeGateway
 
         this.server
           .to(realtimeChannelRoom(channelId))
+          .emit(event.type, { ...event });
+        break;
+      }
+      case RealtimeEventType.COMMENT_CREATED:
+      case RealtimeEventType.COMMENT_UPDATED:
+      case RealtimeEventType.COMMENT_DELETED:
+      case RealtimeEventType.COMMENT_REACTION: {
+        const postId = event.postId as string;
+
+        this.server
+          .to(realtimePostRoom(postId))
           .emit(event.type, { ...event });
         break;
       }

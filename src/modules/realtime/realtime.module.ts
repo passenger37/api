@@ -17,6 +17,7 @@ import { RealtimeTypingService } from './services/realtime-typing.service';
 import { RealtimeAccessService } from './services/realtime-access.service';
 import { RealtimeEventBridgeService } from './services/realtime-event-bridge.service';
 import { RealtimeGateway } from './gateways/realtime.gateway';
+import { CommentsModule } from '../comments/comments.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { RealtimeGateway } from './gateways/realtime.gateway';
     AuthModule,
     AuthorizationModule,
     ServersModule,
+    CommentsModule,
   ],
   providers: [
     RealtimePresenceService,

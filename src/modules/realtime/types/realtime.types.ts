@@ -39,6 +39,10 @@ export enum RealtimeEventType {
   PRESENCE_OFFLINE = 'presence:offline',
   TYPING_START = 'typing:start',
   TYPING_STOP = 'typing:stop',
+  COMMENT_CREATED = 'comment:created',
+  COMMENT_UPDATED = 'comment:updated',
+  COMMENT_DELETED = 'comment:deleted',
+  COMMENT_REACTION = 'comment:reaction',
 }
 
 export type RealtimeEventPayload =
@@ -64,4 +68,33 @@ export type RealtimeEventPayload =
       type: RealtimeEventType.TYPING_STOP;
       channelId: string;
       userId: string;
+    }
+  | {
+      type: RealtimeEventType.COMMENT_CREATED;
+      postId: string;
+      postType: string;
+      commentId: string;
+      comment: Record<string, unknown>;
+    }
+  | {
+      type: RealtimeEventType.COMMENT_UPDATED;
+      postId: string;
+      postType: string;
+      commentId: string;
+      comment: Record<string, unknown>;
+    }
+  | {
+      type: RealtimeEventType.COMMENT_DELETED;
+      postId: string;
+      postType: string;
+      commentId: string;
+      status: string;
+    }
+  | {
+      type: RealtimeEventType.COMMENT_REACTION;
+      postId: string;
+      postType: string;
+      commentId: string;
+      vote: string;
+      scoreDelta: number;
     };

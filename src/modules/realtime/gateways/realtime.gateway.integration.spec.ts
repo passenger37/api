@@ -11,6 +11,7 @@ describe('RealtimeGateway Integration', () => {
   let bridge: any;
   let connectionAuth: any;
   let connectionLimit: any;
+  let commentAuthorizationService: any;
 
   const mockServer = {
     to: jest.fn().mockReturnThis(),
@@ -63,6 +64,15 @@ describe('RealtimeGateway Integration', () => {
       acquire: jest.fn().mockResolvedValue(true),
       release: jest.fn().mockResolvedValue(undefined),
     };
+    commentAuthorizationService = {
+      resolvePostType: jest.fn().mockResolvedValue('PERSONAL'),
+      resolvePost: jest.fn().mockResolvedValue({
+        postId: 'p1',
+        postType: 'PERSONAL',
+        authorId: 'u1',
+      }),
+      assertCanAccessPost: jest.fn().mockResolvedValue(undefined),
+    };
 
     gateway = new RealtimeGateway(
       errorNormalizer,
@@ -73,6 +83,7 @@ describe('RealtimeGateway Integration', () => {
       bridge,
       connectionAuth,
       connectionLimit,
+      commentAuthorizationService as any,
     );
 
     // @ts-ignore

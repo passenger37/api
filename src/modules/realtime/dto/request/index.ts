@@ -4,5 +4,7 @@ export { PresenceSubscribeRequest } from './presence-subscribe.request';
 export { PresenceUnsubscribeRequest } from './presence-unsubscribe.request';
 export { ChannelJoinRequest } from './channel-join.request';
 export { ChannelLeaveRequest } from './channel-leave.request';
+export { PostJoinRequest } from './post-join.request';
+export { PostLeaveRequest } from './post-leave.request';
 export { TypingStartRequest } from './typing-start.request';
 export { TypingStopRequest } from './typing-stop.request';

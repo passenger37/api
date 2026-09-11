@@ -3,6 +3,7 @@ import { CommentRepository } from '../repositories/comment.repository';
 import { CommentReactionRepository } from '../repositories/comment-reaction.repository';
 import { CommentAuthorizationService } from './comment-authorization.service';
 import { CommentNotificationPublisher } from './comment-notification.publisher';
+import { CommentRealtimePublisher } from './comment-realtime.publisher';
 import { CommentPostType } from '@prisma/client';
 
 describe('CommentCommandService (reactions & tree integrity)', () => {
@@ -25,6 +26,12 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
     publishCommentReply: jest.Mock;
     publishCommentReaction: jest.Mock;
     publishCommentMentions: jest.Mock;
+  };
+  let realtimePublisher: {
+    publishCommentCreated: jest.Mock;
+    publishCommentUpdated: jest.Mock;
+    publishCommentDeleted: jest.Mock;
+    publishCommentReaction: jest.Mock;
   };
 
   const baseComment = {
@@ -71,6 +78,12 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
       publishCommentReaction: jest.fn(),
       publishCommentMentions: jest.fn(),
     };
+    realtimePublisher = {
+      publishCommentCreated: jest.fn(),
+      publishCommentUpdated: jest.fn(),
+      publishCommentDeleted: jest.fn(),
+      publishCommentReaction: jest.fn(),
+    };
 
     service = new CommentCommandService(
       prisma as any,
@@ -78,6 +91,7 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
       reactionRepository as any,
       authorizationService as any,
       notificationPublisher as any,
+      realtimePublisher as any,
     );
   });
 
