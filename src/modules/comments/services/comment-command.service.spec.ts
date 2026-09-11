@@ -2,12 +2,13 @@ import { CommentCommandService } from './comment-command.service';
 import { CommentRepository } from '../repositories/comment.repository';
 import { CommentReactionRepository } from '../repositories/comment-reaction.repository';
 import { CommentAuthorizationService } from './comment-authorization.service';
+import { CommentNotificationPublisher } from './comment-notification.publisher';
 import { CommentPostType } from '@prisma/client';
 
 describe('CommentCommandService (reactions & tree integrity)', () => {
   let service: CommentCommandService;
-  let prisma: { $transaction: jest.Mock };
-  let commentRepository: { findById: jest.Mock; create: jest.Mock; findByIdWithAuthor: jest.Mock };
+  let prisma: { $transaction: jest.Mock; user: { findMany: jest.Mock } };
+  let commentRepository: { findById: jest.Mock; create: jest.Mock; incrementReplyCount: jest.Mock; update: jest.Mock; findByIdWithAuthor: jest.Mock };
   let reactionRepository: {
     upsert: jest.Mock;
     remove: jest.Mock;
@@ -18,6 +19,12 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
     resolvePostType: jest.Mock;
     assertCanAccessPost: jest.Mock;
     canModerate: jest.Mock;
+  };
+  let notificationPublisher: {
+    publishCommentOnPost: jest.Mock;
+    publishCommentReply: jest.Mock;
+    publishCommentReaction: jest.Mock;
+    publishCommentMentions: jest.Mock;
   };
 
   const baseComment = {
@@ -39,10 +46,12 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
   };
 
   beforeEach(() => {
-    prisma = { $transaction: jest.fn((fn) => fn({})) };
+    prisma = { $transaction: jest.fn((fn) => fn({})), user: { findMany: jest.fn() } };
     commentRepository = {
       findById: jest.fn(),
       create: jest.fn(),
+      incrementReplyCount: jest.fn(),
+      update: jest.fn(),
       findByIdWithAuthor: jest.fn(),
     };
     reactionRepository = {
@@ -56,12 +65,19 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
       assertCanAccessPost: jest.fn(),
       canModerate: jest.fn().mockResolvedValue(false),
     };
+    notificationPublisher = {
+      publishCommentOnPost: jest.fn(),
+      publishCommentReply: jest.fn(),
+      publishCommentReaction: jest.fn(),
+      publishCommentMentions: jest.fn(),
+    };
 
     service = new CommentCommandService(
       prisma as any,
       commentRepository as any,
       reactionRepository as any,
       authorizationService as any,
+      notificationPublisher as any,
     );
   });
 
@@ -81,6 +97,12 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
         {},
       );
       expect(result.scoreDelta).toBe(1);
+      expect(notificationPublisher.publishCommentReaction).toHaveBeenCalledWith({
+        commentId: 'c1',
+        commentAuthorId: 'u1',
+        actorUserId: 'u2',
+        vote: 'UPVOTE',
+      });
     });
 
     it('handles a fresh downvote: +1 downvote, scoreDelta -1', async () => {
@@ -230,6 +252,105 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
           content: 'hello',
         }),
       ).rejects.toThrow('You do not have permission');
+    });
+  });
+
+  describe('notifications', () => {
+    it('notifies the post author on a new root comment', async () => {
+      commentRepository.findById.mockResolvedValue(null);
+      commentRepository.create.mockResolvedValue({ ...baseComment, id: 'c2' });
+      commentRepository.findByIdWithAuthor.mockResolvedValue({
+        ...baseComment,
+        id: 'c2',
+        author: { id: 'u2', username: 'u2' },
+      });
+      prisma.user.findMany.mockResolvedValue([]);
+      authorizationService.resolvePost.mockResolvedValue({
+        postId: 'p1',
+        postType: 'PERSONAL',
+        authorId: 'u1',
+      });
+
+      await service.createComment({
+        postId: 'p1',
+        postType: 'PERSONAL',
+        authorId: 'u2',
+        content: 'hello',
+      });
+
+      expect(notificationPublisher.publishCommentOnPost).toHaveBeenCalledWith({
+        postId: 'p1',
+        postType: 'PERSONAL',
+        commentId: 'c2',
+        postAuthorId: 'u1',
+        actorUserId: 'u2',
+      });
+    });
+
+    it('notifies the parent author on a reply instead of the post author', async () => {
+      commentRepository.findById.mockResolvedValue({
+        ...baseComment,
+        id: 'parent1',
+        postId: 'p1',
+        authorId: 'u1',
+      });
+      commentRepository.create.mockResolvedValue({
+        ...baseComment,
+        id: 'c3',
+        parentCommentId: 'parent1',
+      });
+      commentRepository.findByIdWithAuthor.mockResolvedValue({
+        ...baseComment,
+        id: 'c3',
+        parentCommentId: 'parent1',
+        author: { id: 'u2', username: 'u2' },
+      });
+      prisma.user.findMany.mockResolvedValue([]);
+      commentRepository.incrementReplyCount.mockResolvedValue(undefined);
+
+      await service.createComment({
+        postId: 'p1',
+        postType: 'PERSONAL',
+        authorId: 'u2',
+        content: 'reply to parent',
+        parentCommentId: 'parent1',
+      });
+
+      expect(notificationPublisher.publishCommentReply).toHaveBeenCalledWith({
+        postId: 'p1',
+        postType: 'PERSONAL',
+        parentCommentId: 'parent1',
+        commentId: 'c3',
+        parentAuthorId: 'u1',
+        actorUserId: 'u2',
+      });
+    });
+
+    it('notifies mentioned users but not the actor', async () => {
+      commentRepository.findById.mockResolvedValue(null);
+      commentRepository.create.mockResolvedValue({ ...baseComment, id: 'c4' });
+      commentRepository.findByIdWithAuthor.mockResolvedValue({
+        ...baseComment,
+        id: 'c4',
+        author: { id: 'u2', username: 'u2' },
+      });
+      prisma.user.findMany.mockResolvedValue([
+        { id: 'u1' },
+        { id: 'u3' },
+      ]);
+
+      await service.createComment({
+        postId: 'p1',
+        postType: 'PERSONAL',
+        authorId: 'u2',
+        content: 'hi @u1 and @u3',
+      });
+
+      expect(notificationPublisher.publishCommentMentions).toHaveBeenCalledWith({
+        commentId: 'c4',
+        mentionedUserIds: ['u1', 'u3'],
+        actorUserId: 'u2',
+      });
     });
   });
 });

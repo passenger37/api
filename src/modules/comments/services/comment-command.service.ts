@@ -19,6 +19,7 @@ import {
 import { CommentResponseData } from '../types/comment.types';
 import { CommentMapper } from '../mappers/comment.mapper';
 import { CommentAuthorizationService } from './comment-authorization.service';
+import { CommentNotificationPublisher } from './comment-notification.publisher';
 
 interface CreateCommentInput {
   postId: string;
@@ -49,6 +50,7 @@ export class CommentCommandService {
     private readonly commentRepository: CommentRepository,
     private readonly reactionRepository: CommentReactionRepository,
     private readonly authorizationService: CommentAuthorizationService,
+    private readonly notificationPublisher: CommentNotificationPublisher,
   ) {}
 
   async createComment(input: CreateCommentInput): Promise<CommentResponseData> {
@@ -98,6 +100,37 @@ export class CommentCommandService {
     this.logger.log(
       `Comment created: ${comment.id} on ${input.postType}:${input.postId}`,
     );
+
+    // Decoupled notifications: root comment → post author; reply → parent's
+    // author; any content mentioning @username → mentioned users.
+    if (input.parentCommentId) {
+      const parent = await this.commentRepository.findById(input.parentCommentId);
+      await this.notificationPublisher.publishCommentReply({
+        postId: input.postId,
+        postType: input.postType,
+        parentCommentId: input.parentCommentId,
+        commentId: comment.id,
+        parentAuthorId: parent?.authorId ?? '',
+        actorUserId: input.authorId,
+      });
+    } else {
+      await this.notificationPublisher.publishCommentOnPost({
+        postId: input.postId,
+        postType: input.postType,
+        commentId: comment.id,
+        postAuthorId: postContext.authorId,
+        actorUserId: input.authorId,
+      });
+    }
+
+    const mentionedUserIds = await this.resolveMentionedUserIds(input.content);
+    if (mentionedUserIds.length > 0) {
+      await this.notificationPublisher.publishCommentMentions({
+        commentId: comment.id,
+        mentionedUserIds,
+        actorUserId: input.authorId,
+      });
+    }
 
     const commentWithAuthor = await this.commentRepository.findByIdWithAuthor(comment.id);
 
@@ -248,6 +281,13 @@ export class CommentCommandService {
       return { vote: input.vote, scoreDelta };
     });
 
+    await this.notificationPublisher.publishCommentReaction({
+      commentId: input.commentId,
+      commentAuthorId: existing.authorId,
+      actorUserId: input.userId,
+      vote: input.vote,
+    });
+
     return result;
   }
 
@@ -300,5 +340,22 @@ export class CommentCommandService {
     if (content.length > COMMENT_DEFAULTS.MAX_CONTENT_LENGTH) {
       throw new CommentContentTooLongException(COMMENT_DEFAULTS.MAX_CONTENT_LENGTH);
     }
+  }
+
+  private async resolveMentionedUserIds(content: string): Promise<string[]> {
+    const usernames = [...content.matchAll(/@([a-zA-Z0-9_]+)/g)]
+      .map((match) => match[1])
+      .filter((value, index, all) => all.indexOf(value) === index);
+
+    if (usernames.length === 0) {
+      return [];
+    }
+
+    const users = await this.prisma.user.findMany({
+      where: { username: { in: usernames } },
+      select: { id: true },
+    });
+
+    return users.map((user) => user.id);
   }
 }

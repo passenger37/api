@@ -11,6 +11,7 @@ import { CommentReactionRepository } from './repositories/comment-reaction.repos
 import { CommentCommandService } from './services/comment-command.service';
 import { CommentQueryService } from './services/comment-query.service';
 import { CommentAuthorizationService } from './services/comment-authorization.service';
+import { CommentNotificationPublisher } from './services/comment-notification.publisher';
 import { CommentsController } from './controllers/comments.controller';
 import { CommentItemController } from './controllers/comment-item.controller';
 
@@ -29,6 +30,7 @@ import { CommentItemController } from './controllers/comment-item.controller';
     CommentCommandService,
     CommentQueryService,
     CommentAuthorizationService,
+    CommentNotificationPublisher,
   ],
   exports: [
     CommentRepository,
@@ -36,6 +38,7 @@ import { CommentItemController } from './controllers/comment-item.controller';
     CommentCommandService,
     CommentQueryService,
     CommentAuthorizationService,
+    CommentNotificationPublisher,
   ],
 })
 export class CommentsModule {}
