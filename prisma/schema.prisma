@@ -43,6 +43,9 @@ model User {
   directMessageChannelsA     DirectMessageChannel[]     @relation("DirectMessageChannelA")
   directMessageChannelsB     DirectMessageChannel[]     @relation("DirectMessageChannelB")
   directMessageReadStates    DirectMessageReadState[]
+  directMessageReactions     DirectMessageReaction[]
+  directMessageAttachments   DirectMessageAttachment[]
+  directMessageChannelSettings DirectMessageChannelSettings[]
   following                  Follow[]                   @relation("UserFollowing")
   followers                  Follow[]                   @relation("UserFollowers")
   receivedFollowRequests     FollowRequest[]            @relation("UserReceivedFollowRequests")
@@ -92,6 +95,9 @@ model User {
   assignedRoles              UserRole[]                 @relation("RoleAssignedBy")
   roles                      UserRole[]
   sessions                   UserSession[]
+  comments                   Comment[]
+  commentReactions           CommentReaction[]
+  commentReportsFiled        CommentReport[]
 }
 
 model PostMedia {
@@ -760,6 +766,8 @@ model DirectMessageChannel {
   userA          User                     @relation("DirectMessageChannelA", fields: [userAId], references: [id], onDelete: Cascade)
   userB          User                     @relation("DirectMessageChannelB", fields: [userBId], references: [id], onDelete: Cascade)
   readStates     DirectMessageReadState[]
+  settings       DirectMessageChannelSettings[]
+  attachments    DirectMessageAttachment[]
 
   @@unique([userAId, userBId])
   @@index([userBId])
@@ -772,6 +780,7 @@ model DirectMessage {
   authorUserId    String
   content         String
   clientMessageId String?
+  parentMessageId String?
   isEdited        Boolean                  @default(false)
   editedAt        DateTime?
   isDeleted       Boolean                  @default(false)
@@ -782,12 +791,73 @@ model DirectMessage {
   updatedAt       DateTime                 @updatedAt
   author          User                     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
   channel         DirectMessageChannel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  parentMessage   DirectMessage?           @relation("DirectMessageReplies", fields: [parentMessageId], references: [id])
+  replies         DirectMessage[]          @relation("DirectMessageReplies")
   readStates      DirectMessageReadState[] @relation("DirectMessageReadCursor")
+  reactions       DirectMessageReaction[]
+  attachments     DirectMessageAttachment[]
 
   @@unique([clientMessageId, authorUserId])
   @@index([channelId, messageSeq])
   @@index([channelId, createdAt, id])
   @@index([authorUserId])
+  @@index([parentMessageId, createdAt, id])
+}
+
+model DirectMessageReaction {
+  id        String         @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime       @default(now())
+  message   DirectMessage  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
+}
+
+model DirectMessageAttachment {
+  id           String               @id @default(cuid())
+  messageId    String?
+  channelId    String
+  uploadedById String
+  status       AttachmentStatus     @default(PENDING)
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String               @unique
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  message      DirectMessage?       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  channel      DirectMessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  uploadedBy   User                 @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([channelId, createdAt])
+  @@index([uploadedById])
+}
+
+model DirectMessageChannelSettings {
+  id         String               @id @default(cuid())
+  channelId  String
+  userId     String
+  isMuted    Boolean              @default(false)
+  mutedAt    DateTime?
+  isArchived Boolean              @default(false)
+  archivedAt DateTime?
+  isHidden   Boolean              @default(false)
+  hiddenAt   DateTime?
+  isPinned   Boolean              @default(false)
+  pinnedAt   DateTime?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  channel    DirectMessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([userId])
 }
 
 model DirectMessageReadState {
@@ -2773,6 +2843,10 @@ enum NotificationType {
   SYSTEM
   CALL_INCOMING
   MISSED_CALL
+  COMMENT_ON_POST
+  COMMENT_REPLY
+  COMMENT_REACTION
+  COMMENT_MENTION
 }
 
 enum NotificationEntityType {
@@ -2782,6 +2856,7 @@ enum NotificationEntityType {
   DIRECT_MESSAGE_CHANNEL
   CHANNEL_MESSAGE
   DIRECT_MESSAGE
+  COMMENT
 }
 
 enum NotificationDeliveryChannel {
@@ -2862,4 +2937,91 @@ enum PostType {
   POLL
   MIXED_MEDIA
   LINK
+}
+
+enum CommentPostType {
+  PERSONAL
+  COMMUNITY
+  CHANNEL
+}
+
+enum CommentStatus {
+  ACTIVE
+  EDITED
+  DELETED
+  REMOVED
+}
+
+enum CommentReportReason {
+  HARASSMENT
+  HATE_SPEECH
+  SPAM
+  NSFW_CONTENT
+  VIOLENCE
+  SELF_HARM
+  MISINFORMATION
+  COPYRIGHT
+  OTHER
+}
+
+model Comment {
+  id              String          @id @default(cuid())
+  postId          String
+  postType        CommentPostType
+  parentCommentId String?
+  authorId        String
+  content         String
+  status          CommentStatus   @default(ACTIVE)
+  upvoteCount     Int             @default(0)
+  downvoteCount   Int             @default(0)
+  replyCount      Int             @default(0)
+  version         Int             @default(1)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  editedAt        DateTime?
+  deletedAt       DateTime?
+
+  author          User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentComment   Comment?        @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  replies         Comment[]       @relation("CommentReplies")
+  reactions       CommentReaction[]
+  reports         CommentReport[]
+
+  @@index([postId, postType, status, createdAt])
+  @@index([postId, postType, parentCommentId, createdAt])
+  @@index([parentCommentId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model CommentReaction {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  vote      VoteType
+  createdAt DateTime @default(now())
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+}
+
+model CommentReport {
+  id          String              @id @default(cuid())
+  commentId   String
+  reporterId  String
+  reason      CommentReportReason
+  description String?
+  status      ReportStatus        @default(PENDING)
+  createdAt   DateTime            @default(now())
+
+  comment  Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporter User    @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, reporterId])
+  @@index([commentId])
+  @@index([reporterId])
+  @@index([status])
 }
