@@ -51,7 +51,7 @@ export class CallAuthorizationService {
       case CallScope.DM:
         return this.authorizeDmCreate(userId, scopeRef, callType);
       case CallScope.SERVER_CHANNEL:
-        return this.authorizeChannelCreate(userId, scopeRef);
+        return this.authorizeChannelCreate(userId, scopeRef, callType);
       default:
         throw new ForbiddenException(
           'CALL_NOT_ALLOWED: this call scope is not supported yet.',
@@ -64,6 +64,19 @@ export class CallAuthorizationService {
     switch (call.scope) {
       case CallScope.DM: {
         await this.requireDmMember(call.scopeRef, userId);
+        // Re-check block rules on join as well as create — a call created
+        // before a block still must not let the (now blocked) user in.
+        const peers = await this.dmChannelRepository.findById(call.scopeRef);
+        const targetUserId = peers
+          ? peers.userAId === userId
+            ? peers.userBId
+            : peers.userAId
+          : null;
+        if (targetUserId && (await this.isBlockedEitherWay(userId, targetUserId))) {
+          throw new ForbiddenException(
+            'CALL_NOT_ALLOWED: a blocked user cannot join this call.',
+          );
+        }
         return;
       }
       case CallScope.SERVER_CHANNEL: {
@@ -72,6 +85,8 @@ export class CallAuthorizationService {
           userId,
           ServerPermission.CHANNEL_CALL_JOIN,
         );
+        // Channel must still be a calling channel (may have been re-typed).
+        await this.requireCallCompatibleChannel(call.scopeRef, call.type as CallType);
         return;
       }
       default:
@@ -242,16 +257,7 @@ export class CallAuthorizationService {
     const targetUserId =
       channel.userAId === userId ? channel.userBId : channel.userAId;
 
-    const callerBlockedTarget = await this.userSocialRepository.existsBlock(
-      userId,
-      targetUserId,
-    );
-    const targetBlockedCaller = await this.userSocialRepository.existsBlock(
-      targetUserId,
-      userId,
-    );
-
-    if (callerBlockedTarget || targetBlockedCaller) {
+    if (await this.isBlockedEitherWay(userId, targetUserId)) {
       throw new ForbiddenException(
         'CALL_NOT_ALLOWED: a blocked user cannot be called.',
       );
@@ -260,9 +266,26 @@ export class CallAuthorizationService {
     return [targetUserId];
   }
 
+  /** Block exists in either direction between the two users. */
+  private async isBlockedEitherWay(
+    userId: string,
+    targetUserId: string,
+  ): Promise<boolean> {
+    const callerBlockedTarget = await this.userSocialRepository.existsBlock(
+      userId,
+      targetUserId,
+    );
+    const targetBlockedCaller = await this.userSocialRepository.existsBlock(
+      targetUserId,
+      userId,
+    );
+    return callerBlockedTarget || targetBlockedCaller;
+  }
+
   private async authorizeChannelCreate(
     userId: string,
     channelId: string,
+    callType: CallType,
   ): Promise<CallCreateContext> {
     await this.requireChannelPermission(
       channelId,
@@ -270,11 +293,44 @@ export class CallAuthorizationService {
       ServerPermission.CHANNEL_CALL_START,
     );
 
+    // Only voice/video channels may host a call, and the call type must match
+    // the channel type. Docs: server-audio-channels.md, server-video-channels.md
+    await this.requireCallCompatibleChannel(channelId, callType);
+
     return {
       scope: CallScope.SERVER_CHANNEL,
       scopeRef: channelId,
+      callType,
       ringTargetUserIds: [],
     };
+  }
+
+  /**
+   * CHANNEL compatibility: a call can only run in a VOICE or VIDEO channel,
+   * and the call type must match the channel type (camera is a video-only
+   * control, rejected separately by the command service).
+   */
+  private async requireCallCompatibleChannel(
+    channelId: string,
+    callType: CallType,
+  ): Promise<void> {
+    const channel = await this.channelQueryService.getChannelOrThrow(channelId);
+
+    if (channel.type !== 'VOICE' && channel.type !== 'VIDEO') {
+      throw new ForbiddenException(
+        'CALL_NOT_ALLOWED: calls can only be started in voice or video channels.',
+      );
+    }
+    if (callType === CallType.VIDEO && channel.type !== 'VIDEO') {
+      throw new ForbiddenException(
+        'CALL_NOT_ALLOWED: video calls require a video channel.',
+      );
+    }
+    if (callType === CallType.VOICE && channel.type !== 'VOICE') {
+      throw new ForbiddenException(
+        'CALL_NOT_ALLOWED: voice calls cannot be started in a video channel.',
+      );
+    }
   }
 
   private async requireDmMember(

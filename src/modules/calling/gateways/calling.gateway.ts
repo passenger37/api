@@ -35,6 +35,7 @@ import {
   CALL_EVENT_MUTE,
   CALL_EVENT_PARTICIPANT_JOINED,
   CALL_EVENT_PARTICIPANT_LEFT,
+  CALL_EVENT_STATE,
   CALL_EVENT_REJECT,
   CALL_EVENT_RING,
   CALL_EVENT_UNMUTE,
@@ -44,7 +45,6 @@ import {
   CALL_WS_RATE_LIMIT,
   CALL_WINDOW_SECONDS,
   CALL_CLEANUP_INTERVAL_SECONDS,
-  DEFAULT_STUN_SERVERS,
   callRoom,
   callParticipantRoom,
 } from '../constants/calling.constants';
@@ -55,6 +55,7 @@ import { CallAuthorizationService } from '../services/call-authorization.service
 import { CallingNotificationPublisher } from '../services/calling-notification-publisher.service';
 import { CallEventsService } from '../services/call-events.service';
 import { CallingCleanupService } from '../services/calling-cleanup.service';
+import { IceServerProvider } from '../services/ice-server-provider';
 import { CallScope } from '../types/calling.types';
 import {
   CreateCallRequest,
@@ -95,6 +96,7 @@ export class CallingGateway
     private readonly notificationPublisher: CallingNotificationPublisher,
     private readonly callEvents: CallEventsService,
     private readonly cleanupService: CallingCleanupService,
+    private readonly iceServerProvider: IceServerProvider,
     private readonly connectionAuth: WebSocketConnectionAuthService,
     private readonly connectionLimit: WebSocketConnectionLimitService,
   ) {}
@@ -141,6 +143,29 @@ export class CallingGateway
 
     client.data.userId = authenticated.userId;
     await client.join(callParticipantRoom(authenticated.userId));
+
+    // Reconnect reconciliation: rejoin active call rooms and push the current
+    // call state so the client can resume media instead of hanging.
+    try {
+      const active = await this.queryService.getUserActiveCall(authenticated.userId);
+      if (active) {
+        await client.join(callRoom(active.id));
+        const participants = await this.queryService.getCallParticipants(active.id);
+        client.emit(CALL_EVENT_STATE, {
+          callId: active.id,
+          status: active.status,
+          type: active.type,
+          scope: active.scope,
+          scopeRef: active.scopeRef,
+          participants,
+        });
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Call-state resync failed for user ${authenticated.userId}.`,
+        error,
+      );
+    }
   }
 
   async handleDisconnect(client: Socket) {
@@ -706,10 +731,11 @@ export class CallingGateway
   async stunTurnConfig(@ConnectedSocket() client: Socket) {
     const event = 'call:stun-turn-config';
     try {
+      const iceServers = await this.iceServerProvider.getIceServers();
       return {
         success: true,
         event,
-        iceServers: DEFAULT_STUN_SERVERS,
+        iceServers,
       };
     } catch (exception) {
       return this.normalizeError(exception, event);

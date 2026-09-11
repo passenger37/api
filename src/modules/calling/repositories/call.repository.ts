@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { Call, CallParticipant, Prisma, CallStatus, CallParticipantState } from '@prisma/client';
+import {
+  LIVE_CALL_STATUSES,
+  LIVE_PARTICIPANT_STATES,
+  TERMINAL_CALL_STATUSES,
+} from '../constants/calling.constants';
 
 @Injectable()
 export class CallRepository {
@@ -39,7 +44,7 @@ export class CallRepository {
       where: {
         scope: scope as any,
         scopeRef,
-        status: { in: ['RINGING', 'ACTIVE'] },
+        status: { in: LIVE_CALL_STATUSES as unknown as CallStatus[] },
       },
     });
   }
@@ -48,8 +53,8 @@ export class CallRepository {
     const participant = await this.prisma.callParticipant.findFirst({
       where: {
         userId,
-        state: { in: ['JOINED', 'MUTED', 'CAMERA_OFF'] },
-        call: { status: { in: ['RINGING', 'ACTIVE'] } },
+        state: { in: LIVE_PARTICIPANT_STATES as unknown as CallParticipantState[] },
+        call: { status: { in: LIVE_CALL_STATUSES as unknown as CallStatus[] } },
       },
       include: { call: true },
     });
@@ -62,6 +67,26 @@ export class CallRepository {
         status: 'RINGING',
         updatedAt: { lt: before },
       },
+    });
+  }
+
+  /** Terminal calls the user created or participated in, most recent first. */
+  async findUserCallHistory(
+    userId: string,
+    opts: { skip: number; take: number },
+  ): Promise<(Call & { participants: CallParticipant[] })[]> {
+    return this.prisma.call.findMany({
+      where: {
+        status: { in: TERMINAL_CALL_STATUSES as unknown as CallStatus[] },
+        OR: [
+          { creatorUserId: userId },
+          { participants: { some: { userId } } },
+        ],
+      },
+      include: { participants: true },
+      orderBy: { updatedAt: 'desc' },
+      skip: opts.skip,
+      take: opts.take,
     });
   }
 }
