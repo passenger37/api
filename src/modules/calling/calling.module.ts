@@ -20,7 +20,9 @@ import { CallingNotificationPublisher } from './services/calling-notification-pu
 import { CallEventsService } from './services/call-events.service';
 import { CallingEventListenerService } from './services/calling-event-listener.service';
 import { CallingCleanupService } from './services/calling-cleanup.service';
+import { IceServerProvider } from './services/ice-server-provider';
 import { CallingGateway } from './gateways/calling.gateway';
+import { CallHistoryController } from './controllers/call-history.controller';
 
 @Module({
   imports: [
@@ -41,6 +43,7 @@ import { CallingGateway } from './gateways/calling.gateway';
     CallEventsService,
     CallingEventListenerService,
     CallingCleanupService,
+    IceServerProvider,
     CallingGateway,
     WebSocketJwtGuard,
     WebSocketConnectionAuthService,
@@ -48,6 +51,7 @@ import { CallingGateway } from './gateways/calling.gateway';
     WebSocketRateLimitService,
     WebSocketErrorNormalizer,
   ],
+  controllers: [CallHistoryController],
   exports: [CallCommandService, CallQueryService],
 })
 export class CallingModule {}
