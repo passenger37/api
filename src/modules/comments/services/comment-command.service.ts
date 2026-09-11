@@ -220,25 +220,30 @@ export class CommentCommandService {
         tx,
       );
 
-      let scoreDelta = 0;
+      // Compute aggregate deltas for the denormalized counts.
+      let upvoteDelta = 0;
+      let downvoteDelta = 0;
 
       if (reactionResult.isNew) {
-        scoreDelta = input.vote === 'UPVOTE' ? 1 : -1;
+        if (input.vote === 'UPVOTE') upvoteDelta = 1;
+        else downvoteDelta = 1;
       } else if (reactionResult.previousVote) {
-        // Changed vote: undo previous + apply new
-        const prev = reactionResult.previousVote === 'UPVOTE' ? 1 : -1;
-        const next = input.vote === 'UPVOTE' ? 1 : -1;
-        scoreDelta = next - prev;
+        const previous = reactionResult.previousVote;
+        const next = input.vote;
+
+        if (previous === 'UPVOTE') upvoteDelta -= 1;
+        if (previous === 'DOWNVOTE') downvoteDelta -= 1;
+        if (next === 'UPVOTE') upvoteDelta += 1;
+        if (next === 'DOWNVOTE') downvoteDelta += 1;
       }
 
       await this.reactionRepository.updateCommentCounts(
         input.commentId,
-        {
-          upvotes: scoreDelta > 0 ? 1 : 0,
-          downvotes: scoreDelta < 0 ? 1 : 0,
-        },
+        { upvotes: upvoteDelta, downvotes: downvoteDelta },
         tx,
       );
+
+      const scoreDelta = upvoteDelta - downvoteDelta;
 
       return { vote: input.vote, scoreDelta };
     });
@@ -253,6 +258,13 @@ export class CommentCommandService {
       throw new CommentNotFoundException(commentId);
     }
 
+    const postContext = await this.authorizationService.resolvePost(
+      existing.postId,
+      existing.postType,
+    );
+
+    await this.authorizationService.assertCanAccessPost(postContext, userId);
+
     const result = await this.prisma.$transaction(async (tx) => {
       const removed = await this.reactionRepository.remove(commentId, userId, tx);
 
@@ -260,16 +272,19 @@ export class CommentCommandService {
         return { scoreDelta: 0 };
       }
 
-      const scoreDelta = removed.vote === 'UPVOTE' ? -1 : 1;
+      let upvoteDelta = 0;
+      let downvoteDelta = 0;
+
+      if (removed.vote === 'UPVOTE') upvoteDelta = -1;
+      else downvoteDelta = -1;
 
       await this.reactionRepository.updateCommentCounts(
         commentId,
-        {
-          upvotes: scoreDelta < 0 ? -1 : 0,
-          downvotes: scoreDelta > 0 ? -1 : 0,
-        },
+        { upvotes: upvoteDelta, downvotes: downvoteDelta },
         tx,
       );
+
+      const scoreDelta = upvoteDelta - downvoteDelta;
 
       return { scoreDelta };
     });

@@ -48,7 +48,12 @@ export class CommentQueryService {
     const lastItem = items[items.length - 1];
 
     const nextCursor = hasMore && lastItem
-      ? encodeCommentCursor({ createdAt: lastItem.createdAt, id: lastItem.id })
+      ? encodeCommentCursor({
+          sort,
+          upvoteCount: lastItem.upvoteCount,
+          createdAt: lastItem.createdAt,
+          id: lastItem.id,
+        })
       : null;
 
     const enriched = await this.enrichWithViewerState(items, userId);
@@ -91,7 +96,12 @@ export class CommentQueryService {
     const lastItem = items[items.length - 1];
 
     const nextCursor = hasMore && lastItem
-      ? encodeCommentCursor({ createdAt: lastItem.createdAt, id: lastItem.id })
+      ? encodeCommentCursor({
+          sort,
+          upvoteCount: lastItem.upvoteCount,
+          createdAt: lastItem.createdAt,
+          id: lastItem.id,
+        })
       : null;
 
     const enriched = await this.enrichWithViewerState(items, userId);
@@ -132,19 +142,19 @@ export class CommentQueryService {
     userId: string,
   ): Promise<CommentResponseData[]> {
     const commentIds = comments.map((c) => c.id);
-
-    const viewerVotes = await this.reactionRepository.findByCommentAndUser
+    // Batch viewer votes to avoid per-comment queries (prevents N+1).
+    const viewerVotes: (VoteType | null)[] = commentIds.length > 0
       ? await Promise.all(
           commentIds.map((id) =>
             this.reactionRepository.findByCommentAndUser(id, userId),
           ),
         )
-      : commentIds.map(() => null);
+      : [];
 
     return comments.map((comment, index) => {
       const fullComment = comment as any;
       return CommentMapper.toResponse(fullComment, {
-        viewerVote: viewerVotes[index],
+        viewerVote: viewerVotes[index] ?? null,
         viewerCanEdit: fullComment.authorId === userId,
         viewerCanDelete: fullComment.authorId === userId,
         viewerCanModerate: false,

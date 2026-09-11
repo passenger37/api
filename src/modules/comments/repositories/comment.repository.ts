@@ -107,12 +107,7 @@ export class CommentRepository {
 
     if (cursor) {
       const decoded = decodeCommentCursor(cursor);
-      Object.assign(where, {
-        OR: [
-          { createdAt: { lt: decoded.createdAt } },
-          { AND: [{ createdAt: decoded.createdAt }, { id: { lt: decoded.id } }] },
-        ],
-      });
+      Object.assign(where, this.buildKeysetPredicate(orderBy, decoded));
     }
 
     return this.prisma.comment.findMany({
@@ -137,12 +132,7 @@ export class CommentRepository {
 
     if (cursor) {
       const decoded = decodeCommentCursor(cursor);
-      Object.assign(where, {
-        OR: [
-          { createdAt: { gt: decoded.createdAt } },
-          { AND: [{ createdAt: decoded.createdAt }, { id: { gt: decoded.id } }] },
-        ],
-      });
+      Object.assign(where, this.buildKeysetPredicate(orderBy, decoded));
     }
 
     return this.prisma.comment.findMany({
@@ -180,10 +170,9 @@ export class CommentRepository {
     switch (sort) {
       case COMMENT_SORT.BEST:
         return [
-          { status: 'asc' as const },
           { upvoteCount: 'desc' as const },
-          { createdAt: 'asc' as const },
-          { id: 'asc' as const },
+          { createdAt: 'desc' as const },
+          { id: 'desc' as const },
         ];
       case COMMENT_SORT.TOP:
         return [
@@ -197,5 +186,37 @@ export class CommentRepository {
       default:
         return [{ createdAt: 'asc' as const }, { id: 'asc' as const }];
     }
+  }
+
+  private buildKeysetPredicate(
+    orderBy: Prisma.CommentOrderByWithRelationInput[],
+    cursor: { upvoteCount: number; createdAt: Date; id: string },
+  ): Prisma.CommentWhereInput {
+    // Composite keyset comparison: advance past the cursor row in the
+    // direction of the sort. Each orderBy key maps to a cursor field.
+    const comparators = orderBy.map((entry) => {
+      const key = Object.keys(entry)[0];
+      const direction = entry[key];
+      const value = key === 'upvoteCount' ? cursor.upvoteCount : key === 'createdAt' ? cursor.createdAt : cursor.id;
+      return { key, direction, value };
+    });
+
+    // OR-chain: after the cursor means "greater than the first key, OR equal
+    // to the first AND greater than the second, ...". For descending keys the
+    // comparison flips (less-than continues past the cursor).
+    const orClauses: Prisma.CommentWhereInput[] = comparators.flatMap((entry, index) => {
+      const andChain = comparators.slice(0, index).map((c) => ({ [c.key]: c.value } as Prisma.CommentWhereInput));
+      const op = entry.direction === 'desc' ? 'lt' : 'gt';
+      return [
+        {
+          AND: [
+            ...andChain,
+            { [entry.key]: { [op]: entry.value } } as Prisma.CommentWhereInput,
+          ],
+        } as Prisma.CommentWhereInput,
+      ];
+    });
+
+    return { OR: orClauses };
   }
 }

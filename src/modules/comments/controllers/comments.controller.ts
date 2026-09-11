@@ -22,7 +22,8 @@ import { CommentAuthorizationService } from '../services/comment-authorization.s
 
 import { CreateCommentRequest } from '../dto/request/create-comment.request';
 import { ListCommentsQuery, ReactToCommentRequest } from '../dto/query/list-comments.query';
-import { CommentResponse, CommentListResponse, CommentReactionResponse } from '../dto/response/comment.response';
+import { CommentResponse, CommentListResponse } from '../dto/response/comment.response';
+import { CommentSortMode } from '../constants/comment.constants';
 
 @ApiTags('Comments')
 @ApiBearerAuth()
@@ -66,7 +67,7 @@ export class CommentsController {
     const postType = await this.authorizationService.resolvePostType(postId);
 
     return this.queryService.listRootComments(postId, postType, userId, {
-      sort: query.sort as any,
+      sort: query.sort as CommentSortMode,
       limit: query.limit,
       cursor: query.cursor,
     });
