@@ -31,10 +31,14 @@ import {
 
 import { DmCommandService } from '../services/dm-command.service';
 import { DmQueryService } from '../services/dm-query.service';
+import { DmReactionCommandService } from '../services/dm-reaction-command.service';
 import { DmOpenRequest } from '../dto/request/dm-open.request';
 import { DmSendRequest } from '../dto/request/dm-send.request';
 import { DmSyncRequest } from '../dto/request/dm-sync.request';
 import { DmReadRequest } from '../dto/request/dm-read.request';
+import { DmEditRequest } from '../dto/request/dm-edit.request';
+import { DmDeleteRequest } from '../dto/request/dm-delete.request';
+import { DmReactionRequest } from '../dto/request/dm-reaction.request';
 import { DmTypingStartRequest } from '../dto/request/dm-typing-start.request';
 import { DmTypingStopRequest } from '../dto/request/dm-typing-stop.request';
 import { TypingService } from '../../messages/services/typing.service';
@@ -63,6 +67,8 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(forwardRef(() => DmCommandService))
     private readonly commandService: DmCommandService,
     private readonly queryService: DmQueryService,
+    @Inject(forwardRef(() => DmReactionCommandService))
+    private readonly reactionCommandService: DmReactionCommandService,
     private readonly connectionAuth: WebSocketConnectionAuthService,
     private readonly connectionLimit: WebSocketConnectionLimitService,
     private readonly typingService: TypingService,
@@ -148,6 +154,8 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
         userId,
         request.content,
         request.clientMessageId,
+        request.parentMessageId,
+        request.attachmentIds,
       );
 
       return {
@@ -245,6 +253,14 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(dmRoom(channelId)).emit('dm-message-read', payload);
   }
 
+  broadcastReactionAdded(channelId: string, payload: unknown) {
+    this.server.to(dmRoom(channelId)).emit('dm-reaction-added', payload);
+  }
+
+  broadcastReactionRemoved(channelId: string, payload: unknown) {
+    this.server.to(dmRoom(channelId)).emit('dm-reaction-removed', payload);
+  }
+
   @SubscribeMessage('dm:typing-start')
   async typingStart(
     @ConnectedSocket() client: Socket,
@@ -261,6 +277,11 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       await this.queryService.getChannel(request.channelId, userId);
+
+      await this.commandService.assertNotBlockedForChannel(
+        request.channelId,
+        userId,
+      );
 
       await this.typingService.startTyping(request.channelId, userId);
 
@@ -295,6 +316,11 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       await this.queryService.getChannel(request.channelId, userId);
 
+      await this.commandService.assertNotBlockedForChannel(
+        request.channelId,
+        userId,
+      );
+
       await this.typingService.stopTyping(request.channelId, userId);
 
       client.broadcast.to(dmRoom(request.channelId)).emit('dm-typing-stopped', {
@@ -305,6 +331,129 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return {
         success: true,
         channelId: request.channelId,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm-edit')
+  async edit(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmEditRequest,
+  ) {
+    const event = 'dm-edit';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-edit', userId),
+        limit: 30,
+        windowSeconds: 10,
+      });
+
+      const message = await this.commandService.edit(
+        request.messageId,
+        userId,
+        request.content,
+        request.expectedVersion,
+      );
+
+      return {
+        success: true,
+        event,
+        message,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm-delete')
+  async deleteMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmDeleteRequest,
+  ) {
+    const event = 'dm-delete';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-delete', userId),
+        limit: 30,
+        windowSeconds: 10,
+      });
+
+      const result = await this.commandService.delete(
+        request.messageId,
+        userId,
+      );
+
+      return {
+        success: result.success,
+        event,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm-reaction-add')
+  async reactionAdd(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmReactionRequest,
+  ) {
+    const event = 'dm-reaction-add';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-reaction-add', userId),
+        limit: 30,
+        windowSeconds: 10,
+      });
+
+      const result = await this.reactionCommandService.addReaction(
+        request.messageId,
+        userId,
+        request.emoji,
+      );
+
+      return {
+        success: true,
+        event,
+        ...result,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm-reaction-remove')
+  async reactionRemove(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmReactionRequest,
+  ) {
+    const event = 'dm-reaction-remove';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-reaction-remove', userId),
+        limit: 30,
+        windowSeconds: 10,
+      });
+
+      const result = await this.reactionCommandService.removeReaction(
+        request.messageId,
+        userId,
+        request.emoji,
+      );
+
+      return {
+        success: true,
+        event,
+        ...result,
       };
     } catch (exception) {
       return this.normalizeError(exception, event);

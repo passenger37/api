@@ -40,6 +40,7 @@ describe('dm serializer', () => {
         authorUserId: 'userA',
         content: 'hi',
         clientMessageId: 'client-1',
+        parentMessageId: null,
         isEdited: true,
         editedAt: new Date('2026-01-02T00:00:00.000Z'),
         isDeleted: false,
@@ -53,6 +54,7 @@ describe('dm serializer', () => {
       authorUserId: 'userA',
       content: 'hi',
       clientMessageId: 'client-1',
+      parentMessageId: null,
       isEdited: true,
       editedAt: '2026-01-02T00:00:00.000Z',
       isDeleted: false,
@@ -84,6 +86,16 @@ describe('dm serializer', () => {
       lastMessageAt: '2026-01-01T00:00:00.000Z',
       unreadCount: 0,
       createdAt: '2026-01-01T00:00:00.000Z',
+      settings: {
+        isMuted: false,
+        mutedAt: null,
+        isArchived: false,
+        archivedAt: null,
+        isHidden: false,
+        hiddenAt: null,
+        isPinned: false,
+        pinnedAt: null,
+      },
     });
   });
 

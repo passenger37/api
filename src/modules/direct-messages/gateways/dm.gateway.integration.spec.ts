@@ -6,6 +6,7 @@ describe('DmGateway Integration', () => {
   let rateLimit: any;
   let commandService: any;
   let queryService: any;
+  let reactionCommandService: any;
   let connectionAuth: any;
   let connectionLimit: any;
   let typingService: any;
@@ -34,6 +35,9 @@ describe('DmGateway Integration', () => {
         lastReadAt: new Date('2026-01-01T00:00:00.000Z'),
         unreadCount: 0,
       }),
+      assertNotBlockedForChannel: jest.fn().mockResolvedValue(undefined),
+      edit: jest.fn().mockResolvedValue({ id: 'msg1', version: 2 }),
+      delete: jest.fn().mockResolvedValue({ success: true, messageId: 'msg1' }),
     };
     queryService = {
       getHistory: jest.fn().mockResolvedValue([{ id: 'msg2' }]),
@@ -42,6 +46,18 @@ describe('DmGateway Integration', () => {
         id: 'dm1',
         userAId: 'u1',
         userBId: 'u2',
+      }),
+    };
+    reactionCommandService = {
+      addReaction: jest.fn().mockResolvedValue({
+        messageId: 'msg1',
+        userId: 'u1',
+        emoji: '🔥',
+      }),
+      removeReaction: jest.fn().mockResolvedValue({
+        messageId: 'msg1',
+        userId: 'u1',
+        emoji: '🔥',
       }),
     };
     connectionAuth = {
@@ -61,6 +77,7 @@ describe('DmGateway Integration', () => {
       rateLimit,
       commandService,
       queryService,
+      reactionCommandService,
       connectionAuth,
       connectionLimit,
       typingService,
@@ -74,7 +91,7 @@ describe('DmGateway Integration', () => {
     const client = { join: jest.fn(), data: { userId: 'u1' } } as any;
     const request = { targetUserId: 'u2' };
 
-    const result = await gateway.open(client, request as any);
+    const result = await gateway.open(client, request);
 
     expect(rateLimit.consume).toHaveBeenCalledWith({
       key: 'ws:dm-open:u1',
@@ -99,7 +116,7 @@ describe('DmGateway Integration', () => {
       clientMessageId: 'client-1',
     };
 
-    const result = await gateway.send(client, request as any);
+    const result = await gateway.send(client, request);
 
     expect(rateLimit.consume).toHaveBeenCalledWith({
       key: 'ws:dm-send:u1',
@@ -111,6 +128,8 @@ describe('DmGateway Integration', () => {
       'u1',
       'hi',
       'client-1',
+      undefined,
+      undefined,
     );
     expect(result).toEqual({
       success: true,
@@ -125,7 +144,7 @@ describe('DmGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'dm1' };
 
-    const result = await gateway.sync(client, request as any);
+    const result = await gateway.sync(client, request);
 
     expect(queryService.getHistory).toHaveBeenCalledWith('dm1', 'u1');
     expect(queryService.getMessagesAfter).not.toHaveBeenCalled();
@@ -141,7 +160,7 @@ describe('DmGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'dm1', lastKnownMessageId: 'msg1' };
 
-    const result = await gateway.sync(client, request as any);
+    const result = await gateway.sync(client, request);
 
     expect(queryService.getMessagesAfter).toHaveBeenCalledWith(
       'dm1',
@@ -157,7 +176,7 @@ describe('DmGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'dm1', lastReadMessageId: 'msg2' };
 
-    const result = await gateway.read(client, request as any);
+    const result = await gateway.read(client, request);
 
     expect(rateLimit.consume).toHaveBeenCalledWith({
       key: 'ws:dm-read:u1',
@@ -183,7 +202,7 @@ describe('DmGateway Integration', () => {
     } as any;
     const request = { channelId: 'dm1' };
 
-    const result = await gateway.typingStart(client, request as any);
+    const result = await gateway.typingStart(client, request);
 
     expect(rateLimit.consume).toHaveBeenCalledWith({
       key: 'ws:dm:typing-start:u1',
@@ -191,6 +210,10 @@ describe('DmGateway Integration', () => {
       windowSeconds: 10,
     });
     expect(queryService.getChannel).toHaveBeenCalledWith('dm1', 'u1');
+    expect(commandService.assertNotBlockedForChannel).toHaveBeenCalledWith(
+      'dm1',
+      'u1',
+    );
     expect(typingService.startTyping).toHaveBeenCalledWith('dm1', 'u1');
     expect(broadcast.to).toHaveBeenCalledWith('dm:dm1');
     expect(broadcast.emit).toHaveBeenCalledWith('dm-typing-started', {
@@ -208,7 +231,7 @@ describe('DmGateway Integration', () => {
     } as any;
     const request = { channelId: 'dm1' };
 
-    const result = await gateway.typingStop(client, request as any);
+    const result = await gateway.typingStop(client, request);
 
     expect(rateLimit.consume).toHaveBeenCalledWith({
       key: 'ws:dm:typing-stop:u1',
@@ -216,6 +239,10 @@ describe('DmGateway Integration', () => {
       windowSeconds: 10,
     });
     expect(queryService.getChannel).toHaveBeenCalledWith('dm1', 'u1');
+    expect(commandService.assertNotBlockedForChannel).toHaveBeenCalledWith(
+      'dm1',
+      'u1',
+    );
     expect(typingService.stopTyping).toHaveBeenCalledWith('dm1', 'u1');
     expect(broadcast.to).toHaveBeenCalledWith('dm:dm1');
     expect(broadcast.emit).toHaveBeenCalledWith('dm-typing-stopped', {
@@ -226,19 +253,98 @@ describe('DmGateway Integration', () => {
   });
 
   it('should normalize errors on typing start failure', async () => {
-    queryService.getChannel.mockRejectedValueOnce(
-      new Error('Channel denied.'),
-    );
+    queryService.getChannel.mockRejectedValueOnce(new Error('Channel denied.'));
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'dm1' };
 
-    const result = await gateway.typingStart(client, request as any);
+    const result = await gateway.typingStart(client, request);
 
     expect(errorNormalizer.normalize).toHaveBeenCalledWith(
       expect.any(Error),
       'dm:typing-start',
     );
     expect(result).toEqual({ error: true });
+  });
+
+  it('should edit a message', async () => {
+    const client = { data: { userId: 'u1' } } as any;
+    const request = {
+      messageId: 'msg1',
+      content: 'updated',
+      expectedVersion: 1,
+    };
+
+    const result = await gateway.edit(client, request);
+
+    expect(rateLimit.consume).toHaveBeenCalledWith({
+      key: 'ws:dm-edit:u1',
+      limit: 30,
+      windowSeconds: 10,
+    });
+    expect(commandService.edit).toHaveBeenCalledWith(
+      'msg1',
+      'u1',
+      'updated',
+      1,
+    );
+    expect(result).toEqual({
+      success: true,
+      event: 'dm-edit',
+      message: { id: 'msg1', version: 2 },
+    });
+  });
+
+  it('should delete a message', async () => {
+    const client = { data: { userId: 'u1' } } as any;
+    const request = { messageId: 'msg1' };
+
+    const result = await gateway.deleteMessage(client, request);
+
+    expect(commandService.delete).toHaveBeenCalledWith('msg1', 'u1');
+    expect(result).toEqual({
+      success: true,
+      event: 'dm-delete',
+    });
+  });
+
+  it('should add a reaction and report it', async () => {
+    const client = { data: { userId: 'u1' } } as any;
+    const request = { messageId: 'msg1', emoji: '🔥' };
+
+    const result = await gateway.reactionAdd(client, request);
+
+    expect(reactionCommandService.addReaction).toHaveBeenCalledWith(
+      'msg1',
+      'u1',
+      '🔥',
+    );
+    expect(result).toEqual({
+      success: true,
+      event: 'dm-reaction-add',
+      messageId: 'msg1',
+      userId: 'u1',
+      emoji: '🔥',
+    });
+  });
+
+  it('should remove a reaction and report it', async () => {
+    const client = { data: { userId: 'u1' } } as any;
+    const request = { messageId: 'msg1', emoji: '🔥' };
+
+    const result = await gateway.reactionRemove(client, request);
+
+    expect(reactionCommandService.removeReaction).toHaveBeenCalledWith(
+      'msg1',
+      'u1',
+      '🔥',
+    );
+    expect(result).toEqual({
+      success: true,
+      event: 'dm-reaction-remove',
+      messageId: 'msg1',
+      userId: 'u1',
+      emoji: '🔥',
+    });
   });
 
   it('should broadcast message created events to the dm room', () => {
@@ -255,7 +361,7 @@ describe('DmGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'dm1', content: 'hi' };
 
-    const result = await gateway.send(client, request as any);
+    const result = await gateway.send(client, request);
 
     expect(errorNormalizer.normalize).toHaveBeenCalledWith(
       expect.any(Error),

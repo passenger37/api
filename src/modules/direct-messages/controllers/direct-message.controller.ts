@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -11,8 +12,15 @@ import {
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { DmCommandService } from '../services/dm-command.service';
 import { DmQueryService } from '../services/dm-query.service';
+import { DmReactionQueryService } from '../services/dm-reaction-query.service';
+import { DmReactionCommandService } from '../services/dm-reaction-command.service';
+import { DmAttachmentService } from '../services/dm-attachment.service';
 import { DmOpenRequest } from '../dto/request/dm-open.request';
 import { DmReadRequest } from '../dto/request/dm-read.request';
+import { DmEditRequest } from '../dto/request/dm-edit.request';
+import { DmReactionRequest } from '../dto/request/dm-reaction.request';
+import { DmChannelSettingsRequest } from '../dto/request/dm-channel-settings.request';
+import { DmAttachmentUploadRequest } from '../dto/request/dm-attachment-upload.request';
 import { DmMessagesQuery } from '../dto/query/dm-messages.query';
 
 @Controller('dm')
@@ -20,6 +28,9 @@ export class DirectMessageController {
   constructor(
     private readonly commandService: DmCommandService,
     private readonly queryService: DmQueryService,
+    private readonly reactionQueryService: DmReactionQueryService,
+    private readonly reactionCommandService: DmReactionCommandService,
+    private readonly attachmentService: DmAttachmentService,
   ) {}
 
   @Post('channels')
@@ -79,6 +90,108 @@ export class DirectMessageController {
       channelId,
       userId,
       request.lastReadMessageId,
+    );
+  }
+
+  @Patch('channels/:channelId/settings')
+  async updateSettings(
+    @Param('channelId') channelId: string,
+    @CurrentUser('id') userId: string,
+    @Body() request: DmChannelSettingsRequest,
+  ) {
+    return this.commandService.updateSettings(channelId, userId, request);
+  }
+
+  @Patch('messages/:messageId')
+  async editMessage(
+    @Param('messageId') messageId: string,
+    @CurrentUser('id') userId: string,
+    @Body() request: DmEditRequest,
+  ) {
+    return this.commandService.edit(
+      messageId,
+      userId,
+      request.content,
+      request.expectedVersion,
+    );
+  }
+
+  @Delete('messages/:messageId')
+  async deleteMessage(
+    @Param('messageId') messageId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.commandService.delete(messageId, userId);
+  }
+
+  @Get('messages/:messageId/reactions')
+  async getReactions(
+    @Param('messageId') messageId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.reactionQueryService.getReactions(messageId, userId);
+  }
+
+  @Post('messages/:messageId/reactions')
+  async addReaction(
+    @Param('messageId') messageId: string,
+    @CurrentUser('id') userId: string,
+    @Body() request: DmReactionRequest,
+  ) {
+    return this.reactionCommandService.addReaction(
+      messageId,
+      userId,
+      request.emoji,
+    );
+  }
+
+  @Delete('messages/:messageId/reactions')
+  async removeReaction(
+    @Param('messageId') messageId: string,
+    @CurrentUser('id') userId: string,
+    @Body() request: DmReactionRequest,
+  ) {
+    return this.reactionCommandService.removeReaction(
+      messageId,
+      userId,
+      request.emoji,
+    );
+  }
+
+  @Post('channels/:channelId/attachments/upload-request')
+  async requestUpload(
+    @Param('channelId') channelId: string,
+    @CurrentUser('id') userId: string,
+    @Body() request: DmAttachmentUploadRequest,
+  ) {
+    return this.attachmentService.requestUpload(channelId, userId, request);
+  }
+
+  @Post('channels/:channelId/attachments/:attachmentId/confirm')
+  async confirmUpload(
+    @Param('channelId') channelId: string,
+    @Param('attachmentId') attachmentId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.attachmentService.confirmUpload(
+      channelId,
+      attachmentId,
+      userId,
+    );
+  }
+
+  @Get('channels/:channelId/attachments/:attachmentId/url')
+  async getAttachmentUrl(
+    @Param('channelId') channelId: string,
+    @Param('attachmentId') attachmentId: string,
+    @CurrentUser('id') userId: string,
+    @Query('disposition') disposition?: string,
+  ) {
+    return this.attachmentService.getDownloadUrl(
+      channelId,
+      attachmentId,
+      userId,
+      disposition === 'inline' ? 'inline' : 'attachment',
     );
   }
 }

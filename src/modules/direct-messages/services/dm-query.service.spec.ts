@@ -7,6 +7,9 @@ describe('DmQueryService', () => {
   let channelRepository: any;
   let messageRepository: any;
   let readStateRepository: any;
+  let settingsRepository: any;
+  let reactionRepository: any;
+  let attachmentRepository: any;
 
   const channel = {
     id: 'dm1',
@@ -38,21 +41,42 @@ describe('DmQueryService', () => {
       findAfter: jest.fn(),
       findById: jest.fn(),
     };
-    readStateRepository = { find: jest.fn() };
+    readStateRepository = {
+      find: jest.fn(),
+      findForUser: jest.fn(),
+    };
+    settingsRepository = {
+      find: jest.fn(),
+      findForUser: jest.fn(),
+    };
+    reactionRepository = {
+      countReactionsByMessages: jest.fn().mockResolvedValue(new Map()),
+      viewerReactions: jest.fn().mockResolvedValue(new Map()),
+    };
+    attachmentRepository = {
+      findByMessageIds: jest.fn().mockResolvedValue([]),
+    };
 
     service = new DmQueryService(
       channelRepository,
       messageRepository,
       readStateRepository,
+      settingsRepository,
+      reactionRepository,
+      attachmentRepository,
     );
   });
 
   it('should list channels annotated with unread counts', async () => {
     channelRepository.listForUser.mockResolvedValue([channel]);
-    readStateRepository.find.mockResolvedValue({
-      id: 'rs1',
-      unreadCount: 2,
-    });
+    readStateRepository.findForUser.mockResolvedValue([
+      {
+        id: 'rs1',
+        channelId: 'dm1',
+        unreadCount: 2,
+      },
+    ]);
+    settingsRepository.findForUser.mockResolvedValue([]);
 
     const rows = await service.listChannels('userA');
 
@@ -61,7 +85,9 @@ describe('DmQueryService', () => {
       undefined,
       50,
     );
-    expect(readStateRepository.find).toHaveBeenCalledWith('dm1', 'userA');
+    expect(readStateRepository.findForUser).toHaveBeenCalledWith('userA', [
+      'dm1',
+    ]);
     expect(rows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -76,6 +102,7 @@ describe('DmQueryService', () => {
   it('should return the channel for a member', async () => {
     channelRepository.findById.mockResolvedValue(channel);
     readStateRepository.find.mockResolvedValue(null);
+    settingsRepository.find.mockResolvedValue(null);
 
     const result = await service.getChannel('dm1', 'userA');
 

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -11,13 +12,17 @@ import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
 import { UserQueryService } from '../../users/services/user-query.service';
+import { UserSocialRepository } from '../../users/repositories/user-social.repository';
+import { MessageSpamControlService } from '../../messages/services/message-spam-control.service';
+import { SearchService } from '../../search/services/search.service';
+
 import { DirectMessageChannelRepository } from '../repositories/direct-message-channel.repository';
 import { DirectMessageRepository } from '../repositories/direct-message.repository';
 import { DirectMessageReadStateRepository } from '../repositories/direct-message-read-state.repository';
+import { DirectMessageChannelSettingsRepository } from '../repositories/direct-message-channel-settings.repository';
 import { serializeDirectMessage } from '../serializers/dm.serializer';
 import { DmGateway } from '../gateways/dm.gateway';
-
-import { SearchService } from '../../search/services/search.service';
+import { DmAttachmentService } from './dm-attachment.service';
 
 @Injectable()
 export class DmCommandService {
@@ -28,7 +33,11 @@ export class DmCommandService {
     private readonly channelRepository: DirectMessageChannelRepository,
     private readonly messageRepository: DirectMessageRepository,
     private readonly readStateRepository: DirectMessageReadStateRepository,
+    private readonly channelSettingsRepository: DirectMessageChannelSettingsRepository,
     private readonly userQueryService: UserQueryService,
+    private readonly userSocialRepository: UserSocialRepository,
+    private readonly spamControl: MessageSpamControlService,
+    private readonly attachmentService: DmAttachmentService,
     @Inject(forwardRef(() => DmGateway))
     private readonly gateway: DmGateway,
     private readonly searchService: SearchService,
@@ -38,6 +47,8 @@ export class DmCommandService {
     if (userId === targetUserId) {
       throw new BadRequestException('You cannot message yourself.');
     }
+
+    await this.assertNotBlockedPair(userId, targetUserId);
 
     const target = await this.userQueryService.findById(targetUserId);
 
@@ -62,6 +73,8 @@ export class DmCommandService {
     senderId: string,
     content: string,
     clientMessageId?: string,
+    parentMessageId?: string,
+    attachmentIds?: string[],
   ) {
     const channel = await this.channelRepository.findById(channelId);
 
@@ -75,7 +88,15 @@ export class DmCommandService {
       );
     }
 
+    await this.assertNotBlocked(channel, senderId);
+
     this.assertContent(content);
+
+    await this.spamControl.checkSend(channelId, senderId, content);
+
+    if (parentMessageId) {
+      await this.validateReplyTarget(parentMessageId, channelId);
+    }
 
     if (clientMessageId) {
       const existing = await this.messageRepository.findByClientMessageId(
@@ -115,9 +136,26 @@ export class DmCommandService {
               },
             },
             ...(clientMessageId && { clientMessageId }),
+            ...(parentMessageId && {
+              parentMessage: {
+                connect: {
+                  id: parentMessageId,
+                },
+              },
+            }),
           },
           tx,
         );
+
+        if (attachmentIds?.length) {
+          await this.attachmentService.attachToMessage(
+            created.id,
+            channelId,
+            senderId,
+            attachmentIds,
+            tx,
+          );
+        }
 
         return created;
       });
@@ -153,6 +191,23 @@ export class DmCommandService {
       }
 
       throw error;
+    }
+  }
+
+  private async validateReplyTarget(
+    parentMessageId: string,
+    channelId: string,
+  ) {
+    const parent = await this.messageRepository.findById(parentMessageId);
+
+    if (!parent || parent.isDeleted) {
+      throw new BadRequestException('Reply target message not found.');
+    }
+
+    if (parent.channelId !== channelId) {
+      throw new BadRequestException(
+        'Cannot reply to a message from another conversation.',
+      );
     }
   }
 
@@ -319,6 +374,83 @@ export class DmCommandService {
     });
 
     return result;
+  }
+
+  /**
+   * Per-participant conversation preferences (archive, mute, hide, pin).
+   */
+  async updateSettings(
+    channelId: string,
+    userId: string,
+    settings: {
+      isMuted?: boolean;
+      isArchived?: boolean;
+      isHidden?: boolean;
+      isPinned?: boolean;
+    },
+  ) {
+    const channel = await this.channelRepository.findById(channelId);
+
+    if (!channel) {
+      throw new NotFoundException('Direct message channel not found.');
+    }
+
+    if (channel.userAId !== userId && channel.userBId !== userId) {
+      throw new BadRequestException(
+        'You do not have access to this direct message channel.',
+      );
+    }
+
+    return this.channelSettingsRepository.upsert(channelId, userId, settings);
+  }
+
+  /**
+   * Block enforcement — both directions are authoritative: if either
+   * participant has blocked the other, messaging is rejected.
+   */
+  async assertNotBlocked(
+    channel: { userAId: string; userBId: string },
+    senderId: string,
+  ): Promise<void> {
+    const recipientId =
+      channel.userAId === senderId ? channel.userBId : channel.userAId;
+
+    await this.assertNotBlockedPair(senderId, recipientId);
+  }
+
+  async assertNotBlockedForChannel(
+    channelId: string,
+    userId: string,
+  ): Promise<void> {
+    const channel = await this.channelRepository.findById(channelId);
+
+    if (!channel) {
+      throw new NotFoundException('Direct message channel not found.');
+    }
+
+    if (channel.userAId !== userId && channel.userBId !== userId) {
+      throw new BadRequestException(
+        'You do not have access to this direct message channel.',
+      );
+    }
+
+    await this.assertNotBlocked(channel, userId);
+  }
+
+  private async assertNotBlockedPair(
+    userAId: string,
+    userBId: string,
+  ): Promise<void> {
+    const [recipientBlocksSender, senderBlocksRecipient] = await Promise.all([
+      this.userSocialRepository.existsBlock(userAId, userBId),
+      this.userSocialRepository.existsBlock(userBId, userAId),
+    ]);
+
+    if (recipientBlocksSender || senderBlocksRecipient) {
+      throw new ForbiddenException(
+        'Message cannot be sent to a user with an active block relationship.',
+      );
+    }
   }
 
   private assertContent(content: string) {

@@ -12,12 +12,21 @@ import { AuthModule } from '../auth/auth.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { SearchModule } from '../search/search.module';
 import { TypingService } from '../messages/services/typing.service';
+import { MessageSpamControlService } from '../messages/services/message-spam-control.service';
+import { AttachmentStorageService } from '../messages/services/attachment-storage.service';
+import { AttachmentValidationService } from '../messages/services/attachment-validation.service';
 
 import { DirectMessageChannelRepository } from './repositories/direct-message-channel.repository';
 import { DirectMessageRepository } from './repositories/direct-message.repository';
 import { DirectMessageReadStateRepository } from './repositories/direct-message-read-state.repository';
+import { DirectMessageChannelSettingsRepository } from './repositories/direct-message-channel-settings.repository';
+import { DirectMessageReactionRepository } from './repositories/direct-message-reaction.repository';
+import { DirectMessageAttachmentRepository } from './repositories/direct-message-attachment.repository';
 import { DmCommandService } from './services/dm-command.service';
 import { DmQueryService } from './services/dm-query.service';
+import { DmReactionCommandService } from './services/dm-reaction-command.service';
+import { DmReactionQueryService } from './services/dm-reaction-query.service';
+import { DmAttachmentService } from './services/dm-attachment.service';
 import { SystemDmService } from './services/system-dm.service';
 import { DmGateway } from './gateways/dm.gateway';
 import { DirectMessageController } from './controllers/direct-message.controller';
@@ -36,12 +45,21 @@ import { SystemDmController } from './controllers/system-dm.controller';
     DirectMessageChannelRepository,
     DirectMessageRepository,
     DirectMessageReadStateRepository,
+    DirectMessageChannelSettingsRepository,
+    DirectMessageReactionRepository,
+    DirectMessageAttachmentRepository,
     DmCommandService,
     DmQueryService,
+    DmReactionCommandService,
+    DmReactionQueryService,
+    DmAttachmentService,
     SystemDmService,
     RolesGuard,
     DmGateway,
     TypingService,
+    MessageSpamControlService,
+    AttachmentStorageService,
+    AttachmentValidationService,
     WebSocketJwtGuard,
     WebSocketConnectionAuthService,
     WebSocketConnectionLimitService,
@@ -49,6 +67,11 @@ import { SystemDmController } from './controllers/system-dm.controller';
     WebSocketErrorNormalizer,
   ],
 
-  exports: [DmCommandService, DmQueryService, SystemDmService, DirectMessageChannelRepository],
+  exports: [
+    DmCommandService,
+    DmQueryService,
+    SystemDmService,
+    DirectMessageChannelRepository,
+  ],
 })
 export class DirectMessagesModule {}

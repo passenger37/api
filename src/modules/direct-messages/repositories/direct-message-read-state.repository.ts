@@ -78,6 +78,24 @@ export class DirectMessageReadStateRepository {
     });
   }
 
+  async findForUser(
+    userId: string,
+    channelIds: string[],
+  ): Promise<DirectMessageReadState[]> {
+    if (channelIds.length === 0) {
+      return [];
+    }
+
+    return this.prisma.directMessageReadState.findMany({
+      where: {
+        userId,
+        channelId: {
+          in: channelIds,
+        },
+      },
+    });
+  }
+
   async countUnreadAfter(
     channelId: string,
     lastReadAt: Date,

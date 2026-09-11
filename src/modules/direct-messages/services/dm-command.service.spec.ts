@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserStatus } from '@prisma/client';
 
 import { DmCommandService } from './dm-command.service';
@@ -9,7 +13,11 @@ describe('DmCommandService', () => {
   let channelRepository: any;
   let messageRepository: any;
   let readStateRepository: any;
+  let channelSettingsRepository: any;
   let userQueryService: any;
+  let userSocialRepository: any;
+  let spamControl: any;
+  let attachmentService: any;
   let gateway: any;
   let searchService: any;
 
@@ -36,7 +44,22 @@ describe('DmCommandService', () => {
       upsert: jest.fn(),
       countUnreadAfter: jest.fn(),
     };
+    channelSettingsRepository = {
+      find: jest.fn(),
+      findForUser: jest.fn(),
+      upsert: jest.fn(),
+    };
     userQueryService = { findById: jest.fn() };
+    userSocialRepository = {
+      existsBlock: jest.fn().mockResolvedValue(false),
+    };
+    spamControl = {
+      checkSend: jest.fn().mockResolvedValue(undefined),
+      checkUploadRequest: jest.fn().mockResolvedValue(undefined),
+    };
+    attachmentService = {
+      attachToMessage: jest.fn().mockResolvedValue(undefined),
+    };
     gateway = {
       broadcastMessageCreated: jest.fn(),
       broadcastMessageUpdated: jest.fn(),
@@ -50,7 +73,11 @@ describe('DmCommandService', () => {
       channelRepository,
       messageRepository,
       readStateRepository,
+      channelSettingsRepository,
       userQueryService,
+      userSocialRepository,
+      spamControl,
+      attachmentService,
       gateway,
       searchService,
     );
@@ -396,6 +423,189 @@ describe('DmCommandService', () => {
       await expect(service.markRead('dm1', 'u1', 'mX')).rejects.toBeInstanceOf(
         BadRequestException,
       );
+    });
+  });
+
+  describe('block enforcement', () => {
+    const channel = { id: 'dm1', userAId: 'u1', userBId: 'u2' };
+
+    it('should reject open when either side has a block', async () => {
+      userSocialRepository.existsBlock.mockResolvedValue(true);
+
+      await expect(service.open('u1', 'u2')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+
+      expect(userSocialRepository.existsBlock).toHaveBeenCalledTimes(2);
+    });
+
+    it('should reject send when the recipient blocked the sender', async () => {
+      channelRepository.findById.mockResolvedValue(channel);
+      userSocialRepository.existsBlock.mockResolvedValueOnce(false);
+      userSocialRepository.existsBlock.mockResolvedValueOnce(true);
+
+      await expect(service.send('dm1', 'u1', 'hi')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+    });
+
+    it('should reject send when the sender blocked the recipient', async () => {
+      channelRepository.findById.mockResolvedValue(channel);
+      userSocialRepository.existsBlock.mockResolvedValueOnce(true);
+
+      await expect(service.send('dm1', 'u1', 'hi')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+    });
+  });
+
+  describe('replies', () => {
+    const channel = { id: 'dm1', userAId: 'u1', userBId: 'u2' };
+    const parent = {
+      id: 'p1',
+      channelId: 'dm1',
+      authorUserId: 'u2',
+      content: 'original',
+      isDeleted: false,
+      createdAt: now,
+    };
+    const created = {
+      id: 'm1',
+      channelId: 'dm1',
+      authorUserId: 'u1',
+      content: 'reply',
+      parentMessageId: 'p1',
+      clientMessageId: null,
+      isEdited: false,
+      editedAt: null,
+      isDeleted: false,
+      version: 1,
+      messageSeq: 1,
+      createdAt: now,
+    };
+
+    beforeEach(() => {
+      channelRepository.findById.mockResolvedValue(channel);
+      messageRepository.findById.mockResolvedValue(parent);
+      prisma.$transaction.mockImplementation(async (cb) =>
+        cb({ directMessageChannel: channelRepository }),
+      );
+      channelRepository.incrementCounterAndTouch.mockResolvedValue(1);
+      messageRepository.create.mockResolvedValue(created);
+    });
+
+    it('should reject a reply to a message in another channel', async () => {
+      messageRepository.findById.mockResolvedValue({
+        ...parent,
+        channelId: 'dm-other',
+      });
+
+      await expect(
+        service.send('dm1', 'u1', 'reply', undefined, 'p1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('should reject a reply to a deleted message', async () => {
+      messageRepository.findById.mockResolvedValue({
+        ...parent,
+        isDeleted: true,
+      });
+
+      await expect(
+        service.send('dm1', 'u1', 'reply', undefined, 'p1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('should connect the parent message when sending a reply', async () => {
+      const result = await service.send('dm1', 'u1', 'reply', undefined, 'p1');
+
+      expect(messageRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: 'reply',
+          parentMessage: { connect: { id: 'p1' } },
+        }),
+        expect.anything(),
+      );
+      expect(result.message).toEqual(expect.objectContaining({ id: 'm1' }));
+    });
+  });
+
+  describe('attachments', () => {
+    const channel = { id: 'dm1', userAId: 'u1', userBId: 'u2' };
+    const created = {
+      id: 'm1',
+      channelId: 'dm1',
+      authorUserId: 'u1',
+      content: 'with attachments',
+      clientMessageId: null,
+      isEdited: false,
+      editedAt: null,
+      isDeleted: false,
+      version: 1,
+      messageSeq: 1,
+      createdAt: now,
+    };
+
+    beforeEach(() => {
+      channelRepository.findById.mockResolvedValue(channel);
+      prisma.$transaction.mockImplementation(async (cb) =>
+        cb({ directMessageChannel: channelRepository }),
+      );
+      channelRepository.incrementCounterAndTouch.mockResolvedValue(1);
+      messageRepository.create.mockResolvedValue(created);
+    });
+
+    it('should attach uploaded attachments in the same transaction', async () => {
+      await service.send(
+        'dm1',
+        'u1',
+        'with attachments',
+        undefined,
+        undefined,
+        ['att-1', 'att-2'],
+      );
+
+      expect(attachmentService.attachToMessage).toHaveBeenCalledWith(
+        'm1',
+        'dm1',
+        'u1',
+        ['att-1', 'att-2'],
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('updateSettings', () => {
+    const channel = { id: 'dm1', userAId: 'u1', userBId: 'u2' };
+    const updated = {
+      id: 's1',
+      channelId: 'dm1',
+      userId: 'u1',
+      isMuted: true,
+      mutedAt: now,
+      isArchived: false,
+      archivedAt: null,
+      isHidden: false,
+      hiddenAt: null,
+      isPinned: true,
+      pinnedAt: now,
+    };
+
+    it('should update settings for the channel', async () => {
+      channelRepository.findById.mockResolvedValue(channel);
+      channelSettingsRepository.upsert.mockResolvedValue(updated);
+
+      const result = await service.updateSettings('dm1', 'u1', {
+        isMuted: true,
+        isPinned: true,
+      });
+
+      expect(channelSettingsRepository.upsert).toHaveBeenCalledWith(
+        'dm1',
+        'u1',
+        { isMuted: true, isPinned: true },
+      );
+      expect(result).toEqual(updated);
     });
   });
 });
