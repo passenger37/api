@@ -78,6 +78,7 @@ import { ChannelMessageCacheService } from './services/channel-message-cache.ser
     ChannelMessageReactionCommandService,
     ChannelMessageReactionQueryService,
     ChannelMessageValidationService,
+    OutboxEventRepository,
   ],
 })
 export class MessagesModule {}

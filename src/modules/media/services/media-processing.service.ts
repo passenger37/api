@@ -32,7 +32,7 @@ export class MediaProcessingService {
   // ============ Job Enqueueing ============
 
   async enqueueThumbnailJob(attachmentId: string, input?: Record<string, any>): Promise<string> {
-    const job = await this.mediaQueue.addJob('media:thumbnail', 'generate-thumbnail', {
+    const job = await this.mediaQueue.addJob('media-thumbnail', 'generate-thumbnail', {
       attachmentId,
       type: 'THUMBNAIL',
       input: { sizes: this.thumbnailSizes, ...input },
@@ -41,7 +41,7 @@ export class MediaProcessingService {
   }
 
   async enqueueTranscodeJob(attachmentId: string, input?: Record<string, any>): Promise<string> {
-    const job = await this.mediaQueue.addJob('media:transcode', 'transcode-video', {
+    const job = await this.mediaQueue.addJob('media-transcode', 'transcode-video', {
       attachmentId,
       type: 'TRANSCODE',
       input: { resolutions: this.transcodeResolutions, ...input },
@@ -50,7 +50,7 @@ export class MediaProcessingService {
   }
 
   async enqueueAvScanJob(attachmentId: string): Promise<string> {
-    const job = await this.mediaQueue.addJob('media:av-scan', 'scan-file', {
+    const job = await this.mediaQueue.addJob('media-av-scan', 'scan-file', {
       attachmentId,
       type: 'AV_SCAN',
     });
@@ -58,7 +58,7 @@ export class MediaProcessingService {
   }
 
   async enqueueMetadataExtractionJob(attachmentId: string): Promise<string> {
-    const job = await this.mediaQueue.addJob('media:metadata', 'extract-metadata', {
+    const job = await this.mediaQueue.addJob('media-metadata', 'extract-metadata', {
       attachmentId,
       type: 'METADATA_EXTRACTION',
     });

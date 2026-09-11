@@ -23,7 +23,7 @@ export class MediaWorkersService implements OnModuleInit {
   }
 
   private registerThumbnailWorker() {
-    this.mediaQueue.registerWorker('media:thumbnail', async (job) => {
+    this.mediaQueue.registerWorker('media-thumbnail', async (job) => {
       const { attachmentId } = job.data;
       this.logger.log(`Processing thumbnail generation for attachment ${attachmentId}`);
 
@@ -62,7 +62,7 @@ export class MediaWorkersService implements OnModuleInit {
   }
 
   private registerTranscodeWorker() {
-    this.mediaQueue.registerWorker('media:transcode', async (job) => {
+    this.mediaQueue.registerWorker('media-transcode', async (job) => {
       const { attachmentId } = job.data;
       this.logger.log(`Processing video transcode for attachment ${attachmentId}`);
 
@@ -101,7 +101,7 @@ export class MediaWorkersService implements OnModuleInit {
   }
 
   private registerAvScanWorker() {
-    this.mediaQueue.registerWorker('media:av-scan', async (job) => {
+    this.mediaQueue.registerWorker('media-av-scan', async (job) => {
       const { attachmentId } = job.data;
       this.logger.log(`Processing AV scan for attachment ${attachmentId}`);
 
@@ -143,7 +143,7 @@ export class MediaWorkersService implements OnModuleInit {
   }
 
   private registerMetadataWorker() {
-    this.mediaQueue.registerWorker('media:metadata', async (job) => {
+    this.mediaQueue.registerWorker('media-metadata', async (job) => {
       const { attachmentId } = job.data;
       this.logger.log(`Extracting metadata for attachment ${attachmentId}`);
 

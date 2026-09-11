@@ -14,6 +14,6 @@ import { E2eeGroupController } from './controllers/e2ee-group.controller';
     E2eeGroupCommandService,
     E2eeGroupQueryService,
   ],
-  exports: [E2eeGroupCommandService, E2eeGroupQueryService],
+  exports: [E2eeGroupCommandService, E2eeGroupQueryService, E2eeGroupRepository],
 })
 export class E2eeGroupsModule {}

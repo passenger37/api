@@ -42,6 +42,18 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { CallingModule } from './modules/calling/calling.module';
 import { ProductionHardeningModule } from './modules/production-hardening/production-hardening.module';
 import { CommentsModule } from './modules/comments/comments.module';
+import { PostsModule } from './modules/posts/posts.module';
+import { MediaModule } from './modules/media/media.module';
+import { SearchModule } from './modules/search/search.module';
+import { RolePermissionsModule } from './modules/role-permissions/role-permissions.module';
+import { SecurityModule } from './modules/security/security.module';
+import { E2eeAttachmentsModule } from './modules/e2ee-attachments/e2ee-attachments.module';
+import { E2eeTransportModule } from './modules/e2ee-transport/e2ee-transport.module';
+import { E2eeGroupsModule } from './modules/e2ee-groups/e2ee-groups.module';
+import { E2eeRevocationModule } from './modules/e2ee-revocation/e2ee-revocation.module';
+import { E2eeMetadataModule } from './modules/e2ee-metadata/e2ee-metadata.module';
+import { E2eeDeliveryModule } from './modules/e2ee-delivery/e2ee-delivery.module';
+import { E2eeBackupModule } from './modules/e2ee-backup/e2ee-backup.module';
 
 @Module({
   imports: [
@@ -84,6 +96,18 @@ import { CommentsModule } from './modules/comments/comments.module';
     CallingModule,
     ProductionHardeningModule,
     CommentsModule,
+    PostsModule,
+    MediaModule,
+    SearchModule,
+    RolePermissionsModule,
+    SecurityModule,
+    E2eeAttachmentsModule,
+    E2eeTransportModule,
+    E2eeGroupsModule,
+    E2eeRevocationModule,
+    E2eeMetadataModule,
+    E2eeDeliveryModule,
+    E2eeBackupModule,
   ],
   controllers: [],
   // providers: [AppService],

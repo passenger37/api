@@ -48,9 +48,9 @@ export class MediaJobStatusDto {
   @IsUUID()
   jobId!: string;
 
-  @ApiProperty({ enum: ['media:thumbnail', 'media:transcode', 'media:av-scan', 'media:watermark', 'media:metadata'] })
-  @IsEnum(['media:thumbnail', 'media:transcode', 'media:av-scan', 'media:watermark', 'media:metadata'])
-  queueName!: 'media:thumbnail' | 'media:transcode' | 'media:av-scan' | 'media:watermark' | 'media:metadata';
+  @ApiProperty({ enum: ['media-thumbnail', 'media-transcode', 'media-av-scan', 'media-watermark', 'media-metadata'] })
+  @IsEnum(['media-thumbnail', 'media-transcode', 'media-av-scan', 'media-watermark', 'media-metadata'])
+  queueName!: 'media-thumbnail' | 'media-transcode' | 'media-av-scan' | 'media-watermark' | 'media-metadata';
 }
 
 export class MediaConfigDto {

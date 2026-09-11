@@ -15,6 +15,6 @@ import { E2eeTransportController } from './controllers/e2ee-transport.controller
     E2eeTransportCommandService,
     E2eeTransportQueryService,
   ],
-  exports: [E2eeTransportCommandService, E2eeTransportQueryService],
+  exports: [E2eeTransportCommandService, E2eeTransportQueryService, E2eeEnvelopeRepository],
 })
 export class E2eeTransportModule {}

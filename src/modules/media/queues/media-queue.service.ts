@@ -27,11 +27,11 @@ export class MediaQueueService implements OnModuleInit, OnModuleDestroy {
 
     // Create queues for each media job type
     const queueNames = [
-      'media:thumbnail',
-      'media:transcode',
-      'media:av-scan',
-      'media:watermark',
-      'media:metadata',
+      'media-thumbnail',
+      'media-transcode',
+      'media-av-scan',
+      'media-watermark',
+      'media-metadata',
     ];
 
     for (const name of queueNames) {
