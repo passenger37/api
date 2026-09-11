@@ -326,4 +326,41 @@ describe('CallCommandService', () => {
     p = (await service.queryService.getCallParticipants(call.id)).find(p => p.userId === 'u2');
     expect(p.state).toBe('JOINED');
   });
+
+  it('rejects camera on for a voice call', async () => {
+    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+
+    await expect(service.setCamera('u1', call.id, 'u1', true)).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects accepting a call that already ended (invalid transition)', async () => {
+    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    await service.acceptCall('u1', call.id);
+    await service.endCall('u1', call.id);
+
+    await expect(service.acceptCall('u1', call.id)).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects ending a call that was cancelled (terminal state)', async () => {
+    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    await service.cancelCall('u1', call.id);
+
+    await expect(service.endCall('u1', call.id)).rejects.toThrow(BadRequestException);
+  });
+
+  it('allows marking a ringing call failed (aborted session)', async () => {
+    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+
+    const result = await service.failCall('u1', call.id);
+
+    expect(result.status).toBe('FAILED');
+  });
+
+  it('returns the existing call when the same user re-creates the identical scope', async () => {
+    const first = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+
+    const second = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+
+    expect(second.call.id).toBe(first.call.id);
+  });
 });

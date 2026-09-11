@@ -4,6 +4,7 @@ import { CallStatus } from '@prisma/client';
 import { CallRepository } from '../repositories/call.repository';
 import { CallEventsService } from './call-events.service';
 import { CallingNotificationPublisher } from './calling-notification-publisher.service';
+import { CallStateMachine } from './call-state-machine';
 import {
   CALL_CLEANUP_INTERVAL_SECONDS,
   CALL_RING_TTL_SECONDS,
@@ -66,6 +67,8 @@ export class CallingCleanupService implements OnModuleInit, OnModuleDestroy {
 
     for (const call of stale) {
       try {
+        CallStateMachine.assertReachable('RINGING', CallStatus.ENDED);
+
         const updated = await this.callRepo.update(call.id, {
           status: CallStatus.ENDED,
           endedAt: new Date(),

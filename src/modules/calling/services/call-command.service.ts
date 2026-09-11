@@ -3,6 +3,7 @@ import { PrismaService } from '../../../core/database/prisma.service';
 import { CallRepository, CallParticipantRepository } from '../repositories/call.repository';
 import { CallQueryService } from './call-query.service';
 import { CallAuthorizationService } from './call-authorization.service';
+import { CallStateMachine } from './call-state-machine';
 import { CallType, CallScope, CallStatus, CallParticipantState } from '../types/calling.types';
 
 @Injectable()
@@ -21,9 +22,17 @@ export class CallCommandService {
     scopeRef: string;
     deviceId?: string;
   }) {
-    // Check if user already has an active call
+    // Idempotency: a duplicate create for the same scope/creator is returned
+    // as-is instead of creating a duplicate active call.
     const existingCall = await this.queryService.getUserActiveCall(userId);
     if (existingCall) {
+      if (
+        existingCall.creatorUserId === userId &&
+        existingCall.scope === input.scope &&
+        existingCall.scopeRef === input.scopeRef
+      ) {
+        return { call: existingCall, status: existingCall.status };
+      }
       throw new BadRequestException('User already has an active call');
     }
 
@@ -81,6 +90,7 @@ export class CallCommandService {
 
     // If call was RINGING and now has participants, mark as ACTIVE
     if (call.status === CallStatus.RINGING) {
+      CallStateMachine.assertReachable(CallStatus.RINGING, CallStatus.ACTIVE);
       await this.callRepo.update(callId, { status: CallStatus.ACTIVE, startedAt: new Date() });
     }
 
@@ -99,6 +109,10 @@ export class CallCommandService {
     // Check if call should end
     const activeCount = await this.participantRepo.countActiveParticipants(callId);
     if (activeCount === 0) {
+      const call = await this.callRepo.findById(callId);
+      if (call) {
+        CallStateMachine.assertReachable(call.status as CallStatus, CallStatus.ENDED);
+      }
       await this.callRepo.update(callId, {
         status: CallStatus.ENDED,
         endedAt: new Date(),
@@ -111,11 +125,10 @@ export class CallCommandService {
   async acceptCall(userId: string, callId: string) {
     const call = await this.callRepo.findById(callId);
     if (!call) throw new NotFoundException('Call not found');
-    if (call.status !== CallStatus.RINGING) {
-      throw new BadRequestException('Call is not in ringing state');
-    }
 
     await this.authorization.assertCanAccept(userId, call);
+
+    CallStateMachine.assertReachable(call.status as CallStatus, CallStatus.ACTIVE);
 
     return this.callRepo.update(callId, { status: CallStatus.ACTIVE, startedAt: new Date() });
   }
@@ -123,11 +136,10 @@ export class CallCommandService {
   async rejectCall(userId: string, callId: string) {
     const call = await this.callRepo.findById(callId);
     if (!call) throw new NotFoundException('Call not found');
-    if (call.status !== CallStatus.RINGING) {
-      throw new BadRequestException('Call is not in ringing state');
-    }
 
     await this.authorization.assertCanReject(userId, call);
+
+    CallStateMachine.assertReachable(call.status as CallStatus, CallStatus.REJECTED);
 
     return this.callRepo.update(callId, { status: CallStatus.REJECTED, endedAt: new Date() });
   }
@@ -135,11 +147,10 @@ export class CallCommandService {
   async cancelCall(userId: string, callId: string) {
     const call = await this.callRepo.findById(callId);
     if (!call) throw new NotFoundException('Call not found');
-    if (call.status !== CallStatus.RINGING) {
-      throw new BadRequestException('Call is not in ringing state');
-    }
 
     await this.authorization.assertCanCancel(userId, call);
+
+    CallStateMachine.assertReachable(call.status as CallStatus, CallStatus.CANCELLED);
 
     return this.callRepo.update(callId, { status: CallStatus.CANCELLED, endedAt: new Date() });
   }
@@ -147,13 +158,22 @@ export class CallCommandService {
   async endCall(userId: string, callId: string) {
     const call = await this.callRepo.findById(callId);
     if (!call) throw new NotFoundException('Call not found');
-    if (call.status === CallStatus.ENDED) {
-      throw new BadRequestException('Call already ended');
-    }
 
     await this.authorization.assertCanEnd(userId, call);
 
+    CallStateMachine.assertReachable(call.status as CallStatus, CallStatus.ENDED);
+
     return this.callRepo.update(callId, { status: CallStatus.ENDED, endedAt: new Date() });
+  }
+
+  /** Marks a call FAILED — reserved for aborted sessions (e.g. ICE failure). */
+  async failCall(userId: string, callId: string) {
+    const call = await this.callRepo.findById(callId);
+    if (!call) throw new NotFoundException('Call not found');
+
+    CallStateMachine.assertReachable(call.status as CallStatus, CallStatus.FAILED);
+
+    return this.callRepo.update(callId, { status: CallStatus.FAILED, endedAt: new Date() });
   }
 
   async muteParticipant(userId: string, callId: string, targetUserId: string) {
@@ -187,6 +207,12 @@ export class CallCommandService {
   async setCamera(userId: string, callId: string, targetUserId: string, on: boolean) {
     const call = await this.callRepo.findById(callId);
     if (!call) throw new NotFoundException('Call not found');
+
+    // Camera is a video-only control. Docs: "camera-on for a voice call" is
+    // an invalid operation.
+    if (call.type !== CallType.VIDEO) {
+      throw new BadRequestException('CAMERA_NOT_ALLOWED: camera controls require a video call');
+    }
 
     await this.authorization.assertCanControlParticipant(userId, call, targetUserId);
 
