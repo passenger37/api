@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException 
 import { PrismaService } from '../../../core/database/prisma.service';
 import { CallRepository, CallParticipantRepository } from '../repositories/call.repository';
 import { CallQueryService } from './call-query.service';
+import { CallAuthorizationService } from './call-authorization.service';
 import { CallType, CallScope, CallStatus, CallParticipantState } from '../types/calling.types';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class CallCommandService {
     private readonly callRepo: CallRepository,
     private readonly participantRepo: CallParticipantRepository,
     private readonly queryService: CallQueryService,
+    private readonly authorization: CallAuthorizationService,
   ) {}
 
   async createCall(userId: string, input: {
@@ -109,12 +111,11 @@ export class CallCommandService {
   async acceptCall(userId: string, callId: string) {
     const call = await this.callRepo.findById(callId);
     if (!call) throw new NotFoundException('Call not found');
-    if (call.creatorUserId !== userId) {
-      throw new ForbiddenException('Only call creator can accept');
-    }
     if (call.status !== CallStatus.RINGING) {
       throw new BadRequestException('Call is not in ringing state');
     }
+
+    await this.authorization.assertCanAccept(userId, call);
 
     return this.callRepo.update(callId, { status: CallStatus.ACTIVE, startedAt: new Date() });
   }
@@ -122,12 +123,11 @@ export class CallCommandService {
   async rejectCall(userId: string, callId: string) {
     const call = await this.callRepo.findById(callId);
     if (!call) throw new NotFoundException('Call not found');
-    if (call.creatorUserId !== userId) {
-      throw new ForbiddenException('Only call creator can reject');
-    }
     if (call.status !== CallStatus.RINGING) {
       throw new BadRequestException('Call is not in ringing state');
     }
+
+    await this.authorization.assertCanReject(userId, call);
 
     return this.callRepo.update(callId, { status: CallStatus.REJECTED, endedAt: new Date() });
   }
@@ -135,12 +135,11 @@ export class CallCommandService {
   async cancelCall(userId: string, callId: string) {
     const call = await this.callRepo.findById(callId);
     if (!call) throw new NotFoundException('Call not found');
-    if (call.creatorUserId !== userId) {
-      throw new ForbiddenException('Only call creator can cancel');
-    }
     if (call.status !== CallStatus.RINGING) {
       throw new BadRequestException('Call is not in ringing state');
     }
+
+    await this.authorization.assertCanCancel(userId, call);
 
     return this.callRepo.update(callId, { status: CallStatus.CANCELLED, endedAt: new Date() });
   }
@@ -148,12 +147,11 @@ export class CallCommandService {
   async endCall(userId: string, callId: string) {
     const call = await this.callRepo.findById(callId);
     if (!call) throw new NotFoundException('Call not found');
-    if (call.creatorUserId !== userId) {
-      throw new ForbiddenException('Only call creator can end the call');
-    }
     if (call.status === CallStatus.ENDED) {
       throw new BadRequestException('Call already ended');
     }
+
+    await this.authorization.assertCanEnd(userId, call);
 
     return this.callRepo.update(callId, { status: CallStatus.ENDED, endedAt: new Date() });
   }
@@ -161,6 +159,8 @@ export class CallCommandService {
   async muteParticipant(userId: string, callId: string, targetUserId: string) {
     const call = await this.callRepo.findById(callId);
     if (!call) throw new NotFoundException('Call not found');
+
+    await this.authorization.assertCanControlParticipant(userId, call, targetUserId);
 
     const participant = await this.participantRepo.findByCallAndUser(callId, targetUserId);
     if (!participant) throw new NotFoundException('Participant not found');
@@ -174,6 +174,8 @@ export class CallCommandService {
     const call = await this.callRepo.findById(callId);
     if (!call) throw new NotFoundException('Call not found');
 
+    await this.authorization.assertCanControlParticipant(userId, call, targetUserId);
+
     const participant = await this.participantRepo.findByCallAndUser(callId, targetUserId);
     if (!participant) throw new NotFoundException('Participant not found');
 
@@ -186,11 +188,19 @@ export class CallCommandService {
     const call = await this.callRepo.findById(callId);
     if (!call) throw new NotFoundException('Call not found');
 
+    await this.authorization.assertCanControlParticipant(userId, call, targetUserId);
+
     const participant = await this.participantRepo.findByCallAndUser(callId, targetUserId);
     if (!participant) throw new NotFoundException('Participant not found');
 
     return this.participantRepo.updateByCallAndUser(callId, targetUserId, {
       state: on ? CallParticipantState.JOINED : CallParticipantState.CAMERA_OFF,
     });
+  }
+
+  /** Signaling eligibility: sender and target must be active participants. */
+  async assertCanSignal(userId: string, callId: string, targetUserId: string): Promise<void> {
+    const call = await this.callRepo.findById(callId);
+    await this.authorization.assertCanSignal(userId, callId, targetUserId, call);
   }
 }

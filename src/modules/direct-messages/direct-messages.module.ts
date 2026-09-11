@@ -49,6 +49,6 @@ import { SystemDmController } from './controllers/system-dm.controller';
     WebSocketErrorNormalizer,
   ],
 
-  exports: [DmCommandService, DmQueryService, SystemDmService],
+  exports: [DmCommandService, DmQueryService, SystemDmService, DirectMessageChannelRepository],
 })
 export class DirectMessagesModule {}

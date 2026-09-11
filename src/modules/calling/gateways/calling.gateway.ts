@@ -42,13 +42,18 @@ import {
   CALL_ROOM,
   CALL_WS_RATE_LIMIT,
   CALL_WINDOW_SECONDS,
+  DEFAULT_STUN_SERVERS,
   callRoom,
   callParticipantRoom,
 } from '../constants/calling.constants';
 
 import { CallCommandService } from '../services/call-command.service';
 import { CallQueryService } from '../services/call-query.service';
+import { CallAuthorizationService } from '../services/call-authorization.service';
+import { CallingNotificationPublisher } from '../services/calling-notification-publisher.service';
+import { CallScope } from '../types/calling.types';
 import {
+  CreateCallRequest,
   IceCandidateRequest,
   JoinCallRequest,
   LeaveCallRequest,
@@ -76,6 +81,8 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     private readonly rateLimit: WebSocketRateLimitService,
     private readonly commandService: CallCommandService,
     private readonly queryService: CallQueryService,
+    private readonly authorization: CallAuthorizationService,
+    private readonly notificationPublisher: CallingNotificationPublisher,
     private readonly connectionAuth: WebSocketConnectionAuthService,
     private readonly connectionLimit: WebSocketConnectionLimitService,
   ) {}
@@ -107,7 +114,7 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
   @SubscribeMessage('call:create')
   async createCall(
     @ConnectedSocket() client: Socket,
-    @MessageBody() input: { type: string; scope: string; scopeRef: string; deviceId?: string },
+    @MessageBody() input: CreateCallRequest,
   ) {
     const event = 'call:create';
     try {
@@ -118,21 +125,52 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
         windowSeconds: CALL_WINDOW_SECONDS,
       });
 
+      // Resolve + authorize the backing scope (conversation/channel) server-side.
+      const context = await this.authorization.authorizeCreate(
+        userId,
+        input.scope,
+        input.scopeRef,
+        input.type,
+      );
+
       const result = await this.commandService.createCall(userId, {
-        type: input.type as any,
-        scope: input.scope as any,
-        scopeRef: input.scopeRef,
+        type: input.type,
+        scope: context.scope,
+        scopeRef: context.scopeRef,
         deviceId: input.deviceId,
       });
 
+      const call = result.call;
+
       // Notify creator
-      client.join(callRoom(result.call.id));
+      await client.join(callRoom(call.id));
 
-      // Ring other participants (would query scope participants)
-      // For DM scope, ring the other user
-      // For SERVER_CHANNEL, ring channel members with permission
+      if (context.ringTargetUserIds.length > 0) {
+        // DM scope: ring the peer.
+        for (const targetUserId of context.ringTargetUserIds) {
+          this.server.to(callParticipantRoom(targetUserId)).emit(CALL_EVENT_RING, {
+            callId: call.id,
+            type: call.type,
+            scope: call.scope,
+            scopeRef: call.scopeRef,
+            initiatorUserId: userId,
+          });
 
-      return { success: true, event, callId: result.call.id, status: result.status };
+          await this.notificationPublisher.publishIncomingCall({
+            recipientUserId: targetUserId,
+            initiatorUserId: userId,
+            callId: call.id,
+            scope: call.scope,
+            callType: call.type,
+            scopeRef: call.scopeRef,
+          });
+        }
+      } else if (context.scope === CallScope.SERVER_CHANNEL) {
+        // Channel calls activate immediately; members join freely.
+        await this.commandService.acceptCall(userId, call.id);
+      }
+
+      return { success: true, event, callId: call.id, status: result.status };
     } catch (exception) {
       return this.normalizeError(exception, event);
     }
@@ -151,6 +189,10 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
         limit: CALL_WS_RATE_LIMIT.RING,
         windowSeconds: CALL_WINDOW_SECONDS,
       });
+
+      const call = await this.queryService.getCall(input.callId);
+
+      await this.authorization.authorizeJoin(userId, call);
 
       const participant = await this.commandService.joinCall(userId, input.callId, input.deviceId);
 
@@ -242,7 +284,18 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
         windowSeconds: CALL_WINDOW_SECONDS,
       });
 
-      await this.commandService.rejectCall(userId, input.callId);
+      const updated = await this.commandService.rejectCall(userId, input.callId);
+
+      if (updated.scope === CallScope.DM) {
+        await this.notificationPublisher.publishMissedCall({
+          recipientUserId: updated.creatorUserId,
+          initiatorUserId: updated.creatorUserId,
+          callId: updated.id,
+          scope: updated.scope,
+          callType: updated.type,
+          scopeRef: updated.scopeRef,
+        });
+      }
 
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_REJECT, {
         callId: input.callId,
@@ -296,7 +349,20 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
         windowSeconds: CALL_WINDOW_SECONDS,
       });
 
+      const before = await this.queryService.getCall(input.callId);
+
       await this.commandService.endCall(userId, input.callId);
+
+      if (before.status === 'RINGING') {
+        await this.notificationPublisher.publishMissedCall({
+          recipientUserId: before.creatorUserId,
+          initiatorUserId: before.creatorUserId,
+          callId: before.id,
+          scope: before.scope as CallScope,
+          callType: before.type,
+          scopeRef: before.scopeRef,
+        });
+      }
 
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_END, {
         callId: input.callId,
@@ -324,6 +390,8 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
       });
 
       // Forward to target user
+      await this.commandService.assertCanSignal(userId, input.callId, input.targetUserId);
+
       this.server.to(callParticipantRoom(input.targetUserId)).emit(CALL_EVENT_WEBRTC_OFFER, {
         callId: input.callId,
         fromUserId: userId,
@@ -350,6 +418,8 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
         windowSeconds: CALL_WINDOW_SECONDS,
       });
 
+      await this.commandService.assertCanSignal(userId, input.callId, input.targetUserId);
+
       this.server.to(callParticipantRoom(input.targetUserId)).emit(CALL_EVENT_WEBRTC_ANSWER, {
         callId: input.callId,
         fromUserId: userId,
@@ -375,6 +445,8 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
         limit: CALL_WS_RATE_LIMIT.SIGNAL,
         windowSeconds: CALL_WINDOW_SECONDS,
       });
+
+      await this.commandService.assertCanSignal(userId, input.callId, input.targetUserId);
 
       this.server.to(callParticipantRoom(input.targetUserId)).emit(CALL_EVENT_WEBRTC_ICE_CANDIDATE, {
         callId: input.callId,
@@ -511,11 +583,7 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
       return {
         success: true,
         event,
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          // TURN servers would be configured here with credentials
-        ],
+        iceServers: DEFAULT_STUN_SERVERS,
       };
     } catch (exception) {
       return this.normalizeError(exception, event);

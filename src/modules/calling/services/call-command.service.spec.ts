@@ -10,6 +10,11 @@ describe('CallCommandService', () => {
   let callRepo: any;
   let participantRepo: any;
   let prisma: any;
+  let authorization: any;
+  let userQueryService: any;
+
+  // DM scopes used by tests map to a single ringing callee.
+  const calleeByScopeRef = new Map<string, string>([['dm1', 'u2']]);
 
   beforeEach(() => {
     const store = new Map();
@@ -93,8 +98,61 @@ describe('CallCommandService', () => {
       $transaction: jest.fn(async (fn: any) => fn(prisma)),
     };
 
-    queryService = new CallQueryService(callRepo, participantRepo);
-    service = new CallCommandService(prisma, callRepo, participantRepo, queryService);
+    userQueryService = {
+      findById: jest.fn(async (id: string) => ({ id, username: `user-${id}`, avatarUrl: null })),
+    };
+
+    authorization = {
+      assertCanAccept: jest.fn(async (userId: string, call: any) => {
+        if (userId === call.creatorUserId) return;
+        if (
+          call.scope === 'DM' &&
+          call.status === 'RINGING' &&
+          userId === calleeByScopeRef.get(call.scopeRef)
+        ) {
+          return;
+        }
+        if (['ACTIVE'].includes(call.status) && call.participants?.some(
+          (p: any) => p.userId === userId && p.state !== 'LEFT' && p.leftAt === null,
+        )) {
+          return;
+        }
+        throw new ForbiddenException('NOT_CALL_PARTICIPANT: cannot accept this call.');
+      }),
+      assertCanReject: jest.fn(async (userId: string, call: any) => {
+        if (userId === call.creatorUserId) return;
+        if (
+          call.scope === 'DM' &&
+          call.status === 'RINGING' &&
+          userId === calleeByScopeRef.get(call.scopeRef)
+        ) {
+          return;
+        }
+        throw new ForbiddenException('NOT_CALL_PARTICIPANT: cannot reject this call.');
+      }),
+      assertCanCancel: jest.fn(async (userId: string, call: any) => {
+        if (userId !== call.creatorUserId) {
+          throw new ForbiddenException('Only the call creator can cancel this call.');
+        }
+      }),
+      assertCanEnd: jest.fn(async (userId: string, call: any) => {
+        if (userId === call.creatorUserId) return;
+        if (call.participants?.some(
+          (p: any) => p.userId === userId && p.state !== 'LEFT' && p.leftAt === null,
+        )) {
+          return;
+        }
+        throw new ForbiddenException('NOT_CALL_PARTICIPANT: cannot end this call.');
+      }),
+      assertCanControlParticipant: jest.fn(async (userId: string, call: any, targetUserId: string) => {
+        if (userId === targetUserId) return;
+        throw new ForbiddenException('CALL_PERMISSION_DENIED');
+      }),
+      assertCanSignal: jest.fn(async () => undefined),
+    };
+
+    queryService = new CallQueryService(callRepo, participantRepo, userQueryService);
+    service = new CallCommandService(prisma, callRepo, participantRepo, queryService, authorization);
   });
 
   it('creates a call and adds creator as participant', async () => {
@@ -138,10 +196,18 @@ describe('CallCommandService', () => {
     expect(result.startedAt).toBeDefined();
   });
 
-  it('rejects non-creator accepting call', async () => {
+  it('allows the ringing callee to accept the call', async () => {
     const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
 
-    await expect(service.acceptCall('u2', call.id)).rejects.toThrow(ForbiddenException);
+    const result = await service.acceptCall('u2', call.id);
+
+    expect(result.status).toBe('ACTIVE');
+  });
+
+  it('rejects a stranger accepting the call', async () => {
+    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+
+    await expect(service.acceptCall('u9', call.id)).rejects.toThrow(ForbiddenException);
   });
 
   it('allows creator to reject the call', async () => {
@@ -153,6 +219,14 @@ describe('CallCommandService', () => {
     expect(result.endedAt).toBeDefined();
   });
 
+  it('allows the ringing callee to reject the call', async () => {
+    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+
+    const result = await service.rejectCall('u2', call.id);
+
+    expect(result.status).toBe('REJECTED');
+  });
+
   it('allows creator to cancel the call', async () => {
     const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
 
@@ -160,6 +234,12 @@ describe('CallCommandService', () => {
 
     expect(result.status).toBe('CANCELLED');
     expect(result.endedAt).toBeDefined();
+  });
+
+  it('rejects non-creator cancelling the call', async () => {
+    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+
+    await expect(service.cancelCall('u2', call.id)).rejects.toThrow(ForbiddenException);
   });
 
   it('allows creator to end the call', async () => {
@@ -172,11 +252,11 @@ describe('CallCommandService', () => {
     expect(result.endedAt).toBeDefined();
   });
 
-  it('rejects non-creator ending call', async () => {
+  it('rejects an unrelated user ending the call', async () => {
     const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
     await service.acceptCall('u1', call.id);
 
-    await expect(service.endCall('u2', call.id)).rejects.toThrow(ForbiddenException);
+    await expect(service.endCall('u9', call.id)).rejects.toThrow(ForbiddenException);
   });
 
   it('joins a call and marks active', async () => {
@@ -200,41 +280,49 @@ describe('CallCommandService', () => {
     expect(call.status).toBe('ENDED');
   });
 
-  it('mutes a participant', async () => {
+  it('mutes self', async () => {
     const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
     await service.acceptCall('u1', call.id);
     await service.joinCall('u2', call.id);
 
-    await service.muteParticipant('u1', call.id, 'u2');
+    await service.muteParticipant('u2', call.id, 'u2');
 
     const participant = await service.queryService.getCallParticipants(call.id);
     const p = participant.find(p => p.userId === 'u2');
     expect(p.state).toBe('MUTED');
   });
 
-  it('unmutes a participant', async () => {
+  it('does not allow controlling another participant in a DM call', async () => {
     const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
     await service.acceptCall('u1', call.id);
     await service.joinCall('u2', call.id);
-    await service.muteParticipant('u1', call.id, 'u2');
 
-    await service.unmuteParticipant('u1', call.id, 'u2');
+    await expect(service.muteParticipant('u1', call.id, 'u2')).rejects.toThrow(ForbiddenException);
+  });
+
+  it('unmutes self', async () => {
+    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    await service.acceptCall('u1', call.id);
+    await service.joinCall('u2', call.id);
+    await service.muteParticipant('u2', call.id, 'u2');
+
+    await service.unmuteParticipant('u2', call.id, 'u2');
 
     const participant = await service.queryService.getCallParticipants(call.id);
     const p = participant.find(p => p.userId === 'u2');
     expect(p.state).toBe('JOINED');
   });
 
-  it('turns camera on/off', async () => {
+  it('turns camera on/off for self', async () => {
     const { call } = await service.createCall('u1', { type: 'VIDEO', scope: 'DM', scopeRef: 'dm1' });
     await service.acceptCall('u1', call.id);
     await service.joinCall('u2', call.id);
 
-    await service.setCamera('u1', call.id, 'u2', false);
+    await service.setCamera('u2', call.id, 'u2', false);
     let p = (await service.queryService.getCallParticipants(call.id)).find(p => p.userId === 'u2');
     expect(p.state).toBe('CAMERA_OFF');
 
-    await service.setCamera('u1', call.id, 'u2', true);
+    await service.setCamera('u2', call.id, 'u2', true);
     p = (await service.queryService.getCallParticipants(call.id)).find(p => p.userId === 'u2');
     expect(p.state).toBe('JOINED');
   });

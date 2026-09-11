@@ -2603,6 +2603,9 @@ enum ServerPermission {
   AUDIT_LOG_VIEW
   ADMINISTRATOR
   MANAGE_MESSAGES
+  CHANNEL_CALL_START
+  CHANNEL_CALL_JOIN
+  CHANNEL_CALL_MANAGE
 }
 
 enum ChannelType {
@@ -2768,6 +2771,8 @@ enum NotificationType {
   FRIEND_REQUEST
   SERVER_JOIN
   SYSTEM
+  CALL_INCOMING
+  MISSED_CALL
 }
 
 enum NotificationEntityType {
