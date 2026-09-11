@@ -238,6 +238,28 @@ describe('RealtimeGateway Integration', () => {
     expect(result.success).toBe(true);
   });
 
+  it('should join a post room after validating access', async () => {
+    const client = { data: { userId: 'u1' }, join: jest.fn() } as any;
+    const request = { postId: 'p1' };
+
+    const result = await gateway.joinPost(client, request as any);
+
+    expect(commentAuthorizationService.resolvePostType).toHaveBeenCalledWith('p1');
+    expect(commentAuthorizationService.assertCanAccessPost).toHaveBeenCalled();
+    expect(client.join).toHaveBeenCalledWith('rt:post:p1');
+    expect(result.success).toBe(true);
+  });
+
+  it('should leave a post room', async () => {
+    const client = { data: { userId: 'u1' }, leave: jest.fn() } as any;
+    const request = { postId: 'p1' };
+
+    const result = await gateway.leavePost(client, request as any);
+
+    expect(client.leave).toHaveBeenCalledWith('rt:post:p1');
+    expect(result.success).toBe(true);
+  });
+
   it('should start typing after validating access', async () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'c1' };
@@ -317,5 +339,22 @@ describe('RealtimeGateway Integration', () => {
 
     expect(mockServer.to).toHaveBeenCalledWith('rt:channel:c1');
     expect(mockServer.emit).toHaveBeenCalledWith('typing:start', expect.any(Object));
+  });
+
+  it('should forward comment events to the post room', () => {
+    mockServer.to.mockClear();
+    mockServer.emit.mockClear();
+
+    const handler = bridge.registerHandler.mock.calls[0][0];
+    handler({
+      type: 'comment:created',
+      postId: 'p1',
+      postType: 'PERSONAL',
+      commentId: 'c1',
+      comment: { id: 'c1' },
+    });
+
+    expect(mockServer.to).toHaveBeenCalledWith('rt:post:p1');
+    expect(mockServer.emit).toHaveBeenCalledWith('comment:created', expect.any(Object));
   });
 });
