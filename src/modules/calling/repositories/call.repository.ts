@@ -55,6 +55,15 @@ export class CallRepository {
     });
     return participant?.call ?? null;
   }
+
+  async findStaleRingingCalls(before: Date): Promise<Call[]> {
+    return this.prisma.call.findMany({
+      where: {
+        status: 'RINGING',
+        updatedAt: { lt: before },
+      },
+    });
+  }
 }
 
 @Injectable()

@@ -17,6 +17,9 @@ import { CallCommandService } from './services/call-command.service';
 import { CallQueryService } from './services/call-query.service';
 import { CallAuthorizationService } from './services/call-authorization.service';
 import { CallingNotificationPublisher } from './services/calling-notification-publisher.service';
+import { CallEventsService } from './services/call-events.service';
+import { CallingEventListenerService } from './services/calling-event-listener.service';
+import { CallingCleanupService } from './services/calling-cleanup.service';
 import { CallingGateway } from './gateways/calling.gateway';
 
 @Module({
@@ -35,6 +38,9 @@ import { CallingGateway } from './gateways/calling.gateway';
     CallQueryService,
     CallAuthorizationService,
     CallingNotificationPublisher,
+    CallEventsService,
+    CallingEventListenerService,
+    CallingCleanupService,
     CallingGateway,
     WebSocketJwtGuard,
     WebSocketConnectionAuthService,

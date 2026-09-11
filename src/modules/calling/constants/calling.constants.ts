@@ -35,6 +35,24 @@ export const CALL_WS_RATE_LIMIT = {
 
 export const CALL_WINDOW_SECONDS = 10;
 
+/** How long a RINGING call may stay unanswered before the cleanup sweep expires it. */
+export const CALL_RING_TTL_SECONDS = 60;
+
+/** How often the cleanup sweep runs. */
+export const CALL_CLEANUP_INTERVAL_SECONDS = 15;
+
+/** Cluster-wide lifecycle actions published on `calling:events`. */
+export type CallLifecycleAction =
+  | 'CREATED'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'CANCELLED'
+  | 'ENDED'
+  | 'EXPIRED'
+  | 'MISSED'
+  | 'PARTICIPANT_JOINED'
+  | 'PARTICIPANT_LEFT';
+
 export const callRoom = (callId: string): string => `call:${callId}`;
 export const callParticipantRoom = (userId: string): string => `call:user:${userId}`;
 

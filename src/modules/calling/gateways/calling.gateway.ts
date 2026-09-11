@@ -3,11 +3,12 @@ import {
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { UseFilters, UseGuards, UsePipes } from '@nestjs/common';
+import { Logger, OnModuleDestroy, UseFilters, UseGuards, UsePipes } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 
 import { WebSocketExceptionFilter } from '../../../common/filters/websocket-exception.filter';
@@ -42,6 +43,7 @@ import {
   CALL_ROOM,
   CALL_WS_RATE_LIMIT,
   CALL_WINDOW_SECONDS,
+  CALL_CLEANUP_INTERVAL_SECONDS,
   DEFAULT_STUN_SERVERS,
   callRoom,
   callParticipantRoom,
@@ -51,6 +53,8 @@ import { CallCommandService } from '../services/call-command.service';
 import { CallQueryService } from '../services/call-query.service';
 import { CallAuthorizationService } from '../services/call-authorization.service';
 import { CallingNotificationPublisher } from '../services/calling-notification-publisher.service';
+import { CallEventsService } from '../services/call-events.service';
+import { CallingCleanupService } from '../services/calling-cleanup.service';
 import { CallScope } from '../types/calling.types';
 import {
   CreateCallRequest,
@@ -72,7 +76,13 @@ import {
 @UseGuards(WebSocketJwtGuard)
 @UsePipes(new WebSocketValidationPipe())
 @UseFilters(WebSocketExceptionFilter)
-export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class CallingGateway
+  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, OnModuleDestroy
+{
+  private readonly logger = new Logger(CallingGateway.name);
+
+  private cleanupTimer?: NodeJS.Timeout;
+
   @WebSocketServer()
   server: Server;
 
@@ -83,9 +93,38 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     private readonly queryService: CallQueryService,
     private readonly authorization: CallAuthorizationService,
     private readonly notificationPublisher: CallingNotificationPublisher,
+    private readonly callEvents: CallEventsService,
+    private readonly cleanupService: CallingCleanupService,
     private readonly connectionAuth: WebSocketConnectionAuthService,
     private readonly connectionLimit: WebSocketConnectionLimitService,
   ) {}
+
+  afterInit() {
+    this.cleanupTimer = setInterval(() => {
+      void this.sweepStaleCalls().catch((error) => {
+        this.logger.error('Calling stale-call sweep failed.', error);
+      });
+    }, CALL_CLEANUP_INTERVAL_SECONDS * 1000);
+    this.cleanupTimer.unref?.();
+  }
+
+  onModuleDestroy() {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = undefined;
+    }
+  }
+
+  private async sweepStaleCalls(): Promise<void> {
+    const expired = await this.cleanupService.sweep();
+    for (const result of expired) {
+      this.server.to(callRoom(result.callId)).emit(CALL_EVENT_END, {
+        callId: result.callId,
+        endedBy: result.creatorUserId,
+        reason: 'ring-timeout',
+      });
+    }
+  }
 
   async handleConnection(client: Socket) {
     const authenticated = await this.connectionAuth.authenticate(client);
@@ -106,8 +145,60 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   async handleDisconnect(client: Socket) {
     const userId = client.data.userId;
-    if (userId) {
+    if (!userId) return;
+
+    try {
       await this.connectionLimit.release(userId);
+    } catch (error) {
+      this.logger.warn(`Failed to release connection slot for ${userId}.`, error);
+    }
+
+    // Zombie-call cleanup: the user dropped mid-call -> mark LEFT, tear down
+    // the call when nobody is left, and surface missed-call notifications.
+    try {
+      const active = await this.queryService.getUserActiveCall(userId);
+      if (!active) return;
+
+      const room = callRoom(active.id);
+      const wasRinging = active.status === 'RINGING';
+      const isCallee = wasRinging && active.scope === CallScope.DM && userId !== active.creatorUserId;
+
+      try {
+        await this.commandService.leaveCall(userId, active.id);
+      } catch (error) {
+        this.logger.warn(`Disconnect leave failed for call ${active.id}.`, error);
+      }
+
+      this.server.to(room).emit(CALL_EVENT_PARTICIPANT_LEFT, {
+        callId: active.id,
+        userId,
+      });
+
+      await this.callEvents.publish('PARTICIPANT_LEFT', active, userId);
+
+      const after = await this.queryService.getCall(active.id);
+      if (after.status === 'ENDED') {
+        if (isCallee) {
+          await this.notificationPublisher.publishMissedCall({
+            recipientUserId: active.creatorUserId,
+            initiatorUserId: active.creatorUserId,
+            callId: active.id,
+            scope: active.scope,
+            callType: active.type,
+            scopeRef: active.scopeRef,
+          });
+          await this.callEvents.publish('MISSED', active, userId);
+        }
+
+        this.server.to(room).emit(CALL_EVENT_END, {
+          callId: active.id,
+          endedBy: userId,
+          reason: 'participant-disconnected',
+        });
+        await this.callEvents.publish('ENDED', after, userId);
+      }
+    } catch (error) {
+      this.logger.warn(`Unexpected error during disconnect cleanup for ${userId}.`, error);
     }
   }
 
@@ -141,6 +232,8 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
       });
 
       const call = result.call;
+
+      await this.callEvents.publish('CREATED', call, userId);
 
       // Notify creator
       await client.join(callRoom(call.id));
@@ -198,6 +291,8 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
       await client.join(callRoom(input.callId));
 
+      await this.callEvents.publish('PARTICIPANT_JOINED', call, userId);
+
       // Notify other participants
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_PARTICIPANT_JOINED, {
         callId: input.callId,
@@ -230,6 +325,12 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
       await this.commandService.leaveCall(userId, input.callId);
       await client.leave(callRoom(input.callId));
 
+      const afterLeave = await this.queryService.getCall(input.callId);
+      await this.callEvents.publish('PARTICIPANT_LEFT', afterLeave, userId);
+      if (afterLeave.status === 'ENDED') {
+        await this.callEvents.publish('ENDED', afterLeave, userId);
+      }
+
       // Notify other participants
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_PARTICIPANT_LEFT, {
         callId: input.callId,
@@ -257,6 +358,9 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
       });
 
       await this.commandService.acceptCall(userId, input.callId);
+
+      const acceptedCall = await this.queryService.getCall(input.callId);
+      await this.callEvents.publish('ACCEPTED', acceptedCall, userId);
 
       // Notify all participants
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_ACCEPT, {
@@ -286,6 +390,8 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
       const updated = await this.commandService.rejectCall(userId, input.callId);
 
+      await this.callEvents.publish('REJECTED', updated, userId);
+
       if (updated.scope === CallScope.DM) {
         await this.notificationPublisher.publishMissedCall({
           recipientUserId: updated.creatorUserId,
@@ -295,6 +401,7 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
           callType: updated.type,
           scopeRef: updated.scopeRef,
         });
+        await this.callEvents.publish('MISSED', updated, userId);
       }
 
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_REJECT, {
@@ -323,6 +430,21 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
       });
 
       await this.commandService.cancelCall(userId, input.callId);
+
+      const cancelledCall = await this.queryService.getCall(input.callId);
+      await this.callEvents.publish('CANCELLED', cancelledCall, userId);
+
+      if (cancelledCall.scope === CallScope.DM) {
+        await this.notificationPublisher.publishMissedCall({
+          recipientUserId: cancelledCall.creatorUserId,
+          initiatorUserId: cancelledCall.creatorUserId,
+          callId: cancelledCall.id,
+          scope: cancelledCall.scope,
+          callType: cancelledCall.type,
+          scopeRef: cancelledCall.scopeRef,
+        });
+        await this.callEvents.publish('MISSED', cancelledCall, userId);
+      }
 
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_CANCEL, {
         callId: input.callId,
@@ -353,6 +475,9 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
       await this.commandService.endCall(userId, input.callId);
 
+      const endedCall = await this.queryService.getCall(input.callId);
+      await this.callEvents.publish('ENDED', endedCall, userId);
+
       if (before.status === 'RINGING') {
         await this.notificationPublisher.publishMissedCall({
           recipientUserId: before.creatorUserId,
@@ -362,6 +487,7 @@ export class CallingGateway implements OnGatewayConnection, OnGatewayDisconnect 
           callType: before.type,
           scopeRef: before.scopeRef,
         });
+        await this.callEvents.publish('MISSED', endedCall, userId);
       }
 
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_END, {
