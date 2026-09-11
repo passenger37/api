@@ -83,6 +83,8 @@ import { CommunityModerationController } from './controllers/community-moderatio
     CommunityDiscoveryService,
     CommunityEventPublisher,
     CommunityRoomResolverService,
+    CommunitySubscriptionRepository,
+    CommunityAccessService,
   ],
 })
 export class CommunitiesModule {}

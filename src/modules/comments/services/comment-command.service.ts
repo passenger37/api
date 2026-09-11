@@ -18,6 +18,7 @@ import {
 } from '../exceptions/comment.exceptions';
 import { CommentResponseData } from '../types/comment.types';
 import { CommentMapper } from '../mappers/comment.mapper';
+import { CommentAuthorizationService } from './comment-authorization.service';
 
 interface CreateCommentInput {
   postId: string;
@@ -47,10 +48,18 @@ export class CommentCommandService {
     private readonly prisma: PrismaService,
     private readonly commentRepository: CommentRepository,
     private readonly reactionRepository: CommentReactionRepository,
+    private readonly authorizationService: CommentAuthorizationService,
   ) {}
 
   async createComment(input: CreateCommentInput): Promise<CommentResponseData> {
     this.validateContent(input.content);
+
+    const postContext = await this.authorizationService.resolvePost(
+      input.postId,
+      input.postType,
+    );
+
+    await this.authorizationService.assertCanAccessPost(postContext, input.authorId);
 
     if (input.parentCommentId) {
       const parent = await this.commentRepository.findById(input.parentCommentId);
@@ -109,6 +118,14 @@ export class CommentCommandService {
       throw new CommentNotFoundException(input.commentId);
     }
 
+    const postContext = await this.authorizationService.resolvePost(
+      existing.postId,
+      existing.postType,
+    );
+
+    // Author verification is the primary gate; ownership is enforced below.
+    await this.authorizationService.assertCanAccessPost(postContext, input.authorId);
+
     if (existing.authorId !== input.authorId) {
       throw new BadRequestException('You can only edit your own comments');
     }
@@ -139,6 +156,13 @@ export class CommentCommandService {
       throw new CommentNotFoundException(commentId);
     }
 
+    const postContext = await this.authorizationService.resolvePost(
+      existing.postId,
+      existing.postType,
+    );
+
+    await this.authorizationService.assertCanAccessPost(postContext, userId);
+
     if (existing.authorId !== userId) {
       throw new BadRequestException('You can only delete your own comments');
     }
@@ -146,11 +170,27 @@ export class CommentCommandService {
     await this.commentRepository.softDelete(commentId);
   }
 
-  async removeComment(commentId: string): Promise<void> {
+  async removeComment(commentId: string, moderatorId: string): Promise<void> {
     const existing = await this.commentRepository.findById(commentId);
 
     if (!existing) {
       throw new CommentNotFoundException(commentId);
+    }
+
+    const postContext = await this.authorizationService.resolvePost(
+      existing.postId,
+      existing.postType,
+    );
+
+    const canModerate = await this.authorizationService.canModerate(
+      postContext,
+      moderatorId,
+    );
+
+    if (!canModerate) {
+      throw new BadRequestException(
+        'You do not have permission to moderate comments on this post',
+      );
     }
 
     await this.commentRepository.update(commentId, {
@@ -164,6 +204,13 @@ export class CommentCommandService {
     if (!existing) {
       throw new CommentNotFoundException(input.commentId);
     }
+
+    const postContext = await this.authorizationService.resolvePost(
+      existing.postId,
+      existing.postType,
+    );
+
+    await this.authorizationService.assertCanAccessPost(postContext, input.userId);
 
     const result = await this.prisma.$transaction(async (tx) => {
       const reactionResult = await this.reactionRepository.upsert(

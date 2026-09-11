@@ -7,6 +7,7 @@ import { CommentNotFoundException } from '../exceptions/comment.exceptions';
 import { CommentResponseData, CommentListResponse } from '../types/comment.types';
 import { CommentMapper } from '../mappers/comment.mapper';
 import { COMMENT_DEFAULTS, CommentSortMode, encodeCommentCursor, COMMENT_SORT } from '../constants/comment.constants';
+import { CommentAuthorizationService } from './comment-authorization.service';
 
 @Injectable()
 export class CommentQueryService {
@@ -15,6 +16,7 @@ export class CommentQueryService {
   constructor(
     private readonly commentRepository: CommentRepository,
     private readonly reactionRepository: CommentReactionRepository,
+    private readonly authorizationService: CommentAuthorizationService,
   ) {}
 
   async listRootComments(
@@ -29,6 +31,9 @@ export class CommentQueryService {
   ): Promise<CommentListResponse> {
     const limit = Math.min(options.limit ?? COMMENT_DEFAULTS.DEFAULT_PAGE_SIZE, COMMENT_DEFAULTS.MAX_PAGE_SIZE);
     const sort = options.sort ?? COMMENT_SORT.BEST;
+
+    const postContext = await this.authorizationService.resolvePost(postId, postType);
+    await this.authorizationService.assertCanAccessPost(postContext, userId, false);
 
     const comments = await this.commentRepository.listRootComments(
       postId,
@@ -63,6 +68,17 @@ export class CommentQueryService {
     const limit = Math.min(options.limit ?? COMMENT_DEFAULTS.DEFAULT_PAGE_SIZE, COMMENT_DEFAULTS.MAX_PAGE_SIZE);
     const sort = options.sort ?? COMMENT_SORT.BEST;
 
+    const parent = await this.commentRepository.findById(parentCommentId);
+    if (!parent) {
+      throw new CommentNotFoundException(parentCommentId);
+    }
+
+    const postContext = await this.authorizationService.resolvePost(
+      parent.postId,
+      parent.postType,
+    );
+    await this.authorizationService.assertCanAccessPost(postContext, userId, false);
+
     const replies = await this.commentRepository.listReplies(
       parentCommentId,
       limit + 1,
@@ -92,6 +108,12 @@ export class CommentQueryService {
     if (!comment) {
       throw new CommentNotFoundException(commentId);
     }
+
+    const postContext = await this.authorizationService.resolvePost(
+      comment.postId,
+      comment.postType,
+    );
+    await this.authorizationService.assertCanAccessPost(postContext, userId, false);
 
     const [viewerVote] = await Promise.all([
       this.reactionRepository.findByCommentAndUser(commentId, userId),
