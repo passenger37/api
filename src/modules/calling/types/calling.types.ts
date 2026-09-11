@@ -11,9 +11,14 @@ export enum CallScope {
 }
 
 export enum CallStatus {
+  CREATED = 'CREATED',
   RINGING = 'RINGING',
+  ACCEPTED = 'ACCEPTED',
+  CONNECTING = 'CONNECTING',
   ACTIVE = 'ACTIVE',
+  ENDING = 'ENDING',
   ENDED = 'ENDED',
+  FAILED = 'FAILED',
   CANCELLED = 'CANCELLED',
   REJECTED = 'REJECTED',
 }

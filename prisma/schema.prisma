@@ -2603,6 +2603,7 @@ enum Gender {
 enum ServerChannelType {
   TEXT
   VOICE
+  VIDEO
   ANNOUNCEMENT
   FORUM
   STAGE
@@ -2681,6 +2682,7 @@ enum ServerPermission {
 enum ChannelType {
   TEXT
   VOICE
+  VIDEO
   ANNOUNCEMENT
   FORUM
   STAGE
@@ -2757,9 +2759,14 @@ enum CallScope {
 }
 
 enum CallStatus {
+  CREATED
   RINGING
+  ACCEPTED
+  CONNECTING
   ACTIVE
+  ENDING
   ENDED
+  FAILED
   CANCELLED
   REJECTED
 }

@@ -1,4 +1,4 @@
-export type ChannelType = 'TEXT' | 'VOICE' | 'ANNOUNCEMENT' | 'FORUM' | 'STAGE';
+export type ChannelType = 'TEXT' | 'VOICE' | 'VIDEO' | 'ANNOUNCEMENT' | 'FORUM' | 'STAGE';
 
 export interface ChannelDefinition {
   name: string;

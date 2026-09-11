@@ -21,6 +21,9 @@ export const CALL_EVENT_CAMERA_OFF = 'call:camera-off';
 export const CALL_EVENT_PARTICIPANT_JOINED = 'call:participant-joined';
 export const CALL_EVENT_PARTICIPANT_LEFT = 'call:participant-left';
 
+/** Reconnect/reconciliation resync pushed to a (re)connecting client. */
+export const CALL_EVENT_STATE = 'call:state';
+
 export const CALL_WS_RATE_LIMIT = {
   CREATE: 5,
   RING: 10,
@@ -32,6 +35,26 @@ export const CALL_WS_RATE_LIMIT = {
   MUTE: 10,
   CAMERA: 10,
 } as const;
+
+/** Live (non-terminal) call statuses — used to scope "active call" lookups. */
+export const LIVE_CALL_STATUSES = [
+  'CREATED',
+  'RINGING',
+  'ACCEPTED',
+  'CONNECTING',
+  'ACTIVE',
+] as const;
+
+/** Terminal statuses — used for call history queries. */
+export const TERMINAL_CALL_STATUSES = [
+  'ENDED',
+  'FAILED',
+  'REJECTED',
+  'CANCELLED',
+] as const;
+
+/** Live participant states — a participant row that is still in the session. */
+export const LIVE_PARTICIPANT_STATES = ['JOINED', 'MUTED', 'CAMERA_OFF'] as const;
 
 export const CALL_WINDOW_SECONDS = 10;
 
