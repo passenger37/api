@@ -59,6 +59,7 @@ import { IceServerProvider } from '../services/ice-server-provider';
 import { CallScope } from '../types/calling.types';
 import {
   CreateCallRequest,
+  GetActiveCallRequest,
   IceCandidateRequest,
   JoinCallRequest,
   LeaveCallRequest,
@@ -265,6 +266,9 @@ export class CallingGateway
 
       if (context.ringTargetUserIds.length > 0) {
         // DM scope: ring the peer.
+        const participants = await this.queryService.getCallParticipants(call.id);
+        const initiator = participants.find((p) => p.userId === userId)?.user ?? null;
+
         for (const targetUserId of context.ringTargetUserIds) {
           this.server.to(callParticipantRoom(targetUserId)).emit(CALL_EVENT_RING, {
             callId: call.id,
@@ -272,6 +276,7 @@ export class CallingGateway
             scope: call.scope,
             scopeRef: call.scopeRef,
             initiatorUserId: userId,
+            initiator,
           });
 
           await this.notificationPublisher.publishIncomingCall({
@@ -318,15 +323,17 @@ export class CallingGateway
 
       await this.callEvents.publish('PARTICIPANT_JOINED', call, userId);
 
+      // Get current participants (with user info)
+      const participants = await this.queryService.getCallParticipants(input.callId);
+      const joined = participants.find((p) => p.userId === userId) ?? null;
+
       // Notify other participants
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_PARTICIPANT_JOINED, {
         callId: input.callId,
         userId,
         deviceId: input.deviceId,
+        user: joined?.user ?? null,
       });
-
-      // Get current participants
-      const participants = await this.queryService.getCallParticipants(input.callId);
 
       return {
         success: true,
@@ -334,6 +341,44 @@ export class CallingGateway
         callId: input.callId,
         participants,
       };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  /** Discover the active call for a scope (DM conversation / server channel). */
+  @SubscribeMessage('call:get-active')
+  async getActiveCall(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() input: GetActiveCallRequest,
+  ) {
+    const event = 'call:get-active';
+    try {
+      const userId = client.data.userId;
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('call-get-active', userId),
+        limit: CALL_WS_RATE_LIMIT.RING,
+        windowSeconds: CALL_WINDOW_SECONDS,
+      });
+
+      await this.authorization.authorizeGetActive(
+        userId,
+        input.scope,
+        input.scopeRef,
+      );
+
+      const call = await this.queryService.getActiveCallByScope(
+        input.scope,
+        input.scopeRef,
+      );
+
+      if (!call) {
+        return { success: true, event, call: null, participants: [] };
+      }
+
+      const participants = await this.queryService.getCallParticipants(call.id);
+
+      return { success: true, event, call, participants };
     } catch (exception) {
       return this.normalizeError(exception, event);
     }

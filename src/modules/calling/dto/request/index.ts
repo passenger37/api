@@ -7,3 +7,4 @@ export { MuteRequest } from './mute.request';
 export { UnmuteRequest } from './unmute.request';
 export { CameraOnRequest } from './camera-on.request';
 export { CameraOffRequest } from './camera-off.request';
+export { GetActiveCallRequest } from './get-active-call.request';

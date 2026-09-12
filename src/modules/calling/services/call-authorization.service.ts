@@ -59,6 +59,34 @@ export class CallAuthorizationService {
     }
   }
 
+  /**
+   * Authorize discovering whether an active call exists for a scope. A DM
+   * member or a server member with join permission may query the scope; the
+   * caller still needs `authorizeCreate`/`authorizeJoin` to act on the result.
+   */
+  async authorizeGetActive(
+    userId: string,
+    scope: CallScope,
+    scopeRef: string,
+  ): Promise<void> {
+    switch (scope) {
+      case CallScope.DM:
+        await this.requireDmMember(scopeRef, userId);
+        return;
+      case CallScope.SERVER_CHANNEL:
+        await this.requireChannelPermission(
+          scopeRef,
+          userId,
+          ServerPermission.CHANNEL_CALL_JOIN,
+        );
+        return;
+      default:
+        throw new ForbiddenException(
+          'CALL_NOT_ALLOWED: this call scope is not supported yet.',
+        );
+    }
+  }
+
   /** Authorize `call:join` — membership/permission bound to the call scope. */
   async authorizeJoin(userId: string, call: Call): Promise<void> {
     switch (call.scope) {
