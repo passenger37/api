@@ -1,5 +1,4 @@
 import {
-  CommunityAlreadySubscribedException,
   CommunityNotSubscribedException,
   CommunityNotFoundException,
 } from '../exceptions/community.exceptions';
@@ -30,6 +29,7 @@ describe('CommunityMembershipService', () => {
   beforeEach(() => {
     repository = { findBySlugWithRelations: jest.fn() };
     subscriptionRepository = {
+      find: jest.fn(),
       isSubscribed: jest.fn(),
       subscribe: jest.fn(),
       unsubscribe: jest.fn(),
@@ -51,13 +51,21 @@ describe('CommunityMembershipService', () => {
       );
     });
 
-    it('should throw when already subscribed', async () => {
+    it('should upsert idempotently when already subscribed', async () => {
+      const existing = {
+        id: 'sub1',
+        communityId: 'c1',
+        userId: 'u1',
+        isMuted: true,
+        subscribedAt: now,
+      };
       repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
-      subscriptionRepository.isSubscribed.mockResolvedValue(true);
+      subscriptionRepository.subscribe.mockResolvedValue(existing);
 
-      await expect(service.subscribe('nexus', 'u1')).rejects.toBeInstanceOf(
-        CommunityAlreadySubscribedException,
-      );
+      const result = await service.subscribe('nexus', 'u1');
+
+      expect(subscriptionRepository.subscribe).toHaveBeenCalledWith('c1', 'u1');
+      expect(result.communityId).toBe('c1');
     });
 
     it('should subscribe and return a serialized subscription', async () => {
@@ -114,11 +122,13 @@ describe('CommunityMembershipService', () => {
   describe('setMuted', () => {
     it('should throw when no subscription exists', async () => {
       repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
-      subscriptionRepository.setMuted.mockResolvedValue(null);
+      subscriptionRepository.find.mockResolvedValue(null);
 
       await expect(
         service.setMuted('nexus', 'u1', true),
       ).rejects.toBeInstanceOf(CommunityNotSubscribedException);
+
+      expect(subscriptionRepository.setMuted).not.toHaveBeenCalled();
     });
 
     it('should update the muted flag', async () => {
@@ -126,14 +136,19 @@ describe('CommunityMembershipService', () => {
         id: 'sub1',
         communityId: 'c1',
         userId: 'u1',
-        isMuted: true,
+        isMuted: false,
         subscribedAt: now,
       };
       repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
-      subscriptionRepository.setMuted.mockResolvedValue(subscription);
+      subscriptionRepository.find.mockResolvedValue(subscription);
+      subscriptionRepository.setMuted.mockResolvedValue({
+        ...subscription,
+        isMuted: true,
+      });
 
       const result = await service.setMuted('nexus', 'u1', true);
 
+      expect(subscriptionRepository.find).toHaveBeenCalledWith('c1', 'u1');
       expect(subscriptionRepository.setMuted).toHaveBeenCalledWith(
         'c1',
         'u1',

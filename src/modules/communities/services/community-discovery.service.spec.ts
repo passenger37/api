@@ -36,6 +36,7 @@ describe('CommunityDiscoveryService', () => {
       repository.discoverPublic.mockResolvedValue([
         community,
         { ...community, id: 'c2', slug: 'two' },
+        { ...community, id: 'c3', slug: 'three' },
       ]);
 
       const result = await service.discover('nex', undefined, 2);

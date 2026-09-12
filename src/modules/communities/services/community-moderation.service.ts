@@ -20,7 +20,10 @@ import { ModerationListResponse } from '../dto/response';
 import { encodeTwoFieldCursor, decodeTwoFieldCursor } from '../pagination/community-cursor';
 import { serializeModerationAction } from '../mappers/community.mapper';
 import { CommunityEventPublisher } from '../events/community-event-publisher';
-import { COMMUNITY_REALTIME_EVENTS } from '../realtime/community-realtime.constants';
+import {
+  COMMUNITY_REALTIME_EVENTS,
+  CommunityRealtimeEventName,
+} from '../realtime/community-realtime.constants';
 
 @Injectable()
 export class CommunityModerationService {
@@ -43,7 +46,7 @@ export class CommunityModerationService {
 
     await this.access.assertModerator(community.id, userId);
 
-    await this.applyEffect(community.id, request);
+    const sideEffects = await this.applyEffect(community.id, request);
 
     const action = await this.actionRepository.create({
       community: { connect: { id: community.id } },
@@ -58,6 +61,14 @@ export class CommunityModerationService {
     await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.MODERATION_RECORDED, {
       action: serializeModerationAction(action),
     });
+
+    // Resource-level side-effect events (POST_DELETED, COMMENT_DELETED,
+    // POST_UPDATED) fire only AFTER the audit row is durably written, so
+    // the audience can always reconcile an event against the moderation
+    // history list. See PR #6.
+    for (const { event, payload } of sideEffects) {
+      await this.eventPublisher.publish(community.id, event, payload);
+    }
   }
 
   async list(
@@ -113,7 +124,14 @@ export class CommunityModerationService {
   private async applyEffect(
     communityId: string,
     request: CreateModerationActionRequest,
-  ): Promise<void> {
+  ): Promise<
+    Array<{ event: CommunityRealtimeEventName; payload: Record<string, unknown> }>
+  > {
+    const sideEffects: Array<{
+      event: CommunityRealtimeEventName;
+      payload: Record<string, unknown>;
+    }> = [];
+
     switch (request.actionType) {
       case CommunityModerationActionType.MUTE: {
         if (!request.targetUserId) {
@@ -163,10 +181,13 @@ export class CommunityModerationService {
 
         await this.postRepository.softDelete(post.id);
 
-        await this.eventPublisher.publish(communityId, COMMUNITY_REALTIME_EVENTS.POST_DELETED, {
-          postId: post.id,
-          communityId,
-          reason: 'moderation',
+        sideEffects.push({
+          event: COMMUNITY_REALTIME_EVENTS.POST_DELETED,
+          payload: {
+            postId: post.id,
+            communityId,
+            reason: 'moderation',
+          },
         });
 
         break;
@@ -195,11 +216,14 @@ export class CommunityModerationService {
 
         await this.commentRepository.softDelete(comment.id);
 
-        await this.eventPublisher.publish(communityId, COMMUNITY_REALTIME_EVENTS.COMMENT_DELETED, {
-          postId: post.id,
-          commentId: comment.id,
-          communityId,
-          reason: 'moderation',
+        sideEffects.push({
+          event: COMMUNITY_REALTIME_EVENTS.COMMENT_DELETED,
+          payload: {
+            postId: post.id,
+            commentId: comment.id,
+            communityId,
+            reason: 'moderation',
+          },
         });
 
         break;
@@ -223,11 +247,14 @@ export class CommunityModerationService {
           pinnedAt: new Date(),
         });
 
-        await this.eventPublisher.publish(communityId, COMMUNITY_REALTIME_EVENTS.POST_UPDATED, {
-          postId: post.id,
-          communityId,
-          isPinned: true,
-          reason: 'moderation',
+        sideEffects.push({
+          event: COMMUNITY_REALTIME_EVENTS.POST_UPDATED,
+          payload: {
+            postId: post.id,
+            communityId,
+            isPinned: true,
+            reason: 'moderation',
+          },
         });
 
         break;
@@ -251,11 +278,14 @@ export class CommunityModerationService {
           pinnedAt: null,
         });
 
-        await this.eventPublisher.publish(communityId, COMMUNITY_REALTIME_EVENTS.POST_UPDATED, {
-          postId: post.id,
-          communityId,
-          isPinned: false,
-          reason: 'moderation',
+        sideEffects.push({
+          event: COMMUNITY_REALTIME_EVENTS.POST_UPDATED,
+          payload: {
+            postId: post.id,
+            communityId,
+            isPinned: false,
+            reason: 'moderation',
+          },
         });
 
         break;
@@ -275,6 +305,8 @@ export class CommunityModerationService {
       default:
         break;
     }
+
+    return sideEffects;
   }
 
   private async communityBySlug(slug: string) {

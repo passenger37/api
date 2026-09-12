@@ -13,7 +13,12 @@ describe('CommunityPostService', () => {
   let commentRepository: any;
   let categoryRepository: any;
   let subscriptionRepository: any;
+  let mediaRepository: any;
+  let hashtagRepository: any;
+  let mentionRepository: any;
   let access: any;
+  let eventPublisher: any;
+  let dbCache: any;
 
   const now = new Date('2026-01-01T00:00:00.000Z');
 
@@ -63,7 +68,12 @@ describe('CommunityPostService', () => {
     };
     categoryRepository = { findById: jest.fn() };
     subscriptionRepository = { isSubscribed: jest.fn() };
+    mediaRepository = { createMany: jest.fn() };
+    hashtagRepository = { createMany: jest.fn() };
+    mentionRepository = { createMany: jest.fn() };
     access = { isModerator: jest.fn() };
+    eventPublisher = { publish: jest.fn().mockResolvedValue(undefined) };
+    dbCache = { delMany: jest.fn().mockResolvedValue(undefined) };
 
     service = new CommunityPostService(
       repository,
@@ -71,7 +81,12 @@ describe('CommunityPostService', () => {
       commentRepository,
       categoryRepository,
       subscriptionRepository,
+      mediaRepository,
+      hashtagRepository,
+      mentionRepository,
       access,
+      eventPublisher,
+      dbCache,
     );
   });
 
@@ -101,7 +116,7 @@ describe('CommunityPostService', () => {
       expect(postRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           community: { connect: { id: 'c1' } },
-          authorUserId: 'u1',
+          author: { connect: { id: 'u1' } },
           title: 'Hello',
           content: 'World',
         }),

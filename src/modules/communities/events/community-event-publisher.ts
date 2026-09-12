@@ -33,6 +33,14 @@ export interface CommunityRealtimeEnvelope {
  */
 @Injectable()
 export class CommunityEventPublisher {
+  /**
+   * Soft cap on the serialized envelope size (16 KiB). Real-time fan-out is
+   * best-effort; a payload larger than this would be trimmed by Redis anyway
+   * (RESP2 pub/sub messages are limited to 64 KiB), so we drop it up front
+   * with a warn — the database write remains the source of truth.
+   */
+  static readonly MAX_ENVELOPE_BYTES = 16 * 1024;
+
   private readonly logger = new Logger(CommunityEventPublisher.name);
 
   constructor(private readonly redis: RedisService) {}
@@ -59,6 +67,13 @@ export class CommunityEventPublisher {
       this.logger.error(
         `Failed to serialize community realtime event communityId=${communityId} event=${event}`,
         err instanceof Error ? err.stack : String(err),
+      );
+      return;
+    }
+
+    if (serialized.length > CommunityEventPublisher.MAX_ENVELOPE_BYTES) {
+      this.logger.warn(
+        `Skipping oversized community realtime event communityId=${communityId} event=${event} bytes=${serialized.length}`,
       );
       return;
     }

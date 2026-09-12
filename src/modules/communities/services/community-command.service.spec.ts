@@ -13,6 +13,9 @@ describe('CommunityCommandService', () => {
   let repository: any;
   let categoryRepository: any;
   let moderatorRepository: any;
+  let serverMemberRepository: any;
+  let serverPermissionService: any;
+  let eventPublisher: any;
   let access: any;
 
   const now = new Date('2026-01-01T00:00:00.000Z');
@@ -53,6 +56,12 @@ describe('CommunityCommandService', () => {
       upsert: jest.fn(),
       remove: jest.fn(),
     };
+    serverMemberRepository = { findByServerAndUser: jest.fn() };
+    serverPermissionService = {
+      hasPermission: jest.fn(),
+      clearUserCache: jest.fn(),
+    };
+    eventPublisher = { publish: jest.fn().mockResolvedValue(undefined) };
     access = {
       assertOwner: jest.fn(),
       assertModerator: jest.fn(),
@@ -66,13 +75,18 @@ describe('CommunityCommandService', () => {
       repository,
       categoryRepository,
       moderatorRepository,
+      serverMemberRepository,
+      serverPermissionService,
       access,
+      eventPublisher,
     );
   });
 
   describe('create', () => {
     it('should create a community and assign the owner as admin', async () => {
       slugService.generate.mockResolvedValue('nexus');
+      serverMemberRepository.findByServerAndUser.mockResolvedValue({ id: 'm1' });
+      serverPermissionService.hasPermission.mockResolvedValue(true);
       repository.create.mockResolvedValue({ ...communityRecord, id: 'c1' });
       moderatorRepository.upsert.mockResolvedValue({ id: 'm1' });
       prisma.$transaction.mockImplementation(async (cb) => cb({}));
@@ -147,6 +161,15 @@ describe('CommunityCommandService', () => {
       categoryRepository.findByName.mockResolvedValue(null);
       prisma.communityCategory = { count: jest.fn().mockResolvedValue(2) };
       access.roleFor.mockResolvedValue(CommunityModeratorRole.MODERATOR);
+      categoryRepository.create.mockResolvedValue({
+        id: 'cat1',
+        communityId: 'c1',
+        name: 'General',
+        description: null,
+        position: 2,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       await service.createCategory('nexus', 'u1', { name: 'General' });
 

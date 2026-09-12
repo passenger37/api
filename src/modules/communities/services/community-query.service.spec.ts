@@ -3,6 +3,7 @@ import {
   CommunityNotFoundException,
 } from '../exceptions/community.exceptions';
 import { CommunityQueryService } from './community-query.service';
+import { encodeTwoFieldCursor } from '../pagination/community-cursor';
 
 describe('CommunityQueryService', () => {
   let service: CommunityQueryService;
@@ -26,11 +27,34 @@ describe('CommunityQueryService', () => {
     rules: null,
     createdAt: now,
     updatedAt: now,
-    _count: { posts: 0, subscriptions: 0 },
+    _count: { posts: 2, subscriptions: 3 },
+  };
+
+  const serializedPublic = {
+    id: 'c1',
+    serverId: 'srv1',
+    name: 'Nexus',
+    slug: 'nexus',
+    description: null,
+    iconUrl: null,
+    visibility: 'PUBLIC',
+    discoveryEnabled: true,
+    ownerId: 'u1',
+    rules: null,
+    postCount: 2,
+    subscriptionCount: 3,
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
   };
 
   const privateCommunity = {
     ...publicCommunity,
+    slug: 'secret',
+    visibility: 'PRIVATE',
+  };
+
+  const serializedPrivate = {
+    ...serializedPublic,
     slug: 'secret',
     visibility: 'PRIVATE',
   };
@@ -69,7 +93,7 @@ describe('CommunityQueryService', () => {
 
       const result = await service.getBySlug('nexus', 'u1');
 
-      expect(result).toEqual(publicCommunity);
+      expect(result).toEqual(serializedPublic);
     });
 
     it('should deny access to a private community when the user is not subscribed', async () => {
@@ -88,7 +112,7 @@ describe('CommunityQueryService', () => {
 
       const result = await service.getBySlug('secret', 'u1');
 
-      expect(result).toEqual(privateCommunity);
+      expect(result).toEqual(serializedPrivate);
     });
   });
 
@@ -115,16 +139,32 @@ describe('CommunityQueryService', () => {
   });
 
   describe('listSubscribed', () => {
-    it('should serialize subscriptions and return a next cursor', async () => {
-      repository.listSubscribed.mockResolvedValue([
-        { id: 'sub1', community: publicCommunity },
-        { id: 'sub2', community: { ...publicCommunity, id: 'c2', slug: 'two' } },
-      ]);
+    it('should serialize subscriptions and return an encoded next cursor', async () => {
+      const sub1 = {
+        id: 'sub1',
+        subscribedAt: new Date('2026-01-01T00:00:00.000Z'),
+        community: publicCommunity,
+      };
+      const sub2 = {
+        id: 'sub2',
+        subscribedAt: new Date('2026-01-02T00:00:00.000Z'),
+        community: { ...publicCommunity, id: 'c2', slug: 'two' },
+      };
+      repository.listSubscribed.mockResolvedValue([sub1, sub2]);
 
-      const result = await service.listSubscribed('u1', undefined, 2);
+      const result = await service.listSubscribed('u1', undefined, 1);
 
-      expect(result.items).toHaveLength(2);
-      expect(result.nextCursor).toBe('sub2');
+      expect(repository.listSubscribed).toHaveBeenCalledWith(
+        'u1',
+        1,
+        undefined,
+      );
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].id).toBe('c1');
+      expect(result.items[0].postCount).toBe(2);
+      expect(result.nextCursor).toBe(
+        encodeTwoFieldCursor({ createdAt: sub1.subscribedAt, id: 'sub1' }),
+      );
     });
   });
 });

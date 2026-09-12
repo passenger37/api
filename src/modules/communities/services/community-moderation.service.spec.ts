@@ -14,16 +14,15 @@ import { CommunityModerationService } from './community-moderation.service';
  * - Domain exceptions are thrown for missing community / wrong target.
  * - Effects (mute, delete-post, delete-comment) call the right repository.
  * - The audit row is created with the right shape.
- * - Realtime events fire AFTER the transaction, in the right order
- *   (MODERATION_RECORDED first, then the resource-level side-effect
- *   event). See PR #6 — the previous implementation published
- *   DELETE_POST/DELETE_COMMENT before the audit row existed, which
- *   broke the "audience is told only after the action is reconcilable
- *   from durable storage" contract.
+ * - Realtime events fire AFTER the audit row is durably written, in the
+ *   right order (MODERATION_RECORDED first, then the resource-level
+ *   side-effect event). See PR #6 — the previous implementation published
+ *   DELETE_POST/DELETE_COMMENT before the audit row existed, which broke
+ *   the "audience is told only after the action is reconcilable from
+ *   durable storage" contract.
  */
 describe('CommunityModerationService', () => {
   let service: CommunityModerationService;
-  let prisma: any;
   let repository: any;
   let actionRepository: any;
   let postRepository: any;
@@ -44,29 +43,40 @@ describe('CommunityModerationService', () => {
     updatedAt: now,
   };
 
-  beforeEach(() => {
-    // A transaction-client-shaped stub: $transaction just invokes the
-    // callback with itself so the service can call repository methods
-    // (which in production accept an optional tx) synchronously.
-    const tx = {};
-    prisma = {
-      $transaction: jest.fn(async (fn: (client: unknown) => unknown) => fn(tx)),
-    };
+  const auditRow = (overrides: Partial<Record<string, unknown>> = {}) => ({
+    id: 'a1',
+    communityId: 'c1',
+    moderatorUserId: 'u1',
+    actionType: CommunityModerationActionType.MUTE,
+    targetUserId: 'u2',
+    objectType: null,
+    objectId: null,
+    reason: null,
+    createdAt: now,
+    ...overrides,
+  });
 
+  beforeEach(() => {
     repository = { findBySlugWithRelations: jest.fn() };
     actionRepository = {
       create: jest.fn(),
       list: jest.fn(),
       listByActionType: jest.fn(),
     };
-    postRepository = { findById: jest.fn(), softDelete: jest.fn() };
-    commentRepository = { findById: jest.fn(), softDelete: jest.fn() };
+    postRepository = {
+      findById: jest.fn(),
+      softDelete: jest.fn(),
+      update: jest.fn(),
+    };
+    commentRepository = {
+      findById: jest.fn(),
+      softDelete: jest.fn(),
+    };
     subscriptionRepository = { setMuted: jest.fn() };
     access = { assertModerator: jest.fn() };
     eventPublisher = { publish: jest.fn().mockResolvedValue(undefined) };
 
     service = new CommunityModerationService(
-      prisma,
       repository,
       actionRepository,
       postRepository,
@@ -87,22 +97,21 @@ describe('CommunityModerationService', () => {
         }),
       ).rejects.toBeInstanceOf(CommunityNotFoundException);
 
-      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(actionRepository.create).not.toHaveBeenCalled();
       expect(eventPublisher.publish).not.toHaveBeenCalled();
     });
 
-    it('should mute a target user inside the transaction', async () => {
+    it('should mute a target user and record an audit action', async () => {
       repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
       access.assertModerator.mockResolvedValue(undefined);
       subscriptionRepository.setMuted.mockResolvedValue({ id: 'sub1' });
-      actionRepository.create.mockResolvedValue({ id: 'a1' });
+      actionRepository.create.mockResolvedValue(auditRow());
 
       await service.record('nexus', 'u1', {
         actionType: CommunityModerationActionType.MUTE,
         targetUserId: 'u2',
       });
 
-      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(subscriptionRepository.setMuted).toHaveBeenCalledWith(
         'c1',
         'u2',
@@ -115,11 +124,10 @@ describe('CommunityModerationService', () => {
           actionType: CommunityModerationActionType.MUTE,
           targetUserId: 'u2',
         }),
-        expect.anything(),
       );
     });
 
-    it('should publish MODERATION_RECORDED after the audit row is committed', async () => {
+    it('should publish MODERATION_RECORDED after the audit row is written', async () => {
       const calls: string[] = [];
 
       repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
@@ -130,17 +138,7 @@ describe('CommunityModerationService', () => {
       });
       actionRepository.create.mockImplementation(async () => {
         calls.push('audit');
-        return {
-          id: 'a1',
-          communityId: 'c1',
-          moderatorUserId: 'u1',
-          actionType: CommunityModerationActionType.MUTE,
-          targetUserId: 'u2',
-          objectType: null,
-          objectId: null,
-          reason: null,
-          createdAt: now,
-        };
+        return auditRow();
       });
       eventPublisher.publish.mockImplementation(async () => {
         calls.push('publish');
@@ -151,9 +149,8 @@ describe('CommunityModerationService', () => {
         targetUserId: 'u2',
       });
 
-      // Effect + audit must run inside the transaction, in either order;
-      // publish must run AFTER both. The first publish is
-      // MODERATION_RECORDED.
+      // Effect + audit must run before any publish; the publish happens
+      // only after both are durable.
       expect(calls[0]).not.toBe('publish');
       expect(calls[1]).not.toBe('publish');
       expect(calls[calls.length - 1]).toBe('publish');
@@ -171,7 +168,7 @@ describe('CommunityModerationService', () => {
       repository.findBySlugWithRelations.mockResolvedValue(communityRecord);
       access.assertModerator.mockResolvedValue(undefined);
       subscriptionRepository.setMuted.mockResolvedValue({ id: 'sub1' });
-      actionRepository.create.mockResolvedValue({ id: 'a1' });
+      actionRepository.create.mockResolvedValue(auditRow());
 
       await service.record('nexus', 'u1', {
         actionType: CommunityModerationActionType.MUTE,
@@ -202,7 +199,11 @@ describe('CommunityModerationService', () => {
       });
       actionRepository.create.mockImplementation(async () => {
         calls.push('audit');
-        return { id: 'a1', createdAt: now };
+        return auditRow({
+          actionType: CommunityModerationActionType.DELETE_POST,
+          objectType: 'POST',
+          objectId: 'p1',
+        });
       });
       eventPublisher.publish.mockImplementation(async () => {
         calls.push('publish');
@@ -254,8 +255,6 @@ describe('CommunityModerationService', () => {
         }),
       ).rejects.toBeInstanceOf(CommunityPostNotFoundException);
 
-      // Transaction was opened (the effect runs inside it) but rolled
-      // back, so no audit row and no publishes.
       expect(actionRepository.create).not.toHaveBeenCalled();
       expect(eventPublisher.publish).not.toHaveBeenCalled();
     });
@@ -268,7 +267,7 @@ describe('CommunityModerationService', () => {
         id: 'p1',
         communityId: 'c1',
       });
-      actionRepository.create.mockResolvedValue({ id: 'a1', createdAt: now });
+      actionRepository.create.mockResolvedValue(auditRow());
 
       await service.record('nexus', 'u1', {
         actionType: CommunityModerationActionType.DELETE_COMMENT,
@@ -315,7 +314,7 @@ describe('CommunityModerationService', () => {
         id: 'p1',
         communityId: 'c1',
       });
-      actionRepository.create.mockResolvedValue({ id: 'a1', createdAt: now });
+      actionRepository.create.mockResolvedValue(auditRow());
 
       await service.record('nexus', 'u1', {
         actionType: CommunityModerationActionType.PIN_POST,
@@ -343,7 +342,7 @@ describe('CommunityModerationService', () => {
         id: 'p1',
         communityId: 'c1',
       });
-      actionRepository.create.mockResolvedValue({ id: 'a1', createdAt: now });
+      actionRepository.create.mockResolvedValue(auditRow());
 
       await service.record('nexus', 'u1', {
         actionType: CommunityModerationActionType.UNPIN_POST,
@@ -372,6 +371,7 @@ describe('CommunityModerationService', () => {
       actionRepository.list.mockResolvedValue([
         { id: 'a1', createdAt: now },
         { id: 'a2', createdAt: now },
+        { id: 'a3', createdAt: now },
       ]);
 
       const result = await service.list('nexus', 'u1', undefined, undefined, 2);
