@@ -309,9 +309,9 @@ export const PRODUCTION_READINESS_CHECKS: Check[] = [
   areaCheck(
     'E2EE-2',
     'E2EE',
-    'E2EE ratchet module exists',
-    modDir('e2ee-ratchet'),
-    'E2EE ratchet',
+    'E2EE transport module exists (ciphertext envelope relay)',
+    modDir('e2ee-transport'),
+    'E2EE transport',
   ),
   areaCheck(
     'E2EE-3',

@@ -755,16 +755,18 @@ model ModerationAuditLog {
 }
 
 model DirectMessageChannel {
-  id             String                   @id @default(cuid())
+  id             String                    @id @default(cuid())
   userAId        String
   userBId        String
-  messageCounter Int                      @default(0)
+  /// Transport mode — STANDARD stores plaintext on the server, PRIVATE_E2EE is client-encrypted end to end.
+  mode           DirectMessageMode         @default(STANDARD)
+  messageCounter Int                       @default(0)
   lastMessageAt  DateTime?
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
   messages       DirectMessage[]
-  userA          User                     @relation("DirectMessageChannelA", fields: [userAId], references: [id], onDelete: Cascade)
-  userB          User                     @relation("DirectMessageChannelB", fields: [userBId], references: [id], onDelete: Cascade)
+  userA          User                      @relation("DirectMessageChannelA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB          User                      @relation("DirectMessageChannelB", fields: [userBId], references: [id], onDelete: Cascade)
   readStates     DirectMessageReadState[]
   settings       DirectMessageChannelSettings[]
   attachments    DirectMessageAttachment[]
@@ -778,7 +780,15 @@ model DirectMessage {
   id              String                   @id @default(cuid())
   channelId       String
   authorUserId    String
+  /// Plaintext content for STANDARD channels. For PRIVATE_E2EE channels this
+  /// column is ALWAYS empty — the actual ciphertext lives only in E2eeEnvelope rows.
   content         String
+  /// Sending device for E2EE messages (null for STANDARD messages).
+  senderDeviceId  String?
+  /// Whether this message was transported as client-encrypted ciphertext.
+  isE2ee          Boolean                  @default(false)
+  /// E2EE protocol version the client used to encrypt (null for STANDARD).
+  protocolVersion Int?
   clientMessageId String?
   parentMessageId String?
   isEdited        Boolean                  @default(false)
@@ -976,20 +986,23 @@ model E2eeSession {
   recipientDeviceId  String
   /// Session version for protocol upgrades
   version            Int               @default(1)
-  /// Opaque encrypted session state blob (root key, chain keys, message numbers, AD)
-  /// Encrypted with the device's identity key; server never sees plaintext
-  sessionState       String
-  /// Associated data hash for integrity (e.g., identity keys involved)
-  associatedDataHash String
+  /// Public session descriptor ONLY. All cryptographic state (root key, chain
+  /// keys, message numbers, AD) lives in the client; the server never derives,
+  /// decrypts, or stores session secrets. These columns are retained for schema
+  /// stability but are always NULL for new sessions.
+  sessionState       String?
+  /// Reserved for a future public integrity marker. Always NULL for new sessions.
+  associatedDataHash String?
   /// Whether this session is active (not archived/revoked)
   isActive           Boolean           @default(true)
+  /// When the recipient device accepted the session
+  acceptedAt         DateTime?
   /// Archived at timestamp
   archivedAt         DateTime?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   attachments        E2eeAttachment[]
   envelopes          E2eeEnvelope[]
-  ratchetState       E2eeRatchetState?
   recipientDevice    E2eeDevice        @relation("RecipientSessions", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
   senderDevice       E2eeDevice        @relation("SenderSessions", fields: [senderDeviceId], references: [id], onDelete: Cascade)
 
@@ -997,39 +1010,6 @@ model E2eeSession {
   @@index([senderDeviceId, isActive])
   @@index([recipientDeviceId, isActive])
   @@map("e2ee_sessions")
-}
-
-model E2eeRatchetState {
-  id                           String      @id @default(cuid())
-  sessionId                    String      @unique
-  /// Current root key (base64, encrypted with device identity key)
-  rootKey                      String
-  /// Sending chain key (base64)
-  sendingChainKey              String
-  /// Receiving chain key (base64)
-  receivingChainKey            String
-  /// Current sending message number
-  sendingMessageNumber         Int         @default(0)
-  /// Current receiving message number
-  receivingMessageNumber       Int         @default(0)
-  /// Local ephemeral DH ratchet public key (base64, SPKI DER)
-  nextDhPublicKey              String?
-  /// Local ephemeral DH ratchet private key (base64, PKCS8 DER) — server-orchestrated scaffold until the Signal library lands (40.68)
-  currentDhPrivateKey          String?
-  /// Previous receiving chain length (for skipped message keys tracking)
-  previousReceivingChainLength Int         @default(0)
-  /// Skipped message keys map (JSON: messageNumber -> base64 message key)
-  /// Used for out-of-order decryption
-  skippedMessageKeys           String      @default("{}")
-  /// Remote DH public key for pending ratchet step (base64)
-  remoteDhPublicKey            String?
-  createdAt                    DateTime    @default(now())
-  updatedAt                    DateTime    @updatedAt
-  /// Opaque libsignal SessionRecord (base64) — replaces individual ratchet fields when libsignal is fully adopted
-  sessionState                 String?
-  session                      E2eeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  @@map("e2ee_ratchet_states")
 }
 
 model E2eeEnvelope {
@@ -1040,12 +1020,18 @@ model E2eeEnvelope {
   type              E2eeEnvelopeType
   /// Encrypted ciphertext payload (base64 blob)
   ciphertext        String
+  /// Protocol version the sender encrypted with
+  protocolVersion   Int                 @default(1)
   /// Associated data (base64 blob) - includes header, version, etc.
   associatedData    String?
   /// Sender device ID
   senderDeviceId    String
   /// Recipient device ID
   recipientDeviceId String
+  /// Optional link to a DirectMessage row for E2EE DM transport
+  channelId         String?
+  /// Client-supplied idempotency key supplied by the sender
+  clientMessageId   String?
   /// Delivery status
   status            E2eeEnvelopeStatus  @default(PENDING)
   /// Number of delivery attempts
@@ -1064,6 +1050,7 @@ model E2eeEnvelope {
   @@index([recipientDeviceId, status])
   @@index([senderDeviceId])
   @@index([sessionId])
+  @@index([channelId])
   @@map("e2ee_envelopes")
 }
 
@@ -2744,6 +2731,11 @@ enum E2eeEnvelopeStatus {
   DELIVERED
   FAILED
   EXPIRED
+}
+
+enum DirectMessageMode {
+  STANDARD
+  PRIVATE_E2EE
 }
 
 enum CallType {

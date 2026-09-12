@@ -12,6 +12,8 @@ describe('E2eeSessionRepository', () => {
     };
   };
 
+  const INCLUDE = { senderDevice: true, recipientDevice: true };
+
   beforeEach(() => {
     prisma = {
       e2eeSession: {
@@ -25,41 +27,37 @@ describe('E2eeSessionRepository', () => {
     repository = new E2eeSessionRepository(prisma as any);
   });
 
-  it('should create a session with connect relations', async () => {
+  it('should create a metadata-only session with connect relations', async () => {
     prisma.e2eeSession.create.mockResolvedValue({
       id: 'sess1',
       senderDeviceId: 'dev1',
       recipientDeviceId: 'dev2',
-      sessionState: 'state',
-      associatedDataHash: 'hash',
       isActive: true,
     });
 
     const session = await repository.create({
       senderDevice: { connect: { id: 'dev1' } },
       recipientDevice: { connect: { id: 'dev2' } },
-      sessionState: 'state',
-      associatedDataHash: 'hash',
     });
 
     expect(prisma.e2eeSession.create).toHaveBeenCalledWith({
       data: {
         senderDevice: { connect: { id: 'dev1' } },
         recipientDevice: { connect: { id: 'dev2' } },
-        sessionState: 'state',
-        associatedDataHash: 'hash',
       },
+      include: INCLUDE,
     });
     expect(session.id).toBe('sess1');
   });
 
-  it('should find session by id', async () => {
+  it('should find session by id with devices', async () => {
     prisma.e2eeSession.findUnique.mockResolvedValue({ id: 'sess1' });
 
     const session = await repository.findById('sess1');
 
     expect(prisma.e2eeSession.findUnique).toHaveBeenCalledWith({
       where: { id: 'sess1' },
+      include: INCLUDE,
     });
     expect(session).toEqual({ id: 'sess1' });
   });
@@ -84,16 +82,16 @@ describe('E2eeSessionRepository', () => {
     expect(session?.id).toBe('sess1');
   });
 
-  it('should list sessions for recipient device', async () => {
+  it('should list sessions for a device with devices included', async () => {
     prisma.e2eeSession.findMany.mockResolvedValue([{ id: 'sess1' }]);
 
-    const sessions = await repository.findByRecipientDeviceId('dev2');
+    await repository.findByRecipientDeviceId('dev2');
 
     expect(prisma.e2eeSession.findMany).toHaveBeenCalledWith({
       where: { recipientDeviceId: 'dev2', isActive: true },
       orderBy: { createdAt: 'desc' },
+      include: INCLUDE,
     });
-    expect(sessions).toEqual([{ id: 'sess1' }]);
   });
 
   it('should list sessions for sender device', async () => {
@@ -104,8 +102,24 @@ describe('E2eeSessionRepository', () => {
     expect(prisma.e2eeSession.findMany).toHaveBeenCalledWith({
       where: { senderDeviceId: 'dev1', isActive: true },
       orderBy: { createdAt: 'desc' },
+      include: INCLUDE,
     });
     expect(sessions).toEqual([{ id: 'sess2' }]);
+  });
+
+  it('should accept a session', async () => {
+    prisma.e2eeSession.update.mockResolvedValue({
+      id: 'sess1',
+      acceptedAt: new Date('2026-01-02T00:00:00.000Z'),
+    });
+
+    await repository.accept('sess1');
+
+    expect(prisma.e2eeSession.update).toHaveBeenCalledWith({
+      where: { id: 'sess1' },
+      data: { acceptedAt: expect.any(Date) },
+      include: INCLUDE,
+    });
   });
 
   it('should archive a session', async () => {

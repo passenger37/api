@@ -22,8 +22,12 @@ import { DirectMessageReadStateRepository } from './repositories/direct-message-
 import { DirectMessageChannelSettingsRepository } from './repositories/direct-message-channel-settings.repository';
 import { DirectMessageReactionRepository } from './repositories/direct-message-reaction.repository';
 import { DirectMessageAttachmentRepository } from './repositories/direct-message-attachment.repository';
+import { E2eeEnvelopeRepository } from '../e2ee-transport/repositories/e2ee-envelope.repository';
+import { E2eeSessionRepository } from '../e2ee-sessions/repositories/e2ee-session.repository';
+import { E2eeDeviceRepository } from '../e2ee-devices/repositories/e2ee-device.repository';
 import { DmCommandService } from './services/dm-command.service';
 import { DmQueryService } from './services/dm-query.service';
+import { E2eeDmCommandService } from './services/e2ee-dm-command.service';
 import { DmReactionCommandService } from './services/dm-reaction-command.service';
 import { DmReactionQueryService } from './services/dm-reaction-query.service';
 import { DmAttachmentService } from './services/dm-attachment.service';
@@ -50,6 +54,10 @@ import { SystemDmController } from './controllers/system-dm.controller';
     DirectMessageAttachmentRepository,
     DmCommandService,
     DmQueryService,
+    E2eeDmCommandService,
+    E2eeEnvelopeRepository,
+    E2eeSessionRepository,
+    E2eeDeviceRepository,
     DmReactionCommandService,
     DmReactionQueryService,
     DmAttachmentService,

@@ -7,7 +7,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { UserStatus } from '@prisma/client';
+import { UserStatus, DirectMessageMode } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
@@ -43,7 +43,11 @@ export class DmCommandService {
     private readonly searchService: SearchService,
   ) {}
 
-  async open(userId: string, targetUserId: string) {
+  async open(
+    userId: string,
+    targetUserId: string,
+    mode: DirectMessageMode = DirectMessageMode.STANDARD,
+  ) {
     if (userId === targetUserId) {
       throw new BadRequestException('You cannot message yourself.');
     }
@@ -62,10 +66,17 @@ export class DmCommandService {
     );
 
     if (existing) {
+      if (existing.mode !== mode) {
+        throw new BadRequestException(
+          mode === DirectMessageMode.PRIVATE_E2EE
+            ? 'You already have a standard (unencrypted) conversation with this user.'
+            : 'You already have an end-to-end encrypted conversation with this user.',
+        );
+      }
       return existing;
     }
 
-    return this.channelRepository.create(userId, targetUserId);
+    return this.channelRepository.create(userId, targetUserId, mode);
   }
 
   async send(
@@ -85,6 +96,12 @@ export class DmCommandService {
     if (channel.userAId !== senderId && channel.userBId !== senderId) {
       throw new BadRequestException(
         'You do not have access to this direct message channel.',
+      );
+    }
+
+    if (channel.mode === DirectMessageMode.PRIVATE_E2EE) {
+      throw new BadRequestException(
+        'This channel is end-to-end encrypted. Use the E2EE message endpoint.',
       );
     }
 
@@ -246,6 +263,12 @@ export class DmCommandService {
 
     if (message.authorUserId !== userId) {
       throw new BadRequestException('You can only edit your own messages.');
+    }
+
+    if (message.isE2ee) {
+      throw new BadRequestException(
+        'This message is end-to-end encrypted and cannot be edited via the plaintext endpoint.',
+      );
     }
 
     if (expectedVersion && message.version !== expectedVersion) {

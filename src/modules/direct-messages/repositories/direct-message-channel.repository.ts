@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { DirectMessageMode, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
 
@@ -49,6 +49,7 @@ export class DirectMessageChannelRepository {
   async create(
     userAId: string,
     userBId: string,
+    mode: DirectMessageMode = DirectMessageMode.STANDARD,
     tx?: Prisma.TransactionClient,
   ): Promise<ChannelWithUsers> {
     const client = tx ?? this.prisma;
@@ -59,6 +60,7 @@ export class DirectMessageChannelRepository {
       data: {
         userAId: a,
         userBId: b,
+        mode,
       },
 
       include: CHANNEL_INCLUDE,

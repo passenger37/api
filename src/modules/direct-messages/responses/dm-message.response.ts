@@ -16,6 +16,9 @@ export interface DirectMessageResponse {
   channelId: string;
   authorUserId: string;
   content: string;
+  isE2ee: boolean;
+  senderDeviceId: string | null;
+  protocolVersion: number | null;
   clientMessageId: string | null;
   parentMessageId: string | null;
   isEdited: boolean;

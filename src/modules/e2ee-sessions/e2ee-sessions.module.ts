@@ -7,6 +7,7 @@ import { E2eeSessionCommandService } from './services/e2ee-session-command.servi
 import { E2eeSessionQueryService } from './services/e2ee-session-query.service';
 import { E2eeSessionController } from './controllers/e2ee-session.controller';
 import { E2eeOneTimePreKeyRepository } from '../e2ee-devices/repositories/e2ee-one-time-prekey.repository';
+import { E2eeSignedPreKeyRepository } from '../e2ee-devices/repositories/e2ee-signed-prekey.repository';
 
 @Module({
   imports: [PrismaModule, E2eeDevicesModule, E2eeKeyDistributionModule],
@@ -16,6 +17,7 @@ import { E2eeOneTimePreKeyRepository } from '../e2ee-devices/repositories/e2ee-o
     E2eeSessionCommandService,
     E2eeSessionQueryService,
     E2eeOneTimePreKeyRepository,
+    E2eeSignedPreKeyRepository,
   ],
   exports: [
     E2eeSessionQueryService,

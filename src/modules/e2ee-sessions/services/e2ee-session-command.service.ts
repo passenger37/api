@@ -2,50 +2,66 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { E2eeSessionRepository } from '../repositories/e2ee-session.repository';
 import { EstablishSessionRequestDto } from '../dto/establish-session.request';
 import { AcceptSessionRequestDto } from '../dto/accept-session.request';
-import { KeyDistributionQueryService } from '../../e2ee-key-distribution/services/key-distribution-query.service';
+import { E2eeDeviceRepository } from '../../e2ee-devices/repositories/e2ee-device.repository';
+import { E2eeSignedPreKeyRepository } from '../../e2ee-devices/repositories/e2ee-signed-prekey.repository';
 import { E2eeOneTimePreKeyRepository } from '../../e2ee-devices/repositories/e2ee-one-time-prekey.repository';
 
-const MAX_ESTABLISHMENTS_PER_MINUTE = 20;
-
+/**
+ * Session establishment is metadata-only: the client performs all X3DH/DH
+ * ratchet cryptography locally and the server persists nothing but a public
+ * descriptor (device pair + lifecycle timestamps). No session, root, chain,
+ * or identity secrets ever reach the backend.
+ */
 @Injectable()
 export class E2eeSessionCommandService {
   constructor(
     private readonly sessionRepo: E2eeSessionRepository,
-    private readonly keyDistQuery: KeyDistributionQueryService,
+    private readonly deviceRepo: E2eeDeviceRepository,
+    private readonly signedPreKeyRepo: E2eeSignedPreKeyRepository,
     private readonly oneTimePreKeyRepo: E2eeOneTimePreKeyRepository,
   ) {}
 
   async establishSession(
     callerUserId: string,
-    senderDeviceId: string,
     dto: EstablishSessionRequestDto,
   ) {
-    const recipientBundles = await this.keyDistQuery.getKeyBundles(
-      dto.recipientUserId,
-    );
-    const recipientDevice = recipientBundles.devices.find(
-      (d) => d.deviceId === dto.recipientDeviceId,
-    );
-    if (!recipientDevice) {
-      throw new NotFoundException('Recipient device not found or revoked');
+    const senderDevice = await this.deviceRepo.findById(dto.senderDeviceId);
+    if (!senderDevice || senderDevice.userId !== callerUserId) {
+      throw new ForbiddenException(
+        'Sender device does not belong to the caller',
+      );
+    }
+    if (senderDevice.isRevoked) {
+      throw new BadRequestException('Sender device is revoked');
     }
 
-    const existing = await this.sessionRepo.findActiveByDevicePair(
-      senderDeviceId,
+    const recipientDevice = await this.deviceRepo.findById(
       dto.recipientDeviceId,
     );
-    if (existing) {
+    if (!recipientDevice || recipientDevice.userId !== dto.recipientUserId) {
+      throw new NotFoundException(
+        'Recipient device not found or does not belong to the recipient',
+      );
+    }
+    if (recipientDevice.isRevoked) {
+      throw new BadRequestException('Recipient device is revoked');
+    }
+
+    const activeSignedPreKey = await this.signedPreKeyRepo.findActive(
+      dto.recipientDeviceId,
+    );
+    if (!activeSignedPreKey) {
       throw new BadRequestException(
-        'Active session already exists for this device pair',
+        'Recipient device has no active signed prekey',
       );
     }
 
-    const hasOneTimePrekey = !!dto.oneTimePrekeyId;
-    if (hasOneTimePrekey) {
+    if (dto.oneTimePrekeyId) {
       const claimed = await this.oneTimePreKeyRepo.consumeNext(
         dto.recipientDeviceId,
       );
@@ -56,96 +72,64 @@ export class E2eeSessionCommandService {
       }
     }
 
-    const sessionState = this.deriveSessionState(
-      dto.senderIdentityKey,
-      dto.senderEphemeralKey,
-      recipientDevice.identityKeyPublic,
-      recipientDevice.signedPrekey?.publicKey ?? '',
-      recipientDevice.signedPrekey?.signature ?? '',
-      hasOneTimePrekey,
+    const existing = await this.sessionRepo.findActiveByDevicePair(
+      dto.senderDeviceId,
+      dto.recipientDeviceId,
     );
-    const associatedDataHash = this.computeAssociatedDataHash(
-      dto.senderIdentityKey,
-      recipientDevice.identityKeyPublic,
-    );
+    if (existing) {
+      // Re-establishment supersedes the previous session (new OTPK → new ratchet).
+      await this.sessionRepo.archive(existing.id);
+    }
 
     const session = await this.sessionRepo.create({
-      senderDevice: { connect: { id: senderDeviceId } },
+      senderDevice: { connect: { id: dto.senderDeviceId } },
       recipientDevice: { connect: { id: dto.recipientDeviceId } },
-      sessionState,
-      associatedDataHash,
     });
 
     return {
       sessionId: session.id,
-      rootKeyCiphertext: session.sessionState,
-      chainKeyCiphertext: session.associatedDataHash,
-      senderEphemeralPublic: dto.senderEphemeralKey,
+      senderDeviceId: session.senderDeviceId,
+      recipientDeviceId: session.recipientDeviceId,
     };
   }
 
-  async acceptSession(recipientDeviceId: string, dto: AcceptSessionRequestDto) {
+  async acceptSession(callerUserId: string, dto: AcceptSessionRequestDto) {
     const session = await this.sessionRepo.findById(dto.sessionId);
     if (!session || !session.isActive) {
       throw new NotFoundException('Session not found or archived');
     }
-    if (session.recipientDeviceId !== recipientDeviceId) {
+    if (session.recipientDeviceId !== dto.recipientDeviceId) {
       throw new NotFoundException('Session not found');
     }
 
-    const sessionState = this.deriveSessionState(
-      dto.senderIdentityKey,
-      dto.senderEphemeralPublic,
-      dto.recipientIdentityKey,
-      '', // recipient's signed prekey - already in stored session
-      '',
-      !!dto.oneTimePrekeyPublic,
+    const recipientDevice = await this.deviceRepo.findById(
+      dto.recipientDeviceId,
     );
-    const associatedDataHash = this.computeAssociatedDataHash(
-      dto.senderIdentityKey,
-      dto.recipientIdentityKey,
-    );
+    if (!recipientDevice || recipientDevice.userId !== callerUserId) {
+      throw new ForbiddenException(
+        'Recipient device does not belong to the caller',
+      );
+    }
+    if (recipientDevice.isRevoked) {
+      throw new BadRequestException('Recipient device is revoked');
+    }
 
-    const updated = await this.sessionRepo.create({
-      senderDevice: { connect: { id: session.senderDeviceId } },
-      recipientDevice: { connect: { id: recipientDeviceId } },
-      sessionState,
-      associatedDataHash,
-    });
+    if (session.acceptedAt) {
+      return {
+        sessionId: session.id,
+        senderDeviceId: session.senderDeviceId,
+        recipientDeviceId: session.recipientDeviceId,
+        acceptedAt: session.acceptedAt,
+      };
+    }
+
+    const accepted = await this.sessionRepo.accept(dto.sessionId);
 
     return {
-      sessionId: updated.id,
-      rootKeyCiphertext: updated.sessionState,
-      chainKeyCiphertext: updated.associatedDataHash,
-      senderEphemeralPublic: dto.senderEphemeralPublic,
+      sessionId: accepted.id,
+      senderDeviceId: accepted.senderDeviceId,
+      recipientDeviceId: accepted.recipientDeviceId,
+      acceptedAt: accepted.acceptedAt,
     };
-  }
-
-  private deriveSessionState(
-    senderIdentityKey: string,
-    senderEphemeralKey: string,
-    recipientIdentityKey: string,
-    recipientSignedPrekey: string,
-    recipientSignedPrekeySignature: string,
-    hasOneTimePrekey: boolean,
-  ): string {
-    const parts = [
-      'X3DH',
-      senderIdentityKey,
-      senderEphemeralKey,
-      recipientIdentityKey,
-      recipientSignedPrekey,
-      recipientSignedPrekeySignature,
-      hasOneTimePrekey ? '1' : '0',
-    ];
-    return Buffer.from(parts.join('|')).toString('base64');
-  }
-
-  private computeAssociatedDataHash(
-    senderIdentityKey: string,
-    recipientIdentityKey: string,
-  ): string {
-    const data = `AD|${senderIdentityKey}|${recipientIdentityKey}`;
-    return Buffer.from(data).toString('base64');
   }
 }

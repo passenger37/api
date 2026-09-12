@@ -123,7 +123,7 @@ describe('40.96 Backend Security Audit', () => {
       fs.mkdirSync(path.join(tmp, 'src', 'config', 'jwt'), { recursive: true });
       fs.mkdirSync(path.join(tmp, 'src', 'core'), { recursive: true });
       fs.mkdirSync(
-        path.join(tmp, 'src', 'modules', 'e2ee-ratchet', 'services'),
+        path.join(tmp, 'src', 'modules', 'e2ee-transport', 'services'),
         { recursive: true },
       );
     });
@@ -195,7 +195,7 @@ describe('40.96 Backend Security Audit', () => {
           tmp,
           'src',
           'modules',
-          'e2ee-ratchet',
+          'e2ee-transport',
           'services',
           'crypto.service.ts',
         ),
@@ -263,7 +263,11 @@ describe('40.96 Backend Security Audit', () => {
 
 function fakeConfigRuntime(): {
   jwt: { accessToken: { secret: string }; refreshToken: { secret: string } };
-  sessionCookie: { httpOnly: boolean; sameSite: 'lax' | 'strict' | 'none'; secure: boolean };
+  sessionCookie: {
+    httpOnly: boolean;
+    sameSite: 'lax' | 'strict' | 'none';
+    secure: boolean;
+  };
 } {
   return {
     jwt: {

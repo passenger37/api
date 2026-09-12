@@ -1,13 +1,20 @@
-import { E2eeEnvelope, E2eeEnvelopeType, E2eeEnvelopeStatus } from '@prisma/client';
+import {
+  E2eeEnvelope,
+  E2eeEnvelopeType,
+  E2eeEnvelopeStatus,
+} from '@prisma/client';
 
 export interface EnvelopeResponse {
   id: string;
   sessionId: string;
   type: E2eeEnvelopeType;
   ciphertext: string;
+  protocolVersion: number;
   associatedData: string | null;
   senderDeviceId: string;
   recipientDeviceId: string;
+  channelId: string | null;
+  clientMessageId: string | null;
   status: E2eeEnvelopeStatus;
   attempts: number;
   lastError: string | null;
@@ -22,9 +29,12 @@ export function serializeEnvelope(envelope: E2eeEnvelope): EnvelopeResponse {
     sessionId: envelope.sessionId,
     type: envelope.type,
     ciphertext: envelope.ciphertext,
+    protocolVersion: envelope.protocolVersion,
     associatedData: envelope.associatedData,
     senderDeviceId: envelope.senderDeviceId,
     recipientDeviceId: envelope.recipientDeviceId,
+    channelId: envelope.channelId,
+    clientMessageId: envelope.clientMessageId,
     status: envelope.status,
     attempts: envelope.attempts,
     lastError: envelope.lastError,

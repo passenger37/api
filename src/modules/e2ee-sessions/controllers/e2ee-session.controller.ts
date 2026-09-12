@@ -26,8 +26,7 @@ export class E2eeSessionController {
     @CurrentUser('id') userId: string,
     @Body() dto: EstablishSessionRequestDto,
   ) {
-    const senderDeviceId = 'device-from-context'; // TODO: derive from auth context
-    return this.command.establishSession(userId, senderDeviceId, dto);
+    return this.command.establishSession(userId, dto);
   }
 
   @Post('accept')
@@ -36,17 +35,22 @@ export class E2eeSessionController {
     @CurrentUser('id') userId: string,
     @Body() dto: AcceptSessionRequestDto,
   ) {
-    const recipientDeviceId = 'device-from-context'; // TODO: derive from auth context
-    return this.command.acceptSession(recipientDeviceId, dto);
+    return this.command.acceptSession(userId, dto);
   }
 
   @Get(':sessionId')
-  async getSession(@Param('sessionId') sessionId: string) {
-    return this.query.getSessionById(sessionId);
+  async getSession(
+    @CurrentUser('id') userId: string,
+    @Param('sessionId') sessionId: string,
+  ) {
+    return this.query.getSessionById(sessionId, userId);
   }
 
   @Get('device/:deviceId')
-  async listDeviceSessions(@Param('deviceId') deviceId: string) {
-    return this.query.listSessionsForDevice(deviceId);
+  async listDeviceSessions(
+    @CurrentUser('id') userId: string,
+    @Param('deviceId') deviceId: string,
+  ) {
+    return this.query.listSessionsForDevice(deviceId, userId);
   }
 }

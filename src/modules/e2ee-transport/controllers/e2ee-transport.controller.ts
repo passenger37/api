@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
@@ -33,7 +41,11 @@ export class E2eeTransportController {
     @Body('sessionId') sessionId: string,
     @Body('envelopes') envelopes: SendEnvelopeRequestDto[],
   ) {
-    return this.commandService.sendEnvelopesForSession(userId, sessionId, envelopes);
+    return this.commandService.sendEnvelopesForSession(
+      userId,
+      sessionId,
+      envelopes,
+    );
   }
 
   @Get('envelopes/pending')
@@ -43,7 +55,11 @@ export class E2eeTransportController {
     @Query('deviceId') deviceId: string,
     @Query('limit') limit?: string,
   ) {
-    return this.queryService.getPendingEnvelopes(deviceId, limit ? parseInt(limit, 10) : 50);
+    return this.queryService.getPendingEnvelopes(
+      deviceId,
+      limit ? parseInt(limit, 10) : 50,
+      userId,
+    );
   }
 
   @Get('envelopes/session/:sessionId')
@@ -53,7 +69,10 @@ export class E2eeTransportController {
     @Param('sessionId') sessionId: string,
     @Query() query: GetEnvelopesRequestDto,
   ) {
-    return this.queryService.getEnvelopesBySession(userId, { ...query, sessionId });
+    return this.queryService.getEnvelopesBySession(userId, {
+      ...query,
+      sessionId,
+    });
   }
 
   @Get('envelopes/pending/count')
@@ -62,7 +81,7 @@ export class E2eeTransportController {
     @CurrentUser('id') userId: string,
     @Query('deviceId') deviceId: string,
   ) {
-    return this.queryService.countPending(deviceId);
+    return this.queryService.countPending(deviceId, userId);
   }
 
   @Post('envelopes/:envelopeId/delivered')
@@ -71,7 +90,7 @@ export class E2eeTransportController {
     @CurrentUser('id') userId: string,
     @Param('envelopeId') envelopeId: string,
   ) {
-    return this.commandService.markDelivered(envelopeId);
+    return this.commandService.markDelivered(envelopeId, userId);
   }
 
   @Post('envelopes/:envelopeId/failed')
@@ -81,6 +100,6 @@ export class E2eeTransportController {
     @Param('envelopeId') envelopeId: string,
     @Body('error') error: string,
   ) {
-    return this.commandService.markFailed(envelopeId, error);
+    return this.commandService.markFailed(envelopeId, error, userId);
   }
 }

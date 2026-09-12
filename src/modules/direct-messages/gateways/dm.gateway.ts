@@ -15,6 +15,7 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
+import { DirectMessageMode } from '@prisma/client';
 
 import { WebSocketExceptionFilter } from '../../../common/filters/websocket-exception.filter';
 import { redisKeys } from '../../../core/redis/redis-keys';
@@ -31,9 +32,11 @@ import {
 
 import { DmCommandService } from '../services/dm-command.service';
 import { DmQueryService } from '../services/dm-query.service';
+import { E2eeDmCommandService } from '../services/e2ee-dm-command.service';
 import { DmReactionCommandService } from '../services/dm-reaction-command.service';
 import { DmOpenRequest } from '../dto/request/dm-open.request';
 import { DmSendRequest } from '../dto/request/dm-send.request';
+import { DmE2eeSendRequest } from '../dto/request/dm-e2ee-send.request';
 import { DmSyncRequest } from '../dto/request/dm-sync.request';
 import { DmReadRequest } from '../dto/request/dm-read.request';
 import { DmEditRequest } from '../dto/request/dm-edit.request';
@@ -67,6 +70,7 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(forwardRef(() => DmCommandService))
     private readonly commandService: DmCommandService,
     private readonly queryService: DmQueryService,
+    private readonly e2eeCommandService: E2eeDmCommandService,
     @Inject(forwardRef(() => DmReactionCommandService))
     private readonly reactionCommandService: DmReactionCommandService,
     private readonly connectionAuth: WebSocketConnectionAuthService,
@@ -170,6 +174,72 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('dm-e2ee-open')
+  async openE2ee(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmOpenRequest,
+  ) {
+    const event = 'dm-e2ee-open';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-e2ee-open', userId),
+        limit: 30,
+        windowSeconds: 10,
+      });
+
+      const channel = await this.commandService.open(
+        userId,
+        request.targetUserId,
+        DirectMessageMode.PRIVATE_E2EE,
+      );
+
+      await client.join(dmRoom(channel.id));
+
+      return {
+        success: true,
+        event,
+        channelId: channel.id,
+        mode: channel.mode,
+        partnerUserId:
+          channel.userAId === userId ? channel.userBId : channel.userAId,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm-e2ee-send')
+  async sendE2ee(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmE2eeSendRequest,
+  ) {
+    const event = 'dm-e2ee-send';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-e2ee-send', userId),
+        limit: 20,
+        windowSeconds: 10,
+      });
+
+      const result = await this.e2eeCommandService.sendText(userId, request);
+
+      return {
+        success: true,
+        event,
+        deliveryState: 'created',
+        message: result.message,
+        envelopes: result.envelopes,
+        deduplicated: result.deduplicated,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
   @SubscribeMessage('dm-sync')
   async sync(
     @ConnectedSocket() client: Socket,
@@ -237,6 +307,10 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   broadcastMessageCreated(channelId: string, payload: unknown) {
     this.server.to(dmRoom(channelId)).emit('dm-message-created', payload);
+  }
+
+  broadcastE2eeMessageCreated(channelId: string, payload: unknown) {
+    this.server.to(dmRoom(channelId)).emit('dm-e2ee-message-created', payload);
   }
 
   broadcastMessageUpdated(channelId: string, payload: unknown) {

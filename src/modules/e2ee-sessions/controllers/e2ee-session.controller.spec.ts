@@ -11,102 +11,53 @@ describe('E2eeSessionController', () => {
     controller = new E2eeSessionController(command as any, query as any);
   });
 
-  it('should establish session', async () => {
+  it('should establish session with the explicit sender device from the DTO', async () => {
     command.establishSession.mockResolvedValue({
       sessionId: 'sess1',
-      rootKeyCiphertext: 'rk',
-      chainKeyCiphertext: 'ck',
-      senderEphemeralPublic: 'ek',
+      senderDeviceId: 'dev1',
+      recipientDeviceId: 'dev2',
     });
     const dto = {
+      senderDeviceId: 'dev1',
       recipientUserId: 'userB',
       recipientDeviceId: 'dev2',
-      senderIdentityKey: 'ik',
-      senderEphemeralKey: 'ek',
     };
 
     const result = await controller.establishSession('userA', dto);
 
-    expect(command.establishSession).toHaveBeenCalledWith(
-      'userA',
-      'device-from-context',
-      dto,
-    );
-    expect(result).toEqual({
-      sessionId: 'sess1',
-      rootKeyCiphertext: 'rk',
-      chainKeyCiphertext: 'ck',
-      senderEphemeralPublic: 'ek',
-    });
+    expect(command.establishSession).toHaveBeenCalledWith('userA', dto);
+    expect(result.sessionId).toBe('sess1');
   });
 
-  it('should accept session', async () => {
+  it('should accept session with the explicit recipient device from the DTO', async () => {
     command.acceptSession.mockResolvedValue({
-      sessionId: 'sess2',
-      rootKeyCiphertext: 'rk2',
-      chainKeyCiphertext: 'ck2',
-      senderEphemeralPublic: 'ek1',
-    });
-    const dto = {
       sessionId: 'sess1',
-      senderEphemeralPublic: 'ek',
-      senderIdentityKey: 'ik1',
-      recipientIdentityKey: 'ik2',
-    };
+      senderDeviceId: 'dev1',
+      recipientDeviceId: 'dev2',
+    });
+    const dto = { sessionId: 'sess1', recipientDeviceId: 'dev2' };
 
     const result = await controller.acceptSession('userB', dto);
 
-    expect(command.acceptSession).toHaveBeenCalledWith(
-      'device-from-context',
-      dto,
-    );
-    expect(result).toEqual({
-      sessionId: 'sess2',
-      rootKeyCiphertext: 'rk2',
-      chainKeyCiphertext: 'ck2',
-      senderEphemeralPublic: 'ek1',
-    });
+    expect(command.acceptSession).toHaveBeenCalledWith('userB', dto);
+    expect(result.sessionId).toBe('sess1');
   });
 
-  it('should get session by id', async () => {
-    query.getSessionById.mockResolvedValue({
-      sessionId: 'sess1',
-      rootKeyCiphertext: 'rk',
-      chainKeyCiphertext: 'ck',
-      senderEphemeralPublic: 'ek',
-    });
+  it('should get session by id scoped to the caller', async () => {
+    query.getSessionById.mockResolvedValue({ sessionId: 'sess1' });
 
-    const result = await controller.getSession('sess1');
+    const result = await controller.getSession('userA', 'sess1');
 
-    expect(query.getSessionById).toHaveBeenCalledWith('sess1');
-    expect(result).toEqual({
-      sessionId: 'sess1',
-      rootKeyCiphertext: 'rk',
-      chainKeyCiphertext: 'ck',
-      senderEphemeralPublic: 'ek',
-    });
+    expect(query.getSessionById).toHaveBeenCalledWith('sess1', 'userA');
+    expect(result.sessionId).toBe('sess1');
   });
 
-  it('should list device sessions', async () => {
-    query.listSessionsForDevice.mockResolvedValue([
-      {
-        sessionId: 'sess1',
-        rootKeyCiphertext: 'rk',
-        chainKeyCiphertext: 'ck',
-        senderEphemeralPublic: '',
-      },
-    ]);
+  it('should list device sessions scoped to the caller', async () => {
+    query.listSessionsForDevice.mockResolvedValue([{ sessionId: 'sess1' }]);
 
-    const result = await controller.listDeviceSessions('dev1');
+    const result = await controller.listDeviceSessions('userA', 'dev1');
 
-    expect(query.listSessionsForDevice).toHaveBeenCalledWith('dev1');
-    expect(result).toEqual([
-      {
-        sessionId: 'sess1',
-        rootKeyCiphertext: 'rk',
-        chainKeyCiphertext: 'ck',
-        senderEphemeralPublic: '',
-      },
-    ]);
+    expect(query.listSessionsForDevice).toHaveBeenCalledWith('dev1', 'userA');
+    expect(result).toHaveLength(1);
   });
 });

@@ -1,6 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { E2eeSession, Prisma, E2eeDevice } from '@prisma/client';
+import { E2eeSession, Prisma } from '@prisma/client';
+
+const SESSION_WITH_DEVICES_INCLUDE = {
+  senderDevice: true,
+  recipientDevice: true,
+} satisfies Prisma.E2eeSessionInclude;
+
+export type E2eeSessionWithDevices = Prisma.E2eeSessionGetPayload<{
+  include: typeof SESSION_WITH_DEVICES_INCLUDE;
+}>;
 
 @Injectable()
 export class E2eeSessionRepository {
@@ -9,13 +18,19 @@ export class E2eeSessionRepository {
   async create(
     data: Prisma.E2eeSessionCreateInput,
     tx?: Prisma.TransactionClient,
-  ): Promise<E2eeSession> {
+  ): Promise<E2eeSessionWithDevices> {
     const client = tx ?? this.prisma;
-    return client.e2eeSession.create({ data });
+    return client.e2eeSession.create({
+      data,
+      include: SESSION_WITH_DEVICES_INCLUDE,
+    });
   }
 
-  async findById(id: string): Promise<E2eeSession | null> {
-    return this.prisma.e2eeSession.findUnique({ where: { id } });
+  async findById(id: string): Promise<E2eeSessionWithDevices | null> {
+    return this.prisma.e2eeSession.findUnique({
+      where: { id },
+      include: SESSION_WITH_DEVICES_INCLUDE,
+    });
   }
 
   async findBySenderAndRecipient(
@@ -46,22 +61,30 @@ export class E2eeSessionRepository {
 
   async findByRecipientDeviceId(
     recipientDeviceId: string,
-  ): Promise<E2eeSession[]> {
+  ): Promise<E2eeSessionWithDevices[]> {
     return this.prisma.e2eeSession.findMany({
       where: { recipientDeviceId, isActive: true },
       orderBy: { createdAt: 'desc' },
+      include: SESSION_WITH_DEVICES_INCLUDE,
     });
   }
 
-  async findBySenderDeviceId(senderDeviceId: string): Promise<E2eeSession[]> {
+  async findBySenderDeviceId(
+    senderDeviceId: string,
+  ): Promise<E2eeSessionWithDevices[]> {
     return this.prisma.e2eeSession.findMany({
       where: { senderDeviceId, isActive: true },
       orderBy: { createdAt: 'desc' },
+      include: SESSION_WITH_DEVICES_INCLUDE,
     });
   }
 
-  async findDeviceById(deviceId: string): Promise<E2eeDevice | null> {
-    return this.prisma.e2eeDevice.findUnique({ where: { id: deviceId } });
+  async accept(sessionId: string): Promise<E2eeSessionWithDevices> {
+    return this.prisma.e2eeSession.update({
+      where: { id: sessionId },
+      data: { acceptedAt: new Date() },
+      include: SESSION_WITH_DEVICES_INCLUDE,
+    });
   }
 
   async archive(sessionId: string): Promise<E2eeSession> {

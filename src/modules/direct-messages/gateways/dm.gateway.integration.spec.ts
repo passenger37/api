@@ -6,6 +6,7 @@ describe('DmGateway Integration', () => {
   let rateLimit: any;
   let commandService: any;
   let queryService: any;
+  let e2eeCommandService: any;
   let reactionCommandService: any;
   let connectionAuth: any;
   let connectionLimit: any;
@@ -48,6 +49,13 @@ describe('DmGateway Integration', () => {
         userBId: 'u2',
       }),
     };
+    e2eeCommandService = {
+      sendText: jest.fn().mockResolvedValue({
+        message: { id: 'msg3', isE2ee: true },
+        envelopes: [{ id: 'env1' }],
+        deduplicated: false,
+      }),
+    };
     reactionCommandService = {
       addReaction: jest.fn().mockResolvedValue({
         messageId: 'msg1',
@@ -77,6 +85,7 @@ describe('DmGateway Integration', () => {
       rateLimit,
       commandService,
       queryService,
+      e2eeCommandService,
       reactionCommandService,
       connectionAuth,
       connectionLimit,
@@ -136,6 +145,67 @@ describe('DmGateway Integration', () => {
       event: 'dm-send',
       deliveryState: 'created',
       data: { id: 'msg1', content: 'hi' },
+      deduplicated: false,
+    });
+  });
+
+  it('should open an end-to-end encrypted DM and join the room', async () => {
+    commandService.open.mockResolvedValue({
+      id: 'dm1',
+      userAId: 'u1',
+      userBId: 'u2',
+      mode: 'PRIVATE_E2EE',
+    });
+    const client = { join: jest.fn(), data: { userId: 'u1' } } as any;
+    const request = { targetUserId: 'u2' };
+
+    const result = await gateway.openE2ee(client, request);
+
+    expect(commandService.open).toHaveBeenCalledWith(
+      'u1',
+      'u2',
+      'PRIVATE_E2EE',
+    );
+    expect(client.join).toHaveBeenCalledWith('dm:dm1');
+    expect(result).toEqual({
+      success: true,
+      event: 'dm-e2ee-open',
+      channelId: 'dm1',
+      mode: 'PRIVATE_E2EE',
+      partnerUserId: 'u2',
+    });
+  });
+
+  it('should relay an E2EE message and echo the envelope payload', async () => {
+    const client = { data: { userId: 'u1' } } as any;
+    const request: any = {
+      channelId: 'dm1',
+      senderDeviceId: 'dev1',
+      protocolVersion: 1,
+      envelopes: [
+        {
+          recipientDeviceId: 'dev2',
+          sessionId: 'sess1',
+          type: 'PRE_KEY',
+          ciphertext: 'cipher',
+        },
+      ],
+    };
+
+    const result = await gateway.sendE2ee(client, request);
+
+    expect(rateLimit.consume).toHaveBeenCalledWith({
+      key: 'ws:dm-e2ee-send:u1',
+      limit: 20,
+      windowSeconds: 10,
+    });
+    expect(e2eeCommandService.sendText).toHaveBeenCalledWith('u1', request);
+    expect(result).toEqual({
+      success: true,
+      event: 'dm-e2ee-send',
+      deliveryState: 'created',
+      message: { id: 'msg3', isE2ee: true },
+      envelopes: [{ id: 'env1' }],
       deduplicated: false,
     });
   });

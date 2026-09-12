@@ -4,6 +4,7 @@ describe('DirectMessageController', () => {
   let controller: DirectMessageController;
   let commandService: any;
   let queryService: any;
+  let e2eeCommandService: any;
   let reactionQueryService: any;
   let reactionCommandService: any;
   let attachmentService: any;
@@ -21,6 +22,9 @@ describe('DirectMessageController', () => {
       listChannels: jest.fn(),
       getHistory: jest.fn(),
     };
+    e2eeCommandService = {
+      sendText: jest.fn(),
+    };
     reactionQueryService = {
       getReactions: jest.fn(),
     };
@@ -37,6 +41,7 @@ describe('DirectMessageController', () => {
     controller = new DirectMessageController(
       commandService,
       queryService,
+      e2eeCommandService,
       reactionQueryService,
       reactionCommandService,
       attachmentService,
@@ -56,6 +61,31 @@ describe('DirectMessageController', () => {
     expect(commandService.open).toHaveBeenCalledWith('u1', 'u2');
     expect(queryService.getChannel).toHaveBeenCalledWith('dm1', 'u1');
     expect(result).toEqual({ id: 'dm1' });
+  });
+
+  it('should relay an E2EE message with the channel id from the path', async () => {
+    e2eeCommandService.sendText.mockResolvedValue({
+      message: { id: 'msg1', isE2ee: true },
+      envelopes: [],
+      deduplicated: false,
+    });
+    const request = {
+      senderDeviceId: 'dev1',
+      protocolVersion: 1,
+      envelopes: [],
+    };
+
+    const result = await controller.sendE2eeMessage(
+      'dm1',
+      'u1',
+      request as any,
+    );
+
+    expect(e2eeCommandService.sendText).toHaveBeenCalledWith('u1', {
+      ...request,
+      channelId: 'dm1',
+    });
+    expect(result.message.isE2ee).toBe(true);
   });
 
   it('should list the viewers channels', async () => {

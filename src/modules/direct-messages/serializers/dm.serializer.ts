@@ -36,6 +36,9 @@ export function serializeDirectMessage(
     channelId: message.channelId,
     authorUserId: message.authorUserId,
     content: message.content,
+    isE2ee: message.isE2ee,
+    senderDeviceId: message.senderDeviceId,
+    protocolVersion: message.protocolVersion,
     clientMessageId: message.clientMessageId,
     parentMessageId: message.parentMessageId,
     isEdited: message.isEdited,
@@ -86,6 +89,7 @@ export function serializeDirectMessageChannel(
   return {
     id: channel.id,
     partner: serializeUserSummary(partner),
+    mode: channel.mode,
     lastMessageAt: channel.lastMessageAt?.toISOString() ?? null,
     unreadCount: readState?.unreadCount ?? 0,
     createdAt: channel.createdAt.toISOString(),

@@ -1,8 +1,16 @@
-import { IsString, IsUUID, IsOptional, IsEnum, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsInt,
+  Min,
+  MaxLength,
+} from 'class-validator';
 import { E2eeEnvelopeType } from '@prisma/client';
 
 export class SendEnvelopeRequestDto {
-  @IsUUID()
+  @IsString()
+  @MaxLength(100)
   sessionId!: string;
 
   @IsEnum(E2eeEnvelopeType)
@@ -13,19 +21,37 @@ export class SendEnvelopeRequestDto {
   ciphertext!: string;
 
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  protocolVersion?: number;
+
+  @IsOptional()
   @IsString()
   @MaxLength(2000)
   associatedData?: string;
 
-  @IsUUID()
+  @IsString()
+  @MaxLength(100)
   senderDeviceId!: string;
 
-  @IsUUID()
+  @IsString()
+  @MaxLength(100)
   recipientDeviceId!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  channelId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  clientMessageId?: string;
 }
 
 export class GetEnvelopesRequestDto {
-  @IsUUID()
+  @IsString()
+  @MaxLength(100)
   sessionId!: string;
 
   @IsOptional()
@@ -33,17 +59,20 @@ export class GetEnvelopesRequestDto {
   cursor?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
+  @MaxLength(100)
   recipientDeviceId?: string;
 }
 
 export class MarkEnvelopeDeliveredDto {
-  @IsUUID()
+  @IsString()
+  @MaxLength(100)
   envelopeId!: string;
 }
 
 export class MarkEnvelopeFailedDto {
-  @IsUUID()
+  @IsString()
+  @MaxLength(100)
   envelopeId!: string;
 
   @IsString()

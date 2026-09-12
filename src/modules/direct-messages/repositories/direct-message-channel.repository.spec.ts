@@ -76,6 +76,7 @@ describe('DirectMessageChannelRepository', () => {
       data: {
         userAId: 'userA',
         userBId: 'userB',
+        mode: 'STANDARD',
       },
       include: { userA: true, userB: true },
     });

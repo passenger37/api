@@ -1,5 +1,7 @@
 import { UserSummaryResponse } from './user-summary.response';
 
+export type DirectMessageChannelMode = 'STANDARD' | 'PRIVATE_E2EE';
+
 export interface DirectMessageChannelSettingsResponse {
   isMuted: boolean;
   mutedAt: string | null;
@@ -14,6 +16,7 @@ export interface DirectMessageChannelSettingsResponse {
 export interface DirectMessageChannelResponse {
   id: string;
   partner: UserSummaryResponse;
+  mode: DirectMessageChannelMode;
   lastMessageAt: string | null;
   unreadCount: number;
   createdAt: string;

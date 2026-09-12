@@ -1,6 +1,13 @@
-export class SessionResponseDto {
+export interface SessionResponseDto {
   sessionId: string;
-  rootKeyCiphertext: string;
-  chainKeyCiphertext: string;
-  senderEphemeralPublic: string;
+  senderDeviceId: string;
+  recipientDeviceId: string;
+  senderUserId: string;
+  recipientUserId: string;
+  version: number;
+  isActive: boolean;
+  acceptedAt: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }

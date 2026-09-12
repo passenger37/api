@@ -141,7 +141,7 @@ describe('ProductionReadinessService', () => {
         root,
         'src/modules/e2ee-key-distribution/e2ee-key-distribution.module.ts',
       );
-      touch(root, 'src/modules/e2ee-ratchet/e2ee-ratchet.module.ts');
+      touch(root, 'src/modules/e2ee-transport/e2ee-transport.module.ts');
       touch(root, 'src/modules/e2ee-sessions/e2ee-sessions.module.ts');
       touch(root, 'src/core/redis/redis.module.ts');
       touch(root, 'src/core/redis/redis.service.ts', 'disableOfflineQueue');

@@ -18,6 +18,16 @@ export class E2eeEnvelopeRepository {
     return this.prisma.e2eeEnvelope.findUnique({ where: { id } });
   }
 
+  async findByClientMessageId(
+    channelId: string,
+    clientMessageId: string,
+  ): Promise<E2eeEnvelope[]> {
+    return this.prisma.e2eeEnvelope.findMany({
+      where: { channelId, clientMessageId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   async findPendingByRecipientDevice(
     recipientDeviceId: string,
     limit = 50,

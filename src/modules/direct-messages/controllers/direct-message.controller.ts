@@ -12,6 +12,7 @@ import {
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { DmCommandService } from '../services/dm-command.service';
 import { DmQueryService } from '../services/dm-query.service';
+import { E2eeDmCommandService } from '../services/e2ee-dm-command.service';
 import { DmReactionQueryService } from '../services/dm-reaction-query.service';
 import { DmReactionCommandService } from '../services/dm-reaction-command.service';
 import { DmAttachmentService } from '../services/dm-attachment.service';
@@ -21,6 +22,7 @@ import { DmEditRequest } from '../dto/request/dm-edit.request';
 import { DmReactionRequest } from '../dto/request/dm-reaction.request';
 import { DmChannelSettingsRequest } from '../dto/request/dm-channel-settings.request';
 import { DmAttachmentUploadRequest } from '../dto/request/dm-attachment-upload.request';
+import { DmE2eeSendRequest } from '../dto/request/dm-e2ee-send.request';
 import { DmMessagesQuery } from '../dto/query/dm-messages.query';
 
 @Controller('dm')
@@ -28,6 +30,7 @@ export class DirectMessageController {
   constructor(
     private readonly commandService: DmCommandService,
     private readonly queryService: DmQueryService,
+    private readonly e2eeCommandService: E2eeDmCommandService,
     private readonly reactionQueryService: DmReactionQueryService,
     private readonly reactionCommandService: DmReactionCommandService,
     private readonly attachmentService: DmAttachmentService,
@@ -78,6 +81,18 @@ export class DirectMessageController {
       query.cursor,
       query.limit ?? 50,
     );
+  }
+
+  @Post('channels/:channelId/e2ee/messages')
+  async sendE2eeMessage(
+    @Param('channelId') channelId: string,
+    @CurrentUser('id') userId: string,
+    @Body() request: DmE2eeSendRequest,
+  ) {
+    return this.e2eeCommandService.sendText(userId, {
+      ...request,
+      channelId,
+    });
   }
 
   @Patch('channels/:channelId/read')

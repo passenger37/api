@@ -114,7 +114,12 @@ describe('DmCommandService', () => {
         status: UserStatus.ACTIVE,
         deletedAt: null,
       });
-      const channel = { id: 'dm1', userAId: 'u1', userBId: 'u2' };
+      const channel = {
+        id: 'dm1',
+        userAId: 'u1',
+        userBId: 'u2',
+        mode: 'STANDARD',
+      };
       channelRepository.findPair.mockResolvedValue(channel);
 
       const result = await service.open('u1', 'u2');
@@ -122,6 +127,24 @@ describe('DmCommandService', () => {
       expect(channelRepository.findPair).toHaveBeenCalledWith('u1', 'u2');
       expect(channelRepository.create).not.toHaveBeenCalled();
       expect(result).toEqual(channel);
+    });
+
+    it('should throw when an existing channel has a different mode', async () => {
+      userQueryService.findById.mockResolvedValue({
+        id: 'u2',
+        status: UserStatus.ACTIVE,
+        deletedAt: null,
+      });
+      channelRepository.findPair.mockResolvedValue({
+        id: 'dm1',
+        userAId: 'u1',
+        userBId: 'u2',
+        mode: 'PRIVATE_E2EE',
+      });
+
+      await expect(service.open('u1', 'u2')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
     });
 
     it('should create a channel when none exists', async () => {
@@ -136,7 +159,11 @@ describe('DmCommandService', () => {
 
       const result = await service.open('u1', 'u2');
 
-      expect(channelRepository.create).toHaveBeenCalledWith('u1', 'u2');
+      expect(channelRepository.create).toHaveBeenCalledWith(
+        'u1',
+        'u2',
+        'STANDARD',
+      );
       expect(result).toEqual(channel);
     });
   });
@@ -161,6 +188,17 @@ describe('DmCommandService', () => {
 
     it('should reject invalid content', async () => {
       await expect(service.send('dm1', 'u1', '')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+
+    it('should refuse plaintext into an end-to-end encrypted channel', async () => {
+      channelRepository.findById.mockResolvedValue({
+        ...channel,
+        mode: 'PRIVATE_E2EE',
+      });
+
+      await expect(service.send('dm1', 'u1', 'hi')).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });
@@ -269,6 +307,22 @@ describe('DmCommandService', () => {
   });
 
   describe('edit', () => {
+    it('should refuse to edit an end-to-end encrypted message', async () => {
+      messageRepository.findById.mockResolvedValue({
+        id: 'm1',
+        channelId: 'dm1',
+        authorUserId: 'u1',
+        content: '',
+        version: 1,
+        isDeleted: false,
+        isE2ee: true,
+      });
+
+      await expect(service.edit('m1', 'u1', 'new', 1)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+
     it('should version-bump and broadcast the edit', async () => {
       const message = {
         id: 'm1',
