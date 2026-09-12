@@ -54,8 +54,11 @@ export class PostShareController {
     @Param('postId') postId: string,
     @CurrentUser('id') userId: string,
   ): Promise<{ link: string }> {
-    // TODO: Implement share link generation
-    // This typically doesn't create a PostShare record
-    return { link: `https://nexus.app/posts/${postId}` };
+    const link = await this.createPostShareCommandService.getShareLink(
+      userId,
+      postId,
+    );
+
+    return { link };
   }
 }
