@@ -58,6 +58,14 @@ export class HttpRateLimitGuard implements CanActivate {
       return 100;
     }
 
+    if (path.startsWith('/posts/') && (path.includes('/comments') || path.includes('/replies'))) {
+      return 30;
+    }
+
+    if (path.startsWith('/comments/') && (method === 'POST' || method === 'PATCH' || method === 'DELETE')) {
+      return 30;
+    }
+
     return 1000;
   }
 }

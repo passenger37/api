@@ -8,6 +8,7 @@ describe('DirectMessageController', () => {
   let reactionQueryService: any;
   let reactionCommandService: any;
   let attachmentService: any;
+  let reportCommandService: any;
 
   beforeEach(() => {
     commandService = {
@@ -37,6 +38,7 @@ describe('DirectMessageController', () => {
       confirmUpload: jest.fn(),
       getDownloadUrl: jest.fn(),
     };
+    reportCommandService = {};
 
     controller = new DirectMessageController(
       commandService,
@@ -45,6 +47,7 @@ describe('DirectMessageController', () => {
       reactionQueryService,
       reactionCommandService,
       attachmentService,
+      reportCommandService,
     );
   });
 

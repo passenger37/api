@@ -37,6 +37,13 @@ import { DmReactionCommandService } from '../services/dm-reaction-command.servic
 import { DmOpenRequest } from '../dto/request/dm-open.request';
 import { DmSendRequest } from '../dto/request/dm-send.request';
 import { DmE2eeSendRequest } from '../dto/request/dm-e2ee-send.request';
+import { DmE2eeEditRequest } from '../dto/request/dm-e2ee-edit.request';
+import { DmE2eeDeleteRequest } from '../dto/request/dm-e2ee-delete.request';
+import { DmE2eeReactionRequest } from '../dto/request/dm-e2ee-reaction.request';
+import { DmE2eeReadRequest } from '../dto/request/dm-e2ee-read.request';
+import { DmE2eeTypingStartRequest } from '../dto/request/dm-e2ee-typing-start.request';
+import { DmE2eeTypingStopRequest } from '../dto/request/dm-e2ee-typing-stop.request';
+import { DmE2eeDisappearingSettingsRequest } from '../dto/request/dm-e2ee-disappearing.request';
 import { DmSyncRequest } from '../dto/request/dm-sync.request';
 import { DmReadRequest } from '../dto/request/dm-read.request';
 import { DmEditRequest } from '../dto/request/dm-edit.request';
@@ -240,6 +247,220 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('dm-e2ee-edit')
+  async editE2ee(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmE2eeEditRequest,
+  ) {
+    const event = 'dm-e2ee-edit';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-e2ee-edit', userId),
+        limit: 20,
+        windowSeconds: 10,
+      });
+
+      const result = await this.e2eeCommandService.editMessage(userId, request);
+
+      return {
+        success: true,
+        event,
+        message: result.message,
+        envelopes: result.envelopes,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm-e2ee-delete')
+  async deleteE2ee(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmE2eeDeleteRequest,
+  ) {
+    const event = 'dm-e2ee-delete';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-e2ee-delete', userId),
+        limit: 20,
+        windowSeconds: 10,
+      });
+
+      const result = await this.e2eeCommandService.deleteMessage(userId, request);
+
+      return {
+        event,
+        ...result,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm-e2ee-reaction-add')
+  async reactionAddE2ee(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmE2eeReactionRequest,
+  ) {
+    const event = 'dm-e2ee-reaction-add';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-e2ee-reaction-add', userId),
+        limit: 20,
+        windowSeconds: 10,
+      });
+
+      const result = await this.e2eeCommandService.addReaction(userId, request);
+
+      return {
+        success: true,
+        event,
+        ...result,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm-e2ee-reaction-remove')
+  async reactionRemoveE2ee(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmE2eeReactionRequest,
+  ) {
+    const event = 'dm-e2ee-reaction-remove';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-e2ee-reaction-remove', userId),
+        limit: 20,
+        windowSeconds: 10,
+      });
+
+      const result = await this.e2eeCommandService.removeReaction(userId, request);
+
+      return {
+        success: true,
+        event,
+        ...result,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm-e2ee-read')
+  async readE2ee(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmE2eeReadRequest,
+  ) {
+    const event = 'dm-e2ee-read';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-e2ee-read', userId),
+        limit: 30,
+        windowSeconds: 10,
+      });
+
+      const result = await this.e2eeCommandService.markRead(userId, request);
+
+      return {
+        success: true,
+        event,
+        ...result,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm-e2ee-typing-start')
+  async typingStartE2ee(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmE2eeTypingStartRequest,
+  ) {
+    const event = 'dm-e2ee-typing-start';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-e2ee-typing-start', userId),
+        limit: 10,
+        windowSeconds: 10,
+      });
+
+      const result = await this.e2eeCommandService.startTyping(userId, request);
+
+      return {
+        event,
+        ...result,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm-e2ee-typing-stop')
+  async typingStopE2ee(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmE2eeTypingStopRequest,
+  ) {
+    const event = 'dm-e2ee-typing-stop';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-e2ee-typing-stop', userId),
+        limit: 10,
+        windowSeconds: 10,
+      });
+
+      const result = await this.e2eeCommandService.stopTyping(userId, request);
+
+      return {
+        event,
+        ...result,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
+  @SubscribeMessage('dm-e2ee-disappearing-settings')
+  async setDisappearingSettingsE2ee(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() request: DmE2eeDisappearingSettingsRequest,
+  ) {
+    const event = 'dm-e2ee-disappearing-settings';
+    try {
+      const userId = client.data.userId;
+
+      await this.rateLimit.consume({
+        key: redisKeys.wsRateLimit('dm-e2ee-disappearing-settings', userId),
+        limit: 10,
+        windowSeconds: 10,
+      });
+
+      const result = await this.e2eeCommandService.setDisappearingSettings(userId, request);
+
+      return {
+        success: true,
+        event,
+        ...result,
+      };
+    } catch (exception) {
+      return this.normalizeError(exception, event);
+    }
+  }
+
   @SubscribeMessage('dm-sync')
   async sync(
     @ConnectedSocket() client: Socket,
@@ -333,6 +554,22 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   broadcastReactionRemoved(channelId: string, payload: unknown) {
     this.server.to(dmRoom(channelId)).emit('dm-reaction-removed', payload);
+  }
+
+  broadcastE2eeTypingStart(channelId: string, payload: unknown) {
+    this.server.to(dmRoom(channelId)).emit('dm-e2ee-typing-started', payload);
+  }
+
+  broadcastE2eeTypingStop(channelId: string, payload: unknown) {
+    this.server.to(dmRoom(channelId)).emit('dm-e2ee-typing-stopped', payload);
+  }
+
+  broadcastE2eeMessageRead(channelId: string, payload: unknown) {
+    this.server.to(dmRoom(channelId)).emit('dm-e2ee-message-read', payload);
+  }
+
+  broadcastE2eeMessageWithAttachment(channelId: string, payload: unknown) {
+    this.server.to(dmRoom(channelId)).emit('dm-e2ee-message-with-attachment', payload);
   }
 
   @SubscribeMessage('dm:typing-start')

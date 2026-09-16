@@ -93,8 +93,8 @@ export class CommentCommandService {
         await this.commentRepository.incrementReplyCount(input.parentCommentId, tx);
       }
 
-      // Denormalized count increment would go here (update post's commentCount)
-      // Delegated to the calling domain via events
+      // Increment denormalized comment count on the parent post
+      await this.incrementPostCommentCount(input.postId, input.postType, tx);
 
       return created;
     });
@@ -210,7 +210,10 @@ export class CommentCommandService {
       throw new BadRequestException('You can only delete your own comments');
     }
 
-    await this.commentRepository.softDelete(commentId);
+    await this.prisma.$transaction(async (tx) => {
+      await this.commentRepository.softDelete(commentId, tx);
+      await this.decrementPostCommentCount(existing.postId, existing.postType, tx);
+    });
 
     await this.realtimePublisher.publishCommentDeleted({
       postId: existing.postId,
@@ -243,8 +246,11 @@ export class CommentCommandService {
       );
     }
 
-    await this.commentRepository.update(commentId, {
-      status: CommentStatus.REMOVED,
+    await this.prisma.$transaction(async (tx) => {
+      await this.commentRepository.update(commentId, {
+        status: CommentStatus.REMOVED,
+      }, tx);
+      await this.decrementPostCommentCount(existing.postId, existing.postType, tx);
     });
 
     await this.realtimePublisher.publishCommentDeleted({
@@ -389,5 +395,49 @@ export class CommentCommandService {
     });
 
     return users.map((user) => user.id);
+  }
+
+  private async incrementPostCommentCount(
+    postId: string,
+    postType: CommentPostType,
+    tx: any,
+  ): Promise<void> {
+    switch (postType) {
+      case 'PERSONAL':
+      case 'CHANNEL':
+        await tx.post.update({
+          where: { id: postId },
+          data: { commentCount: { increment: 1 } },
+        });
+        break;
+      case 'COMMUNITY':
+        await tx.communityPost.update({
+          where: { id: postId },
+          data: { commentCount: { increment: 1 } },
+        });
+        break;
+    }
+  }
+
+  private async decrementPostCommentCount(
+    postId: string,
+    postType: CommentPostType,
+    tx: any,
+  ): Promise<void> {
+    switch (postType) {
+      case 'PERSONAL':
+      case 'CHANNEL':
+        await tx.post.update({
+          where: { id: postId },
+          data: { commentCount: { decrement: 1 } },
+        });
+        break;
+      case 'COMMUNITY':
+        await tx.communityPost.update({
+          where: { id: postId },
+          data: { commentCount: { decrement: 1 } },
+        });
+        break;
+    }
   }
 }

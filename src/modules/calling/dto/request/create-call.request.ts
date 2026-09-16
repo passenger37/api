@@ -1,4 +1,4 @@
-import { IsEnum, IsString, IsUUID, IsOptional, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsString, IsOptional, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 import { CallType, CallScope } from '../../types/calling.types';

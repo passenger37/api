@@ -5,6 +5,7 @@ import {
   DirectMessageReadState,
   DirectMessageAttachment,
   User,
+  E2eeAttachment,
 } from '@prisma/client';
 
 import {
@@ -103,5 +104,30 @@ export function serializeDirectMessageChannel(
       isPinned: settings?.isPinned ?? false,
       pinnedAt: settings?.pinnedAt?.toISOString() ?? null,
     },
+  };
+}
+
+export function serializeE2eeAttachment(attachment: E2eeAttachment) {
+  return {
+    id: attachment.id,
+    sessionId: attachment.sessionId,
+    groupId: attachment.groupId,
+    fileName: attachment.fileName,
+    mimeType: attachment.mimeType,
+    sizeBytes: attachment.sizeBytes,
+    storageKey: attachment.storageKey,
+    encryptedFileKey: attachment.encryptedFileKey,
+    encryptedThumbnailKey: attachment.encryptedThumbnailKey,
+    thumbnailStorageKey: attachment.thumbnailStorageKey,
+    thumbnailMimeType: attachment.thumbnailMimeType,
+    thumbnailSizeBytes: attachment.thumbnailSizeBytes,
+    fileHash: attachment.fileHash,
+    thumbnailHash: attachment.thumbnailHash,
+    status: attachment.status,
+    uploadError: attachment.uploadError,
+    messageId: attachment.messageId,
+    senderDeviceId: attachment.senderDeviceId,
+    createdAt: attachment.createdAt.toISOString(),
+    updatedAt: attachment.updatedAt.toISOString(),
   };
 }

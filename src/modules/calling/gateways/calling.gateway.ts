@@ -24,6 +24,9 @@ import {
   WS_MAX_BUFFER_BYTES,
 } from '../../../common/websocket/websocket-origins';
 
+import { CallAbuseProtectionService } from '../services/call-abuse-protection.service';
+import { CallMetricsService } from '../services/call-metrics.service';
+import { CallSystemMessageService } from '../services/call-system-message.service';
 import {
   CALL_EVENT_ACCEPT,
   CALL_EVENT_CAMERA_OFF,
@@ -100,6 +103,9 @@ export class CallingGateway
     private readonly iceServerProvider: IceServerProvider,
     private readonly connectionAuth: WebSocketConnectionAuthService,
     private readonly connectionLimit: WebSocketConnectionLimitService,
+    private readonly abuseProtection: CallAbuseProtectionService,
+    private readonly metrics: CallMetricsService,
+    private readonly systemMessages: CallSystemMessageService,
   ) {}
 
   afterInit() {
@@ -250,6 +256,14 @@ export class CallingGateway
         input.type,
       );
 
+      // Abuse protection: frequency, unique recipients, rejection ratio, cooldown.
+      await this.abuseProtection.checkCreateCallAllowed(
+        userId,
+        context.scope,
+        context.scopeRef,
+        context.ringTargetUserIds,
+      );
+
       const result = await this.commandService.createCall(userId, {
         type: input.type,
         scope: context.scope,
@@ -260,6 +274,8 @@ export class CallingGateway
       const call = result.call;
 
       await this.callEvents.publish('CREATED', call, userId);
+      await this.abuseProtection.recordCallCreated(userId, context.ringTargetUserIds);
+      await this.metrics.increment('callsCreated');
 
       // Notify creator
       await client.join(callRoom(call.id));
@@ -431,6 +447,8 @@ export class CallingGateway
 
       const acceptedCall = await this.queryService.getCall(input.callId);
       await this.callEvents.publish('ACCEPTED', acceptedCall, userId);
+      await this.abuseProtection.recordCallAccepted(acceptedCall.creatorUserId);
+      await this.metrics.increment('callsAccepted');
 
       // Notify all participants
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_ACCEPT, {
@@ -461,6 +479,8 @@ export class CallingGateway
       const updated = await this.commandService.rejectCall(userId, input.callId);
 
       await this.callEvents.publish('REJECTED', updated, userId);
+      await this.abuseProtection.recordCallRejected(updated.creatorUserId);
+      await this.metrics.increment('callsRejected');
 
       if (updated.scope === CallScope.DM) {
         await this.notificationPublisher.publishMissedCall({
@@ -472,6 +492,12 @@ export class CallingGateway
           scopeRef: updated.scopeRef,
         });
         await this.callEvents.publish('MISSED', updated, userId);
+        await this.systemMessages.publishCallRejected(
+          updated.scopeRef,
+          updated.creatorUserId,
+          updated.id,
+          updated.type,
+        );
       }
 
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_REJECT, {
@@ -503,6 +529,7 @@ export class CallingGateway
 
       const cancelledCall = await this.queryService.getCall(input.callId);
       await this.callEvents.publish('CANCELLED', cancelledCall, userId);
+      await this.metrics.increment('callsCancelled');
 
       if (cancelledCall.scope === CallScope.DM) {
         await this.notificationPublisher.publishMissedCall({
@@ -514,6 +541,12 @@ export class CallingGateway
           scopeRef: cancelledCall.scopeRef,
         });
         await this.callEvents.publish('MISSED', cancelledCall, userId);
+        await this.systemMessages.publishMissedCall(
+          cancelledCall.scopeRef,
+          cancelledCall.creatorUserId,
+          cancelledCall.id,
+          cancelledCall.type,
+        );
       }
 
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_CANCEL, {
@@ -547,6 +580,12 @@ export class CallingGateway
 
       const endedCall = await this.queryService.getCall(input.callId);
       await this.callEvents.publish('ENDED', endedCall, userId);
+      await this.metrics.increment('callsEnded');
+      
+      if (before.startedAt && endedCall.endedAt) {
+        const durationMs = new Date(endedCall.endedAt).getTime() - new Date(before.startedAt).getTime();
+        await this.metrics.recordCallDuration(durationMs);
+      }
 
       if (before.status === 'RINGING') {
         await this.notificationPublisher.publishMissedCall({
@@ -558,6 +597,23 @@ export class CallingGateway
           scopeRef: before.scopeRef,
         });
         await this.callEvents.publish('MISSED', endedCall, userId);
+        await this.systemMessages.publishMissedCall(
+          before.scopeRef,
+          before.creatorUserId,
+          before.id,
+          before.type,
+        );
+      } else if (before.scope === CallScope.DM && before.startedAt && endedCall.endedAt) {
+        const durationSeconds = Math.floor(
+          (new Date(endedCall.endedAt).getTime() - new Date(before.startedAt).getTime()) / 1000,
+        );
+        await this.systemMessages.publishCallEnded(
+          before.scopeRef,
+          before.creatorUserId,
+          before.id,
+          before.type,
+          durationSeconds,
+        );
       }
 
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_END, {

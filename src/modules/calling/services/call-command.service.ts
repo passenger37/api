@@ -229,4 +229,30 @@ export class CallCommandService {
     const call = await this.callRepo.findById(callId);
     await this.authorization.assertCanSignal(userId, callId, targetUserId, call);
   }
+
+  /**
+   * Force a participant to leave a call (for moderation or permission revocation).
+   * Does not require the caller to be a participant.
+   */
+  async forceLeaveCall(targetUserId: string, callId: string): Promise<void> {
+    const participant = await this.participantRepo.findByCallAndUser(callId, targetUserId);
+    if (!participant) return;
+
+    await this.participantRepo.updateByCallAndUser(callId, targetUserId, {
+      state: CallParticipantState.LEFT,
+      leftAt: new Date(),
+    });
+
+    const activeCount = await this.participantRepo.countActiveParticipants(callId);
+    if (activeCount === 0) {
+      const call = await this.callRepo.findById(callId);
+      if (call) {
+        CallStateMachine.assertReachable(call.status as CallStatus, CallStatus.ENDED);
+      }
+      await this.callRepo.update(callId, {
+        status: CallStatus.ENDED,
+        endedAt: new Date(),
+      });
+    }
+  }
 }

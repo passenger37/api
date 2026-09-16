@@ -134,4 +134,17 @@ export class DirectMessageChannelRepository {
 
     return updated.messageCounter;
   }
+
+  async update(
+    id: string,
+    data: Prisma.DirectMessageChannelUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx ?? this.prisma;
+
+    return client.directMessageChannel.update({
+      where: { id },
+      data,
+    });
+  }
 }

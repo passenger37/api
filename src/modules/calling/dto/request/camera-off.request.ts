@@ -1,8 +1,9 @@
-import { IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CameraOffRequest {
   @ApiProperty()
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   callId!: string;
 }

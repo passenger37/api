@@ -102,4 +102,18 @@ export class E2eeEnvelopeRepository {
     });
     return result.count;
   }
+
+  /**
+   * Purges every envelope belonging to a message once that message is
+   * deleted, so ciphertext cannot be re-delivered or replayed afterwards.
+   */
+  async deleteByClientMessageId(
+    channelId: string,
+    clientMessageId: string,
+  ): Promise<number> {
+    const result = await this.prisma.e2eeEnvelope.deleteMany({
+      where: { channelId, clientMessageId },
+    });
+    return result.count;
+  }
 }

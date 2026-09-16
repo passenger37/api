@@ -15,10 +15,13 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam } from '@ne
 
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { HttpRateLimitGuard } from '../../production-hardening/guards/http-rate-limit.guard';
 
 import { CommentCommandService } from '../services/comment-command.service';
 import { CommentQueryService } from '../services/comment-query.service';
 import { CommentAuthorizationService } from '../services/comment-authorization.service';
+import { CommentModerationService } from '../services/comment-moderation.service';
+import { CommentModerationRequest } from '../dto/request/comment-moderation.request';
 
 import { CreateCommentRequest } from '../dto/request/create-comment.request';
 import { ListCommentsQuery, ReactToCommentRequest } from '../dto/query/list-comments.query';
@@ -27,13 +30,14 @@ import { CommentSortMode } from '../constants/comment.constants';
 
 @ApiTags('Comments')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, HttpRateLimitGuard)
 @Controller('comments')
 export class CommentItemController {
   constructor(
     private readonly commandService: CommentCommandService,
     private readonly queryService: CommentQueryService,
     private readonly authorizationService: CommentAuthorizationService,
+    private readonly moderationService: CommentModerationService,
   ) {}
 
   @Get(':commentId')
@@ -88,6 +92,18 @@ export class CommentItemController {
     @CurrentUser('id') userId: string,
   ): Promise<void> {
     await this.commandService.deleteComment(commentId, userId);
+  }
+
+  @Patch(':commentId/moderate')
+  @ApiOperation({ summary: 'Moderate a comment (admin/moderator only)' })
+  @ApiParam({ name: 'commentId', description: 'Comment ID' })
+  @ApiResponse({ status: 204 })
+  async moderateComment(
+    @Param('commentId') commentId: string,
+    @CurrentUser('id') moderatorId: string,
+    @Body() dto: CommentModerationRequest,
+  ): Promise<void> {
+    await this.moderationService.removeComment(commentId, moderatorId);
   }
 
   @Post(':commentId/reactions')

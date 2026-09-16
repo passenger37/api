@@ -21,6 +21,9 @@ import { CallEventsService } from './services/call-events.service';
 import { CallingEventListenerService } from './services/calling-event-listener.service';
 import { CallingCleanupService } from './services/calling-cleanup.service';
 import { IceServerProvider } from './services/ice-server-provider';
+import { CallAbuseProtectionService } from './services/call-abuse-protection.service';
+import { CallMetricsService } from './services/call-metrics.service';
+import { CallSystemMessageService } from './services/call-system-message.service';
 import { CallingGateway } from './gateways/calling.gateway';
 import { CallHistoryController } from './controllers/call-history.controller';
 
@@ -44,6 +47,9 @@ import { CallHistoryController } from './controllers/call-history.controller';
     CallingEventListenerService,
     CallingCleanupService,
     IceServerProvider,
+    CallAbuseProtectionService,
+    CallMetricsService,
+    CallSystemMessageService,
     CallingGateway,
     WebSocketJwtGuard,
     WebSocketConnectionAuthService,

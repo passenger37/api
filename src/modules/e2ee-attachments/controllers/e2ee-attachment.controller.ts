@@ -59,6 +59,15 @@ export class E2eeAttachmentController {
     return this.queryService.getAttachmentById(attachmentId);
   }
 
+  @Get(':attachmentId/url')
+  @ApiOperation({ summary: 'Get a presigned download URL for an attachment' })
+  async getAttachmentUrl(
+    @CurrentUser('id') userId: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    return this.queryService.getAttachmentUrl(attachmentId, userId);
+  }
+
   @Get('storage/:storageKey')
   @ApiOperation({ summary: 'Get an attachment by storage key' })
   async getAttachmentByStorageKey(

@@ -1,0 +1,74 @@
+﻿src/modules/calling/services/call-command.service.spec.ts(160,7): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(161,7): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(175,38): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(175,53): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(178,34): error TS2322: Type '"VIDEO"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(178,49): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(183,38): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(183,53): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(186,34): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(186,49): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(191,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(191,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(200,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(200,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(208,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(208,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(214,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(214,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(223,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(223,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(231,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(231,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(240,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(240,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(246,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(246,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(256,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(256,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(263,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(263,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(267,12): error TS18047: 'participant' is possibly 'null'.
+src/modules/calling/services/call-command.service.spec.ts(268,12): error TS18047: 'participant' is possibly 'null'.
+src/modules/calling/services/call-command.service.spec.ts(272,68): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(272,83): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(279,32): error TS2341: Property 'queryService' is private and only accessible within class 'CallCommandService'.
+src/modules/calling/services/call-command.service.spec.ts(284,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(284,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(290,39): error TS2341: Property 'queryService' is private and only accessible within class 'CallCommandService'.
+src/modules/calling/services/call-command.service.spec.ts(292,12): error TS18048: 'p' is possibly 'undefined'.
+src/modules/calling/services/call-command.service.spec.ts(296,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(296,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(304,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(304,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(311,39): error TS2341: Property 'queryService' is private and only accessible within class 'CallCommandService'.
+src/modules/calling/services/call-command.service.spec.ts(313,12): error TS18048: 'p' is possibly 'undefined'.
+src/modules/calling/services/call-command.service.spec.ts(317,55): error TS2322: Type '"VIDEO"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(317,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(322,28): error TS2341: Property 'queryService' is private and only accessible within class 'CallCommandService'.
+src/modules/calling/services/call-command.service.spec.ts(323,12): error TS18048: 'p' is possibly 'undefined'.
+src/modules/calling/services/call-command.service.spec.ts(326,24): error TS2341: Property 'queryService' is private and only accessible within class 'CallCommandService'.
+src/modules/calling/services/call-command.service.spec.ts(327,12): error TS18048: 'p' is possibly 'undefined'.
+src/modules/calling/services/call-command.service.spec.ts(331,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(331,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(337,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(337,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(345,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(345,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(352,55): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(352,70): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(360,52): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(360,67): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/calling/services/call-command.service.spec.ts(362,53): error TS2322: Type '"VOICE"' is not assignable to type 'CallType'.
+src/modules/calling/services/call-command.service.spec.ts(362,68): error TS2322: Type '"DM"' is not assignable to type 'CallScope'.
+src/modules/direct-messages/controllers/direct-message.controller.spec.ts(41,18): error TS2554: Expected 7 arguments, but got 6.
+src/modules/direct-messages/controllers/direct-message.controller.ts(243,38): error TS2554: Expected 3-4 arguments, but got 2.
+src/modules/direct-messages/controllers/direct-message.controller.ts(256,22): error TS2552: Cannot find name 'ResolveDmReportRequest'. Did you mean 'CreateDmReportRequest'?
+src/modules/direct-messages/controllers/direct-message.controller.ts(262,7): error TS2554: Expected 3 arguments, but got 4.
+src/modules/direct-messages/direct-messages.module.ts(64,5): error TS2304: Cannot find name 'DmReportRepository'.
+src/modules/direct-messages/direct-messages.module.ts(65,5): error TS2552: Cannot find name 'DmReportCommandService'. Did you mean 'DmCommandService'?
+src/modules/production-hardening/services/http-rate-limit.service.spec.ts(16,7): error TS1117: An object literal cannot have multiple properties with the same name.
+src/modules/production-hardening/services/http-rate-limit.service.spec.ts(17,7): error TS1117: An object literal cannot have multiple properties with the same name.
+src/modules/realtime/gateways/realtime.gateway.integration.spec.ts(185,19): error TS2339: Property 'presence' does not exist on type 'WebSocketErrorResponse | { success: boolean; event: string; presence: RealtimeUserPresence; }'.
+  Property 'presence' does not exist on type 'WebSocketErrorResponse'.
+src/modules/realtime/mappers/realtime.mapper.spec.ts(30,7): error TS2322: Type '"EVERYONE"' is not assignable to type 'RealtimePresencePrivacy | undefined'.

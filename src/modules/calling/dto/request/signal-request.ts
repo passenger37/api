@@ -1,9 +1,10 @@
-import { IsUUID, IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class SignalRequest {
   @ApiProperty()
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   callId!: string;
 
   @ApiProperty()

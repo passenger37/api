@@ -12,6 +12,7 @@ describe('E2eeDmCommandService (security: ciphertext-only transport)', () => {
   let sessionRepo: any;
   let deviceRepo: any;
   let dmCommandService: any;
+  let e2eeAttachmentService: any;
   let gateway: any;
 
   const now = new Date('2026-01-01T00:00:00.000Z');
@@ -61,6 +62,7 @@ describe('E2eeDmCommandService (security: ciphertext-only transport)', () => {
     sessionRepo = { findById: jest.fn() };
     deviceRepo = { findById: jest.fn() };
     dmCommandService = { assertNotBlockedForChannel: jest.fn() };
+    e2eeAttachmentService = { createAttachment: jest.fn(), linkMessage: jest.fn() };
     gateway = {
       broadcastE2eeMessageCreated: jest.fn(),
     };
@@ -72,6 +74,7 @@ describe('E2eeDmCommandService (security: ciphertext-only transport)', () => {
       envelopeRepo,
       sessionRepo,
       deviceRepo,
+      e2eeAttachmentService,
       dmCommandService,
       gateway,
     );

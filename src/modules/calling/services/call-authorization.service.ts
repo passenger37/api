@@ -390,4 +390,35 @@ export class CallAuthorizationService {
       channel.id,
     );
   }
+
+  /**
+   * Validate that a user still has permission to participate in a call.
+   * Used for runtime permission revocation checks.
+   */
+  async validateOngoingCallParticipation(call: Call, userId: string): Promise<void> {
+    switch (call.scope) {
+      case CallScope.DM: {
+        const channel = await this.dmChannelRepository.findById(call.scopeRef);
+        if (!channel || (channel.userAId !== userId && channel.userBId !== userId)) {
+          throw new ForbiddenException('CONVERSATION_ACCESS_DENIED: no longer a participant.');
+        }
+        const targetUserId = channel.userAId === userId ? channel.userBId : channel.userAId;
+        if (await this.isBlockedEitherWay(userId, targetUserId)) {
+          throw new ForbiddenException('CALL_NOT_ALLOWED: blocked.');
+        }
+        return;
+      }
+      case CallScope.SERVER_CHANNEL: {
+        await this.requireChannelPermission(
+          call.scopeRef,
+          userId,
+          ServerPermission.CHANNEL_CALL_JOIN,
+        );
+        await this.requireCallCompatibleChannel(call.scopeRef, call.type as CallType);
+        return;
+      }
+      default:
+        throw new ForbiddenException('CALL_NOT_ALLOWED: unsupported scope.');
+    }
+  }
 }

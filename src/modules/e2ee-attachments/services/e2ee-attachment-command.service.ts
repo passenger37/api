@@ -9,6 +9,7 @@ import { E2eeAttachmentRepository } from '../repositories/e2ee-attachment.reposi
 import { E2eeSessionRepository } from '../../e2ee-sessions/repositories/e2ee-session.repository';
 import { E2eeGroupRepository } from '../../e2ee-groups/repositories/e2ee-group.repository';
 import { E2eeDeviceRepository } from '../../e2ee-devices/repositories/e2ee-device.repository';
+import { AttachmentStorageService } from '../../messages/services/attachment-storage.service';
 import { CreateAttachmentRequest, UploadCompleteRequest, UploadFailedRequest, AddThumbnailRequest, LinkMessageRequest } from '../dto/attachment.request';
 import { serializeAttachment } from '../serializers/e2ee-attachment.serializer';
 
@@ -19,6 +20,7 @@ export class E2eeAttachmentCommandService {
     private readonly sessionRepo: E2eeSessionRepository,
     private readonly groupRepo: E2eeGroupRepository,
     private readonly deviceRepo: E2eeDeviceRepository,
+    private readonly storage: AttachmentStorageService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -62,8 +64,9 @@ export class E2eeAttachmentCommandService {
       throw new BadRequestException('Cannot provide both sessionId and groupId');
     }
 
-    // Generate storage key
-    const storageKey = `e2ee/attachments/${dto.senderDeviceId}/${Date.now()}-${dto.fileName}`;
+    // Generate storage key (sanitized to avoid path traversal / weird chars)
+    const safeName = dto.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storageKey = `e2ee/attachments/${dto.senderDeviceId}/${Date.now()}-${safeName}`;
 
     const attachment = await this.attachmentRepo.create({
       session: dto.sessionId ? { connect: { id: dto.sessionId } } : undefined,
@@ -80,8 +83,10 @@ export class E2eeAttachmentCommandService {
       senderDevice: { connect: { id: dto.senderDeviceId } },
     });
 
-    // Generate signed upload URL (in production, this would call R2/MinIO)
-    const uploadUrl = this.generateUploadUrl(storageKey);
+    const uploadUrl = await this.storage.createPresignedPutUrl(
+      storageKey,
+      dto.mimeType,
+    );
 
     return {
       success: true,
@@ -162,11 +167,5 @@ export class E2eeAttachmentCommandService {
 
     await this.attachmentRepo.updateStatus(attachmentId, 'DELETED');
     return { success: true, deleted: true };
-  }
-
-  private generateUploadUrl(storageKey: string): string {
-    // In production, this would generate a signed URL for Cloudflare R2 / MinIO
-    // For now, return a placeholder
-    return `https://storage.example.com/${storageKey}?signature=placeholder`;
   }
 }

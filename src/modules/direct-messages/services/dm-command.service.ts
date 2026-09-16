@@ -6,6 +6,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { UserStatus, DirectMessageMode } from '@prisma/client';
 import { Prisma } from '@prisma/client';
@@ -15,6 +16,7 @@ import { UserQueryService } from '../../users/services/user-query.service';
 import { UserSocialRepository } from '../../users/repositories/user-social.repository';
 import { MessageSpamControlService } from '../../messages/services/message-spam-control.service';
 import { SearchService } from '../../search/services/search.service';
+import { E2eeEnvelopeRepository } from '../../e2ee-transport/repositories/e2ee-envelope.repository';
 
 import { DirectMessageChannelRepository } from '../repositories/direct-message-channel.repository';
 import { DirectMessageRepository } from '../repositories/direct-message.repository';
@@ -41,6 +43,8 @@ export class DmCommandService {
     @Inject(forwardRef(() => DmGateway))
     private readonly gateway: DmGateway,
     private readonly searchService: SearchService,
+    @Optional()
+    private readonly envelopeRepo?: E2eeEnvelopeRepository,
   ) {}
 
   async open(
@@ -309,6 +313,23 @@ export class DmCommandService {
     }
 
     await this.messageRepository.softDelete(messageId);
+
+    if (
+      message.isE2ee &&
+      message.clientMessageId &&
+      this.envelopeRepo
+    ) {
+      try {
+        await this.envelopeRepo.deleteByClientMessageId(
+          message.channelId,
+          message.clientMessageId,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Failed to purge envelopes for message ${messageId}: ${(error as Error).message}`,
+        );
+      }
+    }
 
     this.gateway.broadcastMessageDeleted(message.channelId, messageId);
 

@@ -1,9 +1,10 @@
-import { IsUUID, IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class JoinCallRequest {
   @ApiProperty()
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   callId!: string;
 
   @ApiProperty({ required: false })
