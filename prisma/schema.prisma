@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -80,6 +81,9 @@ model User {
   circlesOf                  UserCircle[]               @relation("UserCircleMember")
   circleMembers              UserCircle[]               @relation("UserCircleOwner")
   reportedInServers          UserReport[]               @relation("UserReportedTargets")
+  dmReportsFiled             DmReport[]                 @relation("DmReportsAuthored")
+  dmReportsReceived          DmReport[]                 @relation("DmReportedTargets")
+  dmReportsHandled           DmReport[]                 @relation("DmReportsHandled")
   backgroundJobSchedules     BackgroundJobSchedule[]
   backgroundJobs             BackgroundJob[]
   e2eeDeviceRevocations      E2eeDeviceRevocation[]
@@ -755,21 +759,24 @@ model ModerationAuditLog {
 }
 
 model DirectMessageChannel {
-  id             String                    @id @default(cuid())
-  userAId        String
-  userBId        String
+  id                   String                    @id @default(cuid())
+  userAId              String
+  userBId              String
   /// Transport mode — STANDARD stores plaintext on the server, PRIVATE_E2EE is client-encrypted end to end.
-  mode           DirectMessageMode         @default(STANDARD)
-  messageCounter Int                       @default(0)
-  lastMessageAt  DateTime?
-  createdAt      DateTime                  @default(now())
-  updatedAt      DateTime                  @updatedAt
+  mode                 DirectMessageMode         @default(STANDARD)
+  messageCounter       Int                       @default(0)
+  lastMessageAt        DateTime?
+  /// Optional TTL in seconds for disappearing messages (null = disabled)
+  disappearingTtlSeconds Int?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
   messages       DirectMessage[]
   userA          User                      @relation("DirectMessageChannelA", fields: [userAId], references: [id], onDelete: Cascade)
   userB          User                      @relation("DirectMessageChannelB", fields: [userBId], references: [id], onDelete: Cascade)
   readStates     DirectMessageReadState[]
   settings       DirectMessageChannelSettings[]
   attachments    DirectMessageAttachment[]
+  dmReports      DmReport[]
 
   @@unique([userAId, userBId])
   @@index([userBId])
@@ -797,6 +804,8 @@ model DirectMessage {
   deletedAt       DateTime?
   version         Int                      @default(1)
   messageSeq      Int
+  kind            DirectMessageKind        @default(STANDARD)
+  callId          String?
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
   author          User                     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
@@ -806,12 +815,14 @@ model DirectMessage {
   readStates      DirectMessageReadState[] @relation("DirectMessageReadCursor")
   reactions       DirectMessageReaction[]
   attachments     DirectMessageAttachment[]
+  dmReports       DmReport[]
 
   @@unique([clientMessageId, authorUserId])
   @@index([channelId, messageSeq])
   @@index([channelId, createdAt, id])
   @@index([authorUserId])
   @@index([parentMessageId, createdAt, id])
+  @@index([callId])
 }
 
 model DirectMessageReaction {
@@ -884,6 +895,36 @@ model DirectMessageReadState {
 
   @@unique([channelId, userId])
   @@index([userId])
+}
+
+/// A user-initiated report of a direct message. For PRIVATE_E2EE channels the
+/// server never sees plaintext: the reporter's client decrypts locally and
+/// submits the plaintext/context voluntarily as `reportPackage`. The server
+/// stores the package verbatim and treats it as intentionally-authorized data.
+model DmReport {
+  id              String        @id @default(cuid())
+  channelId       String
+  messageId       String
+  reporterUserId  String
+  targetUserId    String
+  reason          MessageReportReason
+  /// Opaque client-authored package (decrypted message content + context).
+  reportPackage   String        @db.Text
+  status          ReportStatus  @default(PENDING)
+  handledByUserId String?
+  handledAt       DateTime?
+  createdAt       DateTime      @default(now())
+  channel         DirectMessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  message         DirectMessage        @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  reporter        User                 @relation("DmReportsAuthored", fields: [reporterUserId], references: [id], onDelete: Cascade)
+  target          User                 @relation("DmReportedTargets", fields: [targetUserId], references: [id], onDelete: Cascade)
+  handledBy       User?                @relation("DmReportsHandled", fields: [handledByUserId], references: [id])
+
+  @@unique([messageId, reporterUserId])
+  @@index([channelId, createdAt])
+  @@index([targetUserId])
+  @@index([status])
+  @@index([reporterUserId])
 }
 
 model E2eeDevice {
@@ -2736,6 +2777,14 @@ enum E2eeEnvelopeStatus {
 enum DirectMessageMode {
   STANDARD
   PRIVATE_E2EE
+}
+
+enum DirectMessageKind {
+  STANDARD
+  SYSTEM
+  CALL_MISSED
+  CALL_ENDED
+  CALL_REJECTED
 }
 
 enum CallType {

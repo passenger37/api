@@ -11,6 +11,7 @@ import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { SearchModule } from '../search/search.module';
+import { E2eeAttachmentsModule } from '../e2ee-attachments/e2ee-attachments.module';
 import { TypingService } from '../messages/services/typing.service';
 import { MessageSpamControlService } from '../messages/services/message-spam-control.service';
 import { AttachmentStorageService } from '../messages/services/attachment-storage.service';
@@ -32,9 +33,12 @@ import { DmReactionCommandService } from './services/dm-reaction-command.service
 import { DmReactionQueryService } from './services/dm-reaction-query.service';
 import { DmAttachmentService } from './services/dm-attachment.service';
 import { SystemDmService } from './services/system-dm.service';
+import { DmReportRepository } from './repositories/dm-report.repository';
+import { DmReportCommandService } from './services/dm-report-command.service';
 import { DmGateway } from './gateways/dm.gateway';
 import { DirectMessageController } from './controllers/direct-message.controller';
 import { SystemDmController } from './controllers/system-dm.controller';
+import { DisappearingMessageCleanupService } from './services/disappearing-message-cleanup.service';
 
 @Module({
   imports: [
@@ -43,6 +47,7 @@ import { SystemDmController } from './controllers/system-dm.controller';
     AuthModule,
     AuthorizationModule,
     SearchModule,
+    E2eeAttachmentsModule,
   ],
   controllers: [DirectMessageController, SystemDmController],
   providers: [
@@ -61,7 +66,10 @@ import { SystemDmController } from './controllers/system-dm.controller';
     DmReactionCommandService,
     DmReactionQueryService,
     DmAttachmentService,
+    DmReportRepository,
+    DmReportCommandService,
     SystemDmService,
+    DisappearingMessageCleanupService,
     RolesGuard,
     DmGateway,
     TypingService,
