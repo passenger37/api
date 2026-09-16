@@ -9,99 +9,99 @@ datasource db {
 }
 
 model User {
-  id                         String                     @id @default(cuid())
-  email                      String                     @unique
-  username                   String                     @unique
-  passwordHash               String
-  displayName                String
-  bio                        String?
-  isVerified                 Boolean                    @default(false)
-  createdAt                  DateTime                   @default(now())
-  updatedAt                  DateTime                   @updatedAt
-  avatarUrl                  String?
-  city                       String?
-  country                    String?
-  dateOfBirth                DateTime?
-  deletedAt                  DateTime?
-  gender                     Gender?
-  isPrivate                  Boolean                    @default(false)
-  language                   String                     @default("en")
-  lastSeenAt                 DateTime?
-  phoneNumber                String?                    @unique
-  state                      String?
-  status                     UserStatus                 @default(ACTIVE)
-  timezone                   String                     @default("UTC")
-  permissionVersion          Int                        @default(1)
-  coverImageUrl              String?
-  website                    String?
-  location                   String?
-  AnonymousChatBan           AnonymousChatBan[]
-  AnonymousChatParticipant   AnonymousChatParticipant[]
-  AnonymousChatSession       AnonymousChatSession[]
-  blockedByUsers             Block[]                    @relation("UserBlockedBy")
-  blockedUsers               Block[]                    @relation("UserBlocks")
-  directMessages             DirectMessage[]
-  directMessageChannelsA     DirectMessageChannel[]     @relation("DirectMessageChannelA")
-  directMessageChannelsB     DirectMessageChannel[]     @relation("DirectMessageChannelB")
-  directMessageReadStates    DirectMessageReadState[]
-  directMessageReactions     DirectMessageReaction[]
-  directMessageAttachments   DirectMessageAttachment[]
+  id                           String                         @id @default(cuid())
+  email                        String                         @unique
+  username                     String                         @unique
+  passwordHash                 String
+  displayName                  String
+  bio                          String?
+  isVerified                   Boolean                        @default(false)
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
+  avatarUrl                    String?
+  city                         String?
+  country                      String?
+  dateOfBirth                  DateTime?
+  deletedAt                    DateTime?
+  gender                       Gender?
+  isPrivate                    Boolean                        @default(false)
+  language                     String                         @default("en")
+  lastSeenAt                   DateTime?
+  phoneNumber                  String?                        @unique
+  state                        String?
+  status                       UserStatus                     @default(ACTIVE)
+  timezone                     String                         @default("UTC")
+  permissionVersion            Int                            @default(1)
+  coverImageUrl                String?
+  website                      String?
+  location                     String?
+  AnonymousChatBan             AnonymousChatBan[]
+  AnonymousChatParticipant     AnonymousChatParticipant[]
+  AnonymousChatSession         AnonymousChatSession[]
+  blockedByUsers               Block[]                        @relation("UserBlockedBy")
+  blockedUsers                 Block[]                        @relation("UserBlocks")
+  comments                     Comment[]
+  commentReactions             CommentReaction[]
+  commentReportsFiled          CommentReport[]
+  communityPosts               CommunityPost[]                @relation("UserCommunityPosts")
+  communityPostModerated       CommunityPost[]                @relation("PostModeratedBy")
+  communityPostBookmarks       CommunityPostBookmark[]        @relation("UserCommunityPostBookmarks")
+  communityPostEditHistory     CommunityPostEditHistory[]     @relation("UserCommunityPostEditHistory")
+  communityPostMedia           CommunityPostMedia[]           @relation("UserCommunityPostMedia")
+  communityPostMentions        CommunityPostMention[]         @relation("UserCommunityPostMentions")
+  communityPostReportsHandled  CommunityPostReport[]          @relation("CommunityPostReportsHandled")
+  communityPostReportsFiled    CommunityPostReport[]          @relation("CommunityPostReportsFiled")
+  communityPostVotes           CommunityPostVote[]            @relation("UserCommunityPostVotes")
+  directMessages               DirectMessage[]
+  directMessageAttachments     DirectMessageAttachment[]
+  directMessageChannelsA       DirectMessageChannel[]         @relation("DirectMessageChannelA")
+  directMessageChannelsB       DirectMessageChannel[]         @relation("DirectMessageChannelB")
   directMessageChannelSettings DirectMessageChannelSettings[]
-  following                  Follow[]                   @relation("UserFollowing")
-  followers                  Follow[]                   @relation("UserFollowers")
-  receivedFollowRequests     FollowRequest[]            @relation("UserReceivedFollowRequests")
-  sentFollowRequests         FollowRequest[]            @relation("UserSentFollowRequests")
-  uploadedMedia              MessageAttachment[]        @relation("UserUploadedMedia")
-  communityPosts             CommunityPost[]          @relation("UserCommunityPosts")
-  communityPostVotes         CommunityPostVote[]      @relation("UserCommunityPostVotes")
-  communityPostReportsFiled  CommunityPostReport[]    @relation("CommunityPostReportsFiled")
-  communityPostReportsHandled CommunityPostReport[]   @relation("CommunityPostReportsHandled")
-  communityPostBookmarks     CommunityPostBookmark[]  @relation("UserCommunityPostBookmarks")
-  communityPostMentions      CommunityPostMention[]   @relation("UserCommunityPostMentions")
-  communityPostMedia         CommunityPostMedia[]     @relation("UserCommunityPostMedia")
-  communityPostEditHistory   CommunityPostEditHistory[] @relation("UserCommunityPostEditHistory")
-  communityPostModerated     CommunityPost[]          @relation("PostModeratedBy")
-  mutedByUsers               Mute[]                     @relation("UserMutedBy")
-  mutedUsers                 Mute[]                     @relation("UserMutes")
-  PollVote                   PollVote[]
-  Post                       Post[]                     @relation("UserPersonalPosts")
-  PostComment                PostComment[]
-  PostMention                PostMention[]              @relation("UserPostMentions")
-  postReactions              PostReaction[]             @relation("UserPostReactions")
-  postReportsHandled         PostReport[]               @relation("PostReportsHandled")
-  postReportsFiled           PostReport[]               @relation("PostReportsFiled")
-  PostSave                   PostSave[]
-  PostShare                  PostShare[]
-  ownedServers               Server[]                   @relation("OwnedServers")
-  bansIssued                 ServerBan[]                @relation("UserBansIssued")
-  serverBans                 ServerBan[]                @relation("UserServerBans")
-  createdChannels            ServerChannel[]
-  ServerInvite               ServerInvite[]
-  serverMemberships          ServerMember[]
-  circlesOf                  UserCircle[]               @relation("UserCircleMember")
-  circleMembers              UserCircle[]               @relation("UserCircleOwner")
-  reportedInServers          UserReport[]               @relation("UserReportedTargets")
-  dmReportsFiled             DmReport[]                 @relation("DmReportsAuthored")
-  dmReportsReceived          DmReport[]                 @relation("DmReportedTargets")
-  dmReportsHandled           DmReport[]                 @relation("DmReportsHandled")
-  backgroundJobSchedules     BackgroundJobSchedule[]
-  backgroundJobs             BackgroundJob[]
-  e2eeDeviceRevocations      E2eeDeviceRevocation[]
-  e2eeDevices                E2eeDevice[]
-  e2eeEncryptedBackups       E2eeEncryptedBackup[]
-  e2eeGroupMemberships       E2eeGroupMember[]
-  e2eeGroupsCreated          E2eeGroup[]                @relation("GroupCreator")
-  e2eeKeyTransparencyEntries E2eeKeyTransparencyEntry[]
-  e2eeMetadataPolicy         E2eeMetadataPolicy?
-  e2eePirRequests            E2eePirRequest[]
-  e2eeSealedSenderKeys       E2eeSealedSenderKey[]
-  searchQueries              SearchQuery[]
-  assignedRoles              UserRole[]                 @relation("RoleAssignedBy")
-  roles                      UserRole[]
-  sessions                   UserSession[]
-  comments                   Comment[]
-  commentReactions           CommentReaction[]
-  commentReportsFiled        CommentReport[]
+  directMessageReactions       DirectMessageReaction[]
+  directMessageReadStates      DirectMessageReadState[]
+  dmReportsHandled             DmReport[]                     @relation("DmReportsHandled")
+  dmReportsFiled               DmReport[]                     @relation("DmReportsAuthored")
+  dmReportsReceived            DmReport[]                     @relation("DmReportedTargets")
+  following                    Follow[]                       @relation("UserFollowing")
+  followers                    Follow[]                       @relation("UserFollowers")
+  receivedFollowRequests       FollowRequest[]                @relation("UserReceivedFollowRequests")
+  sentFollowRequests           FollowRequest[]                @relation("UserSentFollowRequests")
+  uploadedMedia                MessageAttachment[]            @relation("UserUploadedMedia")
+  mutedByUsers                 Mute[]                         @relation("UserMutedBy")
+  mutedUsers                   Mute[]                         @relation("UserMutes")
+  PollVote                     PollVote[]
+  Post                         Post[]                         @relation("UserPersonalPosts")
+  PostComment                  PostComment[]
+  PostMention                  PostMention[]                  @relation("UserPostMentions")
+  postReactions                PostReaction[]                 @relation("UserPostReactions")
+  postReportsHandled           PostReport[]                   @relation("PostReportsHandled")
+  postReportsFiled             PostReport[]                   @relation("PostReportsFiled")
+  PostSave                     PostSave[]
+  PostShare                    PostShare[]
+  ownedServers                 Server[]                       @relation("OwnedServers")
+  bansIssued                   ServerBan[]                    @relation("UserBansIssued")
+  serverBans                   ServerBan[]                    @relation("UserServerBans")
+  createdChannels              ServerChannel[]
+  ServerInvite                 ServerInvite[]
+  serverMemberships            ServerMember[]
+  circlesOf                    UserCircle[]                   @relation("UserCircleMember")
+  circleMembers                UserCircle[]                   @relation("UserCircleOwner")
+  reportedInServers            UserReport[]                   @relation("UserReportedTargets")
+  backgroundJobSchedules       BackgroundJobSchedule[]
+  backgroundJobs               BackgroundJob[]
+  e2eeDeviceRevocations        E2eeDeviceRevocation[]
+  e2eeDevices                  E2eeDevice[]
+  e2eeEncryptedBackups         E2eeEncryptedBackup[]
+  e2eeGroupMemberships         E2eeGroupMember[]
+  e2eeGroupsCreated            E2eeGroup[]                    @relation("GroupCreator")
+  e2eeKeyTransparencyEntries   E2eeKeyTransparencyEntry[]
+  e2eeMetadataPolicy           E2eeMetadataPolicy?
+  e2eePirRequests              E2eePirRequest[]
+  e2eeSealedSenderKeys         E2eeSealedSenderKey[]
+  searchQueries                SearchQuery[]
+  assignedRoles                UserRole[]                     @relation("RoleAssignedBy")
+  roles                        UserRole[]
+  sessions                     UserSession[]
 }
 
 model PostMedia {
@@ -641,25 +641,25 @@ model OutboxEvent {
 }
 
 model MessageAttachment {
-  id           String           @id @default(cuid())
+  id           String              @id @default(cuid())
   messageId    String?
   serverId     String
   channelId    String
   uploadedById String
-  status       AttachmentStatus @default(PENDING)
+  status       AttachmentStatus    @default(PENDING)
   fileName     String
   mimeType     String
   sizeBytes    Int
-  storageKey   String           @unique
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  storageKey   String              @unique
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
   userId       String?
-  channel      ServerChannel    @relation("AttachmentChannel", fields: [channelId], references: [id], onDelete: Cascade)
-  message      ChannelMessage?  @relation("MessageAttachments", fields: [messageId], references: [id], onDelete: Cascade)
-  server       Server           @relation("AttachmentServer", fields: [serverId], references: [id], onDelete: Cascade)
-  uploadedBy   ServerMember     @relation("AttachmentUploads", fields: [uploadedById], references: [id], onDelete: Cascade)
-  user         User?            @relation("UserUploadedMedia", fields: [userId], references: [id])
   postMedia    CommunityPostMedia?
+  channel      ServerChannel       @relation("AttachmentChannel", fields: [channelId], references: [id], onDelete: Cascade)
+  message      ChannelMessage?     @relation("MessageAttachments", fields: [messageId], references: [id], onDelete: Cascade)
+  server       Server              @relation("AttachmentServer", fields: [serverId], references: [id], onDelete: Cascade)
+  uploadedBy   ServerMember        @relation("AttachmentUploads", fields: [uploadedById], references: [id], onDelete: Cascade)
+  user         User?               @relation("UserUploadedMedia", fields: [userId], references: [id])
   avScan       MediaAvScan?
   mediaJobs    MediaJob[]
   thumbnail    MediaThumbnail?
@@ -759,24 +759,23 @@ model ModerationAuditLog {
 }
 
 model DirectMessageChannel {
-  id                   String                    @id @default(cuid())
-  userAId              String
-  userBId              String
+  id                     String                         @id @default(cuid())
+  userAId                String
+  userBId                String
+  messageCounter         Int                            @default(0)
+  lastMessageAt          DateTime?
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
   /// Transport mode — STANDARD stores plaintext on the server, PRIVATE_E2EE is client-encrypted end to end.
-  mode                 DirectMessageMode         @default(STANDARD)
-  messageCounter       Int                       @default(0)
-  lastMessageAt        DateTime?
-  /// Optional TTL in seconds for disappearing messages (null = disabled)
+  mode                   DirectMessageMode              @default(STANDARD)
   disappearingTtlSeconds Int?
-  createdAt            DateTime                  @default(now())
-  updatedAt            DateTime                  @updatedAt
-  messages       DirectMessage[]
-  userA          User                      @relation("DirectMessageChannelA", fields: [userAId], references: [id], onDelete: Cascade)
-  userB          User                      @relation("DirectMessageChannelB", fields: [userBId], references: [id], onDelete: Cascade)
-  readStates     DirectMessageReadState[]
-  settings       DirectMessageChannelSettings[]
-  attachments    DirectMessageAttachment[]
-  dmReports      DmReport[]
+  messages               DirectMessage[]
+  attachments            DirectMessageAttachment[]
+  userA                  User                           @relation("DirectMessageChannelA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB                  User                           @relation("DirectMessageChannelB", fields: [userBId], references: [id], onDelete: Cascade)
+  settings               DirectMessageChannelSettings[]
+  readStates             DirectMessageReadState[]
+  dmReports              DmReport[]
 
   @@unique([userAId, userBId])
   @@index([userBId])
@@ -784,37 +783,39 @@ model DirectMessageChannel {
 }
 
 model DirectMessage {
-  id              String                   @id @default(cuid())
+  id              String                    @id @default(cuid())
   channelId       String
   authorUserId    String
   /// Plaintext content for STANDARD channels. For PRIVATE_E2EE channels this
   /// column is ALWAYS empty — the actual ciphertext lives only in E2eeEnvelope rows.
   content         String
+  clientMessageId String?
+  isEdited        Boolean                   @default(false)
+  editedAt        DateTime?
+  isDeleted       Boolean                   @default(false)
+  deletedAt       DateTime?
+  version         Int                       @default(1)
+  messageSeq      Int
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  parentMessageId String?
   /// Sending device for E2EE messages (null for STANDARD messages).
   senderDeviceId  String?
   /// Whether this message was transported as client-encrypted ciphertext.
-  isE2ee          Boolean                  @default(false)
+  isE2ee          Boolean                   @default(false)
   /// E2EE protocol version the client used to encrypt (null for STANDARD).
   protocolVersion Int?
-  clientMessageId String?
-  parentMessageId String?
-  isEdited        Boolean                  @default(false)
-  editedAt        DateTime?
-  isDeleted       Boolean                  @default(false)
-  deletedAt       DateTime?
-  version         Int                      @default(1)
-  messageSeq      Int
-  kind            DirectMessageKind        @default(STANDARD)
+  /// Message kind (STANDARD, CALL_MISSED, CALL_ENDED, CALL_REJECTED)
+  kind            DirectMessageKind         @default(STANDARD)
+  /// Optional reference to a Call for call-related system messages
   callId          String?
-  createdAt       DateTime                 @default(now())
-  updatedAt       DateTime                 @updatedAt
-  author          User                     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
-  channel         DirectMessageChannel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  parentMessage   DirectMessage?           @relation("DirectMessageReplies", fields: [parentMessageId], references: [id])
-  replies         DirectMessage[]          @relation("DirectMessageReplies")
-  readStates      DirectMessageReadState[] @relation("DirectMessageReadCursor")
-  reactions       DirectMessageReaction[]
+  author          User                      @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  channel         DirectMessageChannel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  parentMessage   DirectMessage?            @relation("DirectMessageReplies", fields: [parentMessageId], references: [id])
+  replies         DirectMessage[]           @relation("DirectMessageReplies")
   attachments     DirectMessageAttachment[]
+  reactions       DirectMessageReaction[]
+  readStates      DirectMessageReadState[]  @relation("DirectMessageReadCursor")
   dmReports       DmReport[]
 
   @@unique([clientMessageId, authorUserId])
@@ -822,17 +823,16 @@ model DirectMessage {
   @@index([channelId, createdAt, id])
   @@index([authorUserId])
   @@index([parentMessageId, createdAt, id])
-  @@index([callId])
 }
 
 model DirectMessageReaction {
-  id        String         @id @default(cuid())
+  id        String        @id @default(cuid())
   messageId String
   userId    String
   emoji     String
-  createdAt DateTime       @default(now())
-  message   DirectMessage  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+  message   DirectMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, userId, emoji])
   @@index([messageId])
@@ -851,8 +851,8 @@ model DirectMessageAttachment {
   storageKey   String               @unique
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
-  message      DirectMessage?       @relation(fields: [messageId], references: [id], onDelete: Cascade)
   channel      DirectMessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  message      DirectMessage?       @relation(fields: [messageId], references: [id], onDelete: Cascade)
   uploadedBy   User                 @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
 
   @@index([messageId])
@@ -902,23 +902,23 @@ model DirectMessageReadState {
 /// submits the plaintext/context voluntarily as `reportPackage`. The server
 /// stores the package verbatim and treats it as intentionally-authorized data.
 model DmReport {
-  id              String        @id @default(cuid())
+  id              String               @id @default(cuid())
   channelId       String
   messageId       String
   reporterUserId  String
   targetUserId    String
   reason          MessageReportReason
   /// Opaque client-authored package (decrypted message content + context).
-  reportPackage   String        @db.Text
-  status          ReportStatus  @default(PENDING)
+  reportPackage   String
+  status          ReportStatus         @default(PENDING)
   handledByUserId String?
   handledAt       DateTime?
-  createdAt       DateTime      @default(now())
+  createdAt       DateTime             @default(now())
   channel         DirectMessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  handledBy       User?                @relation("DmReportsHandled", fields: [handledByUserId], references: [id])
   message         DirectMessage        @relation(fields: [messageId], references: [id], onDelete: Cascade)
   reporter        User                 @relation("DmReportsAuthored", fields: [reporterUserId], references: [id], onDelete: Cascade)
   target          User                 @relation("DmReportedTargets", fields: [targetUserId], references: [id], onDelete: Cascade)
-  handledBy       User?                @relation("DmReportsHandled", fields: [handledByUserId], references: [id])
 
   @@unique([messageId, reporterUserId])
   @@index([channelId, createdAt])
@@ -1020,13 +1020,13 @@ model E2eeOneTimePreKey {
 }
 
 model E2eeSession {
-  id                 String            @id @default(cuid())
+  id                 String           @id @default(cuid())
   /// The device that initiated the session (sender)
   senderDeviceId     String
   /// The device that received the session initiation (recipient)
   recipientDeviceId  String
   /// Session version for protocol upgrades
-  version            Int               @default(1)
+  version            Int              @default(1)
   /// Public session descriptor ONLY. All cryptographic state (root key, chain
   /// keys, message numbers, AD) lives in the client; the server never derives,
   /// decrypts, or stores session secrets. These columns are retained for schema
@@ -1035,17 +1035,17 @@ model E2eeSession {
   /// Reserved for a future public integrity marker. Always NULL for new sessions.
   associatedDataHash String?
   /// Whether this session is active (not archived/revoked)
-  isActive           Boolean           @default(true)
-  /// When the recipient device accepted the session
-  acceptedAt         DateTime?
+  isActive           Boolean          @default(true)
   /// Archived at timestamp
   archivedAt         DateTime?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  /// When the recipient device accepted the session
+  acceptedAt         DateTime?
   attachments        E2eeAttachment[]
   envelopes          E2eeEnvelope[]
-  recipientDevice    E2eeDevice        @relation("RecipientSessions", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
-  senderDevice       E2eeDevice        @relation("SenderSessions", fields: [senderDeviceId], references: [id], onDelete: Cascade)
+  recipientDevice    E2eeDevice       @relation("RecipientSessions", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
+  senderDevice       E2eeDevice       @relation("SenderSessions", fields: [senderDeviceId], references: [id], onDelete: Cascade)
 
   @@unique([senderDeviceId, recipientDeviceId])
   @@index([senderDeviceId, isActive])
@@ -1061,18 +1061,12 @@ model E2eeEnvelope {
   type              E2eeEnvelopeType
   /// Encrypted ciphertext payload (base64 blob)
   ciphertext        String
-  /// Protocol version the sender encrypted with
-  protocolVersion   Int                 @default(1)
   /// Associated data (base64 blob) - includes header, version, etc.
   associatedData    String?
   /// Sender device ID
   senderDeviceId    String
   /// Recipient device ID
   recipientDeviceId String
-  /// Optional link to a DirectMessage row for E2EE DM transport
-  channelId         String?
-  /// Client-supplied idempotency key supplied by the sender
-  clientMessageId   String?
   /// Delivery status
   status            E2eeEnvelopeStatus  @default(PENDING)
   /// Number of delivery attempts
@@ -1083,6 +1077,12 @@ model E2eeEnvelope {
   deliveredAt       DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  /// Protocol version the sender encrypted with
+  protocolVersion   Int                 @default(1)
+  /// Optional link to a DirectMessage row for E2EE DM transport
+  channelId         String?
+  /// Client-supplied idempotency key supplied by the sender
+  clientMessageId   String?
   deliveryQueue     E2eeDeliveryQueue[]
   recipientDevice   E2eeDevice          @relation("EnvelopeRecipient", fields: [recipientDeviceId], references: [id], onDelete: Cascade)
   senderDevice      E2eeDevice          @relation("EnvelopeSender", fields: [senderDeviceId], references: [id], onDelete: Cascade)
@@ -1984,87 +1984,57 @@ model CommunityModerator {
   @@index([communityId])
 }
 
-enum CommunityPostVisibility {
-  COMMUNITY_MEMBERS
-  PUBLIC
-}
-
-enum CommunityPostContentType {
-  TEXT
-  MEDIA
-  MIXED
-  LINK
-  POLL
-}
-
-enum CommunityPostStatus {
-  ACTIVE
-  HIDDEN
-  LOCKED
-  MODERATION_PENDING
-  DELETED
-}
-
 model CommunityPost {
-  id              String                     @id @default(cuid())
-  communityId     String
-  categoryId      String?
-  authorUserId    String
-  title           String
-  content         String
-  contentType     CommunityPostContentType   @default(TEXT)
-  visibility      CommunityPostVisibility    @default(COMMUNITY_MEMBERS)
-  status          CommunityPostStatus        @default(ACTIVE)
-  isPinned        Boolean                    @default(false)
-  pinnedAt        DateTime?
-  isDeleted       Boolean                    @default(false)
-  deletedAt       DateTime?
-  contentWarning  String?
-  isSensitive     Boolean                    @default(false)
-  language        String?
-  version         Int                        @default(1)
-
-  // Denormalized counts
-  upvoteCount     Int                        @default(0)
-  downvoteCount   Int                        @default(0)
-  commentCount    Int                        @default(0)
-  bookmarkCount   Int                        @default(0)
-  repostCount     Int                        @default(0)
-  viewCount       Int                        @default(0)
-
-  // Repost / Quote
-  originalPostId  String?
-  quotedPostId    String?
-
-  // Moderation
-  lockedAt        DateTime?
-  lockedReason    String?
-  hiddenAt        DateTime?
-  hiddenReason    String?
-  moderatedAt     DateTime?
+  id                String                     @id @default(cuid())
+  communityId       String
+  categoryId        String?
+  authorUserId      String
+  title             String
+  content           String
+  isPinned          Boolean                    @default(false)
+  pinnedAt          DateTime?
+  isDeleted         Boolean                    @default(false)
+  deletedAt         DateTime?
+  version           Int                        @default(1)
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  bookmarkCount     Int                        @default(0)
+  commentCount      Int                        @default(0)
+  contentType       CommunityPostContentType   @default(TEXT)
+  contentWarning    String?
+  downvoteCount     Int                        @default(0)
+  hiddenAt          DateTime?
+  hiddenReason      String?
+  isSensitive       Boolean                    @default(false)
+  language          String?
+  lockedAt          DateTime?
+  lockedReason      String?
+  moderatedAt       DateTime?
   moderatedByUserId String?
-
-  createdAt       DateTime                   @default(now())
-  updatedAt       DateTime                   @updatedAt
-  editedAt        DateTime?
-
-  // Relations
-  community       Community                  @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  category        CommunityCategory?         @relation(fields: [categoryId], references: [id])
-  author          User                       @relation("UserCommunityPosts", fields: [authorUserId], references: [id], onDelete: Cascade)
-  originalPost    CommunityPost?             @relation("PostReposts", fields: [originalPostId], references: [id], onDelete: SetNull)
-  reposts         CommunityPost[]            @relation("PostReposts")
-  quotedPost      CommunityPost?             @relation("PostQuotes", fields: [quotedPostId], references: [id], onDelete: SetNull)
-  quotes          CommunityPost[]            @relation("PostQuotes")
-  comments        CommunityComment[]
-  votes           CommunityPostVote[]
-  media           CommunityPostMedia[]
-  hashtags        CommunityPostHashtag[]
-  mentions        CommunityPostMention[]
-  reports         CommunityPostReport[]
-  bookmarks       CommunityPostBookmark[]
-  editHistory     CommunityPostEditHistory[]
-  moderatedBy     User?                      @relation("PostModeratedBy", fields: [moderatedByUserId], references: [id], onDelete: SetNull)
+  originalPostId    String?
+  quotedPostId      String?
+  repostCount       Int                        @default(0)
+  status            CommunityPostStatus        @default(ACTIVE)
+  upvoteCount       Int                        @default(0)
+  viewCount         Int                        @default(0)
+  visibility        CommunityPostVisibility    @default(COMMUNITY_MEMBERS)
+  editedAt          DateTime?
+  comments          CommunityComment[]
+  author            User                       @relation("UserCommunityPosts", fields: [authorUserId], references: [id], onDelete: Cascade)
+  category          CommunityCategory?         @relation(fields: [categoryId], references: [id])
+  community         Community                  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  moderatedBy       User?                      @relation("PostModeratedBy", fields: [moderatedByUserId], references: [id])
+  originalPost      CommunityPost?             @relation("PostReposts", fields: [originalPostId], references: [id])
+  reposts           CommunityPost[]            @relation("PostReposts")
+  quotedPost        CommunityPost?             @relation("PostQuotes", fields: [quotedPostId], references: [id])
+  quotes            CommunityPost[]            @relation("PostQuotes")
+  bookmarks         CommunityPostBookmark[]
+  editHistory       CommunityPostEditHistory[]
+  hashtags          CommunityPostHashtag[]
+  media             CommunityPostMedia[]
+  mentions          CommunityPostMention[]
+  reports           CommunityPostReport[]
+  votes             CommunityPostVote[]
 
   @@index([communityId, createdAt])
   @@index([communityId, isPinned, createdAt])
@@ -2115,12 +2085,11 @@ model CommunityModerationAction {
 }
 
 model CommunityPostVote {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   postId    String
   userId    String
   vote      VoteType
-  createdAt DateTime @default(now())
-
+  createdAt DateTime      @default(now())
   post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   user      User          @relation("UserCommunityPostVotes", fields: [userId], references: [id], onDelete: Cascade)
 
@@ -2130,25 +2099,24 @@ model CommunityPostVote {
 }
 
 model CommunityPostMedia {
-  id           String   @id @default(cuid())
+  id           String             @id @default(cuid())
   postId       String
-  mediaId      String?  @unique
-  type         String
-  url          String
-  thumbnailUrl String?
-  width        Int?
-  height       Int?
-  duration     Int?
-  mimeType     String
+  mediaId      String?            @unique
   sortOrder    Int
   altText      String?
   focalPointX  Float?
   focalPointY  Float?
   userId       String?
-
+  duration     Int?
+  height       Int?
+  mimeType     String
+  thumbnailUrl String?
+  type         String
+  url          String
+  width        Int?
+  media        MessageAttachment? @relation(fields: [mediaId], references: [id])
   post         CommunityPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  media        MessageAttachment? @relation(fields: [mediaId], references: [id], onDelete: SetNull)
-  uploadedBy   User?              @relation("UserCommunityPostMedia", fields: [userId], references: [id], onDelete: SetNull)
+  uploadedBy   User?              @relation("UserCommunityPostMedia", fields: [userId], references: [id])
 
   @@unique([postId, sortOrder])
   @@index([postId])
@@ -2157,11 +2125,10 @@ model CommunityPostMedia {
 }
 
 model CommunityPostHashtag {
-  id        String @id @default(cuid())
-  postId    String
-  tag       String
-
-  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  id     String        @id @default(cuid())
+  postId String
+  tag    String
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, tag])
   @@index([tag])
@@ -2169,14 +2136,13 @@ model CommunityPostHashtag {
 }
 
 model CommunityPostMention {
-  id                String @id @default(cuid())
-  postId            String
-  mentionedUserId   String
-  position          Int
-  length            Int
-
-  post              CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  mentionedUser     User          @relation("UserCommunityPostMentions", fields: [mentionedUserId], references: [id], onDelete: Cascade)
+  id              String        @id @default(cuid())
+  postId          String
+  mentionedUserId String
+  position        Int
+  length          Int
+  mentionedUser   User          @relation("UserCommunityPostMentions", fields: [mentionedUserId], references: [id], onDelete: Cascade)
+  post            CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, mentionedUserId])
   @@index([postId])
@@ -2184,19 +2150,18 @@ model CommunityPostMention {
 }
 
 model CommunityPostReport {
-  id              String         @id @default(cuid())
+  id              String           @id @default(cuid())
   postId          String
   reporterUserId  String
   reason          PostReportReason
   detailText      String?
-  status          ReportStatus   @default(PENDING)
+  status          ReportStatus     @default(PENDING)
   handledByUserId String?
   handledAt       DateTime?
-  createdAt       DateTime       @default(now())
-
-  post            CommunityPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reporter        User            @relation("CommunityPostReportsFiled", fields: [reporterUserId], references: [id], onDelete: Cascade)
-  handledBy       User?           @relation("CommunityPostReportsHandled", fields: [handledByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime         @default(now())
+  handledBy       User?            @relation("CommunityPostReportsHandled", fields: [handledByUserId], references: [id])
+  post            CommunityPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter        User             @relation("CommunityPostReportsFiled", fields: [reporterUserId], references: [id], onDelete: Cascade)
 
   @@unique([postId, reporterUserId])
   @@index([postId])
@@ -2206,11 +2171,10 @@ model CommunityPostReport {
 }
 
 model CommunityPostBookmark {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   postId    String
   userId    String
-  createdAt DateTime @default(now())
-
+  createdAt DateTime      @default(now())
   post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   user      User          @relation("UserCommunityPostBookmarks", fields: [userId], references: [id], onDelete: Cascade)
 
@@ -2220,14 +2184,13 @@ model CommunityPostBookmark {
 }
 
 model CommunityPostEditHistory {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   postId          String
   previousContent String
-  editedAt        DateTime @default(now())
+  editedAt        DateTime      @default(now())
   editedByUserId  String
-
-  post            CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   editedBy        User          @relation("UserCommunityPostEditHistory", fields: [editedByUserId], references: [id], onDelete: Cascade)
+  post            CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId, editedAt])
   @@index([editedByUserId])
@@ -2564,6 +2527,86 @@ model PostVideo {
   @@index([postId])
 }
 
+model Comment {
+  id              String            @id @default(cuid())
+  postId          String
+  postType        CommentPostType
+  parentCommentId String?
+  authorId        String
+  content         String
+  status          CommentStatus     @default(ACTIVE)
+  upvoteCount     Int               @default(0)
+  downvoteCount   Int               @default(0)
+  replyCount      Int               @default(0)
+  version         Int               @default(1)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  editedAt        DateTime?
+  deletedAt       DateTime?
+  author          User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentComment   Comment?          @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  replies         Comment[]         @relation("CommentReplies")
+  reactions       CommentReaction[]
+  reports         CommentReport[]
+
+  @@index([postId, postType, status, createdAt])
+  @@index([postId, postType, parentCommentId, createdAt])
+  @@index([parentCommentId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model CommentReaction {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  vote      VoteType
+  createdAt DateTime @default(now())
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+}
+
+model CommentReport {
+  id          String              @id @default(cuid())
+  commentId   String
+  reporterId  String
+  reason      CommentReportReason
+  description String?
+  status      ReportStatus        @default(PENDING)
+  createdAt   DateTime            @default(now())
+  comment     Comment             @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporter    User                @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, reporterId])
+  @@index([commentId])
+  @@index([reporterId])
+  @@index([status])
+}
+
+enum CommunityPostVisibility {
+  COMMUNITY_MEMBERS
+  PUBLIC
+}
+
+enum CommunityPostContentType {
+  TEXT
+  MEDIA
+  MIXED
+  LINK
+  POLL
+}
+
+enum CommunityPostStatus {
+  ACTIVE
+  HIDDEN
+  LOCKED
+  MODERATION_PENDING
+  DELETED
+}
+
 enum VoteType {
   UPVOTE
   DOWNVOTE
@@ -2631,10 +2674,10 @@ enum Gender {
 enum ServerChannelType {
   TEXT
   VOICE
-  VIDEO
   ANNOUNCEMENT
   FORUM
   STAGE
+  VIDEO
 }
 
 enum ServerTemplateType {
@@ -2710,10 +2753,10 @@ enum ServerPermission {
 enum ChannelType {
   TEXT
   VOICE
-  VIDEO
   ANNOUNCEMENT
   FORUM
   STAGE
+  VIDEO
 }
 
 enum MentionType {
@@ -2781,7 +2824,6 @@ enum DirectMessageMode {
 
 enum DirectMessageKind {
   STANDARD
-  SYSTEM
   CALL_MISSED
   CALL_ENDED
   CALL_REJECTED
@@ -2800,16 +2842,16 @@ enum CallScope {
 }
 
 enum CallStatus {
-  CREATED
   RINGING
-  ACCEPTED
-  CONNECTING
   ACTIVE
-  ENDING
   ENDED
-  FAILED
   CANCELLED
   REJECTED
+  CREATED
+  ACCEPTED
+  CONNECTING
+  ENDING
+  FAILED
 }
 
 enum CallParticipantState {
@@ -3010,66 +3052,4 @@ enum CommentReportReason {
   MISINFORMATION
   COPYRIGHT
   OTHER
-}
-
-model Comment {
-  id              String          @id @default(cuid())
-  postId          String
-  postType        CommentPostType
-  parentCommentId String?
-  authorId        String
-  content         String
-  status          CommentStatus   @default(ACTIVE)
-  upvoteCount     Int             @default(0)
-  downvoteCount   Int             @default(0)
-  replyCount      Int             @default(0)
-  version         Int             @default(1)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  editedAt        DateTime?
-  deletedAt       DateTime?
-
-  author          User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parentComment   Comment?        @relation("CommentReplies", fields: [parentCommentId], references: [id])
-  replies         Comment[]       @relation("CommentReplies")
-  reactions       CommentReaction[]
-  reports         CommentReport[]
-
-  @@index([postId, postType, status, createdAt])
-  @@index([postId, postType, parentCommentId, createdAt])
-  @@index([parentCommentId, createdAt])
-  @@index([authorId, createdAt])
-}
-
-model CommentReaction {
-  id        String   @id @default(cuid())
-  commentId String
-  userId    String
-  vote      VoteType
-  createdAt DateTime @default(now())
-
-  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([commentId, userId])
-  @@index([commentId])
-  @@index([userId])
-}
-
-model CommentReport {
-  id          String              @id @default(cuid())
-  commentId   String
-  reporterId  String
-  reason      CommentReportReason
-  description String?
-  status      ReportStatus        @default(PENDING)
-  createdAt   DateTime            @default(now())
-
-  comment  Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  reporter User    @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-
-  @@unique([commentId, reporterId])
-  @@index([commentId])
-  @@index([reporterId])
-  @@index([status])
 }
