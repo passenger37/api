@@ -6,6 +6,7 @@ import {
   IsNumber,
   Min,
   Max,
+  MinLength,
   IsBoolean,
   IsDateString,
   IsArray,
@@ -149,7 +150,7 @@ export class SearchSuggestionsRequestDto {
     required: true,
   })
   @IsString()
-  @Min(1)
+  @MinLength(1)
   partialQuery!: string;
 
   @ApiPropertyOptional({ description: 'Max suggestions (1 - 20)', default: 5 })

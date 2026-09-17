@@ -135,18 +135,6 @@ export class CommunityPostInteractionController {
     return this.interactionService.removeBookmark(slug, postId, userId);
   }
 
-  @Get('bookmarks')
-  async listBookmarks(
-    @CurrentUser('id') userId: string,
-    @Query() query: ListCursorQuery,
-  ) {
-    return this.interactionService.listBookmarks(
-      userId,
-      query.cursor,
-      query.limit,
-    );
-  }
-
   @Post(':slug/posts/:postId/report')
   async reportPost(
     @Param('slug') slug: string,

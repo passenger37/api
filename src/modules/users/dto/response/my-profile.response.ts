@@ -39,6 +39,8 @@ export class MyProfileResponse {
 
   status: string;
 
+  roles: string[];
+
   createdAt: Date;
 
   updatedAt: Date;

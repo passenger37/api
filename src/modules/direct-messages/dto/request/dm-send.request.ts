@@ -7,8 +7,9 @@ import {
 } from 'class-validator';
 
 export class DmSendRequest {
+  @IsOptional()
   @IsString()
-  channelId: string;
+  channelId?: string;
 
   @IsString()
   @MinLength(1)

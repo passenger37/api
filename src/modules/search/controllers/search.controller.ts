@@ -58,10 +58,7 @@ export class SearchController {
     @Query() query: SearchAnalyticsRequestDto,
   ) {
     // Only admins can see analytics (could add a guard)
-    return this.searchService.getSearchAnalytics(
-      query.engine || 'meilisearch',
-      query.days,
-    );
+    return this.searchService.getSearchAnalytics(query.engine, query.days);
   }
 
   @Get('history')

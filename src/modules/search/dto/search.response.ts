@@ -42,6 +42,12 @@ export class SearchAnalyticsResponseDto {
   avgLatencyMs!: number;
   topQueries!: SearchSuggestion[];
   searchesPerDay!: Record<string, number>;
+  topSearchedUsers!: {
+    contentId: string;
+    username: string;
+    displayName: string;
+    searchCount: number;
+  }[];
 }
 
 export class SearchHistoryItemDto {

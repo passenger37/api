@@ -18,6 +18,7 @@ import { DmReactionCommandService } from '../services/dm-reaction-command.servic
 import { DmAttachmentService } from '../services/dm-attachment.service';
 import { DmOpenRequest } from '../dto/request/dm-open.request';
 import { DmReadRequest } from '../dto/request/dm-read.request';
+import { DmSendRequest } from '../dto/request/dm-send.request';
 import { DmEditRequest } from '../dto/request/dm-edit.request';
 import { DmReactionRequest } from '../dto/request/dm-reaction.request';
 import { DmChannelSettingsRequest } from '../dto/request/dm-channel-settings.request';
@@ -93,6 +94,21 @@ export class DirectMessageController {
       userId,
       query.cursor,
       query.limit ?? 50,
+    );
+  }
+
+  @Post('channels/:channelId/messages')
+  async sendMessage(
+    @Param('channelId') channelId: string,
+    @CurrentUser('id') userId: string,
+    @Body() request: DmSendRequest,
+  ) {
+    return this.commandService.send(
+      channelId,
+      userId,
+      request.content,
+      request.clientMessageId,
+      request.parentMessageId,
     );
   }
 

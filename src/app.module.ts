@@ -53,6 +53,7 @@ import { E2eeRevocationModule } from './modules/e2ee-revocation/e2ee-revocation.
 import { E2eeMetadataModule } from './modules/e2ee-metadata/e2ee-metadata.module';
 import { E2eeDeliveryModule } from './modules/e2ee-delivery/e2ee-delivery.module';
 import { E2eeBackupModule } from './modules/e2ee-backup/e2ee-backup.module';
+import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
 
 @Module({
   imports: [
@@ -106,6 +107,7 @@ import { E2eeBackupModule } from './modules/e2ee-backup/e2ee-backup.module';
     E2eeMetadataModule,
     E2eeDeliveryModule,
     E2eeBackupModule,
+    BookmarksModule,
   ],
   controllers: [],
   // providers: [AppService],

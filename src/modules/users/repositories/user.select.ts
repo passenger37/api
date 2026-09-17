@@ -41,6 +41,16 @@ export const MY_PROFILE_SELECT = Prisma.validator<Prisma.UserSelect>()({
 
   status: true,
 
+  roles: {
+    select: {
+      role: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  },
+
   createdAt: true,
 
   updatedAt: true,

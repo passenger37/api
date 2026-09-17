@@ -17,6 +17,8 @@ import { CommunityCommandService } from '../services/community-command.service';
 import { CommunityQueryService } from '../services/community-query.service';
 import { CommunityMembershipService } from '../services/community-membership.service';
 import { CommunityDiscoveryService } from '../services/community-discovery.service';
+import { CommunityPostInteractionService } from '../services/community-post-interaction.service';
+import { ListCursorQuery } from '../dto/query/list-cursor.query';
 import { CreateCommunityRequest } from '../dto/request/create-community.request';
 import { UpdateCommunityRequest } from '../dto/request/update-community.request';
 import { CreateCategoryRequest } from '../dto/request/create-category.request';
@@ -36,11 +38,24 @@ export class CommunityController {
     private readonly queryService: CommunityQueryService,
     private readonly membershipService: CommunityMembershipService,
     private readonly discoveryService: CommunityDiscoveryService,
+    private readonly interactionService: CommunityPostInteractionService,
   ) {}
 
   @Get('discover')
   async discover(@Query() query: DiscoverCommunitiesQuery) {
     return this.discoveryService.discover(query.q, query.cursor, query.limit);
+  }
+
+  @Get('bookmarks')
+  async bookmarks(
+    @CurrentUser('id') userId: string,
+    @Query() query: ListCursorQuery,
+  ) {
+    return this.interactionService.listBookmarks(
+      userId,
+      query.cursor,
+      query.limit,
+    );
   }
 
   @Post()

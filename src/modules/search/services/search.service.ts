@@ -312,6 +312,12 @@ export class SearchService {
     };
 
     const results = await this.executeSearch(searchOptions);
+    if (!results.processingTimeMs) {
+      results.processingTimeMs = Date.now() - startTime;
+    }
+
+    // Rate user hits (how many times each user was surfaced/searched)
+    await this.incrementUserHitCounts(results);
 
     // Log search query
     await this.logSearchQuery(options.userId, options.query || '', results);
@@ -505,7 +511,32 @@ export class SearchService {
     }
   }
 
-  // ============ Search Logging & Analytics ============
+  // ============ Logging & Analytics ============
+
+  private async incrementUserHitCounts(results: SearchResults): Promise<void> {
+    const userHits = results.hits.filter(
+      (hit) =>
+        hit.document?.contentType === 'user' && hit.document?.contentId,
+    );
+    if (userHits.length === 0) return;
+
+    const counts = await Promise.all(
+      userHits.map((hit) =>
+        this.indexRepo
+          .incrementUserSearchCount(hit.document.contentId)
+          .then((count) => ({ hit, count })),
+      ),
+    );
+
+    for (const { hit, count } of counts) {
+      if (count > 0) {
+        hit.document.metadata = {
+          ...(hit.document.metadata || {}),
+          searchCount: count,
+        };
+      }
+    }
+  }
 
   private async logSearchQuery(
     userId: string,
@@ -555,6 +586,7 @@ export class SearchService {
     // Add popular queries from analytics
     const popularQueries = await this.getPopularQueries(
       limit - suggestions.length,
+      this.useMeilisearch ? 'meilisearch' : 'postgres',
     );
 
     return [...suggestions, ...popularQueries];
@@ -568,9 +600,13 @@ export class SearchService {
     return { success: true, history };
   }
 
-  private async getPopularQueries(limit: number): Promise<SearchSuggestion[]> {
+  private async getPopularQueries(
+    limit: number,
+    engine?: string,
+  ): Promise<SearchSuggestion[]> {
+    if (limit <= 0) return [];
     const analytics = await this.indexRepo.findAnalytics(
-      'meilisearch',
+      engine,
       new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
       new Date(),
     );
@@ -595,7 +631,7 @@ export class SearchService {
   // ============ Search Analytics ============
 
   async getSearchAnalytics(
-    engine: string,
+    engine: string | undefined,
     days = 30,
   ): Promise<{
     totalSearches: number;
@@ -603,11 +639,20 @@ export class SearchService {
     avgLatencyMs: number;
     topQueries: SearchSuggestion[];
     searchesPerDay: Record<string, number>;
+    topSearchedUsers: {
+      contentId: string;
+      username: string;
+      displayName: string;
+      searchCount: number;
+    }[];
   }> {
     const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     const to = new Date();
 
-    const analytics = await this.indexRepo.findAnalytics(engine, from, to);
+    const [analytics, topSearchedUsers] = await Promise.all([
+      this.indexRepo.findAnalytics(engine, from, to),
+      this.indexRepo.getTopSearchedUsers(10),
+    ]);
 
     let totalSearches = 0;
     let uniqueUsers = 0;
@@ -617,9 +662,10 @@ export class SearchService {
 
     for (const day of analytics) {
       totalSearches += day.totalSearches;
-      uniqueUsers += day.uniqueUsers;
       totalLatency += day.avgLatencyMs * day.totalSearches;
-      searchesPerDay[day.date.toISOString().split('T')[0]] = day.totalSearches;
+      searchesPerDay[day.date.toISOString().split('T')[0]] =
+        (searchesPerDay[day.date.toISOString().split('T')[0]] || 0) +
+        day.totalSearches;
 
       if (day.topQueries) {
         for (const [query, count] of Object.entries(
@@ -628,6 +674,31 @@ export class SearchService {
           queryCounts[query] = (queryCounts[query] || 0) + count;
         }
       }
+    }
+
+    // Engine stats are sparse when searches come from raw SearchQuery rows,
+    // so aggregate authoritative counts directly from the query log too.
+    const queryLog = await this.prisma.searchQuery.findMany({
+      where: {
+        ...(engine ? { engine } : {}),
+        createdAt: { gte: from, lte: to },
+      },
+      select: { userId: true, queryText: true, latencyMs: true, createdAt: true },
+    });
+    const uniqueQueryUsers = new Set(queryLog.map((q) => q.userId));
+
+    // Use the denser source: search events from the query log
+    totalSearches = Math.max(totalSearches, queryLog.length);
+    uniqueUsers = Math.max(uniqueUsers, uniqueQueryUsers.size);
+    totalLatency = Math.max(
+      totalLatency,
+      queryLog.reduce((sum, q) => sum + q.latencyMs, 0),
+    );
+    for (const q of queryLog) {
+      const day = q.createdAt.toISOString().split('T')[0];
+      searchesPerDay[day] = (searchesPerDay[day] || 0) + 1;
+      const key = q.queryText.trim() || '(empty)';
+      queryCounts[key] = (queryCounts[key] || 0) + 1;
     }
 
     return {
@@ -639,6 +710,7 @@ export class SearchService {
         .slice(0, 10)
         .map(([query, count]) => ({ query, count })),
       searchesPerDay,
+      topSearchedUsers,
     };
   }
 

@@ -199,7 +199,7 @@ describe('40.96 Backend Security Audit', () => {
           'services',
           'crypto.service.ts',
         ),
-        `import { PublicKey } from '@signalapp/libsignal-client';\nexport const k = PublicKey;\n`,
+        `import { PublicKey } from '../../../core/crypto/libsignal-shim';\nexport const k = PublicKey;\n`,
       );
       const verdicts = auditSourceTree(tmp);
       expect(verdicts.find((v) => v.id === 'E2EE-1')?.status).toBe('passed');

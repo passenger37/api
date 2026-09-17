@@ -9,6 +9,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
+import { toClientMessage } from '../utils/message.mapper';
 import { ChannelMessageEditRepository } from '../repositories/channel-message-edit.repository';
 import { ChannelMentionRepository } from '../repositories/channel-message-mention.repository';
 import { ChannelReadStateRepository } from '../repositories/channel-read-state.repository';
@@ -93,7 +94,7 @@ export class ChannelMessageCommandService {
 
       if (existing) {
         return {
-          message: existing,
+          message: toClientMessage(existing),
           deduplicated: true,
         };
       }
@@ -205,7 +206,7 @@ export class ChannelMessageCommandService {
       await this.cache.invalidateChannel(channelId);
 
       return {
-        message,
+        message: toClientMessage(message),
         deduplicated: false,
       };
     } catch (error) {
@@ -217,7 +218,7 @@ export class ChannelMessageCommandService {
 
         if (existing) {
           return {
-            message: existing,
+            message: toClientMessage(existing),
             deduplicated: true,
           };
         }

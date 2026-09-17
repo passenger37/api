@@ -13,6 +13,7 @@ import {
   UseFilters,
   UseGuards,
   UsePipes,
+  BadRequestException,
 } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { DirectMessageMode } from '@prisma/client';
@@ -153,6 +154,12 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const event = 'dm-send';
     try {
       const userId = client.data.userId;
+
+      if (!request.channelId || !request.content) {
+        throw new BadRequestException(
+          'channelId and content are required and must be non-empty strings.',
+        );
+      }
 
       await this.rateLimit.consume({
         key: redisKeys.wsRateLimit('dm-send', userId),
@@ -503,6 +510,10 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const event = 'dm-read';
     try {
       const userId = client.data.userId;
+
+      if (!request.channelId) {
+        throw new BadRequestException('channelId is required.');
+      }
 
       await this.rateLimit.consume({
         key: redisKeys.wsRateLimit('dm-read', userId),

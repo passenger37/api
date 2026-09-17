@@ -102,6 +102,54 @@ model User {
   assignedRoles                UserRole[]                     @relation("RoleAssignedBy")
   roles                        UserRole[]
   sessions                     UserSession[]
+  bookmarks                    Bookmark[]
+  bookmarkCollections          BookmarkCollection[]
+}
+
+enum BookmarkTargetType {
+  POST
+  COMMENT
+  MESSAGE
+  VIDEO
+  REEL
+  NEWS
+  MARKETPLACE_LISTING
+  BUSINESS
+  EVENT
+}
+
+model Bookmark {
+  id           String            @id @default(cuid())
+  userId       String
+  targetType   BookmarkTargetType
+  targetId     String
+  collectionId String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collection BookmarkCollection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, targetType, targetId])
+  @@index([userId, createdAt])
+  @@index([userId, targetType, createdAt])
+  @@index([collectionId, createdAt])
+}
+
+model BookmarkCollection {
+  id          String     @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  isPrivate   Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookmarks Bookmark[]
+
+  @@unique([userId, name])
+  @@index([userId, createdAt])
 }
 
 model PostMedia {

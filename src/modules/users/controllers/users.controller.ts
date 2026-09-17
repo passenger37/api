@@ -69,7 +69,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT')
   async getCurrentUser(@CurrentUser() user: { id: string }) {
-    return this.userQueryService.getCurrentProfile(user.id);
+    return this.usersService.getMyProfile(user.id);
   }
 
   @Get()
@@ -220,13 +220,7 @@ export class UsersController {
     return this.userProfileDomainService.updateProfile(user.id, dto);
   }
 
-  @Get('me')
-  @UseGuards(JwtAuthGuard)
-  async getMyProfile(@CurrentUser() user: { id: string }) {
-    return this.usersService.getMyProfile(user.id);
-  }
-
-  @Patch('me')
+    @Patch('me')
   updateMyProfile(
     @CurrentUser('id') userId: string,
 

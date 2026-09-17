@@ -23,6 +23,8 @@ import { UserFactory } from '../../users/factories/user.factory';
 
 import { AuthorizationAuditService } from './authorization-audit.service';
 
+import { AuthorizationService } from './authorization.service';
+
 import { RoleService } from './role.service';
 
 import { AuditActions } from '../constants/audit-actions';
@@ -41,6 +43,7 @@ export class AuthService {
     private readonly userCommandService: UserCommandService,
     private readonly auditService: AuthorizationAuditService,
     private readonly roleService: RoleService,
+    private readonly authorizationService: AuthorizationService,
   ) {}
 
   // =====================================================
@@ -115,6 +118,8 @@ export class AuthService {
 
     const sessionId = randomUUID();
 
+    const roles = await this.authorizationService.getUserRoles(user.id);
+
     const accessToken = await this.tokenService.generateAccessToken(user);
 
     const { token: refreshToken, jti } =
@@ -144,6 +149,8 @@ export class AuthService {
         username: user.username,
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
+        roles,
+        isAdmin: roles.includes(SystemRoles.SUPER_ADMIN),
       },
     };
   }

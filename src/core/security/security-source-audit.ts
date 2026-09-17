@@ -515,21 +515,21 @@ function evaluateSourceAudit(root: string): ControlVerdict[] {
     );
   }
 
-  // E2EE-1 libsignal-session-crypto
+  // E2EE-1 libsignal-session-crypto (pure TS shim)
   audit('E2EE-1', (f) => {
     const e2ee = f.filter((x) => x.rel.startsWith('src/modules/e2ee'));
     const sig = e2ee
-      .filter((x) => x.text.includes('@signalapp/libsignal-client'))
+      .filter((x) => x.text.includes('libsignal-shim'))
       .map((x) => x.rel);
     return sig.length > 0
       ? {
           passed: true,
-          message: `libsignal wired in ${sig.length} e2ee module file(s)`,
+          message: `libsignal shim wired in ${sig.length} e2ee module file(s)`,
           violations: [],
         }
       : {
           passed: false,
-          message: 'No @signalapp/libsignal-client usage in src/modules/e2ee*',
+          message: 'No libsignal-shim usage in src/modules/e2ee*',
           violations: [],
         };
   });

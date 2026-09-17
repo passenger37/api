@@ -50,12 +50,6 @@ export class JobsController {
 
   // ============ Job Management ============
 
-  @Get(':jobId')
-  @ApiOperation({ summary: 'Get job status' })
-  async getJobStatus(@Param('jobId') jobId: string) {
-    return this.jobsService.getJobStatus(jobId);
-  }
-
   @Get()
   @ApiOperation({ summary: 'List jobs with filters' })
   async getJobs(
@@ -63,24 +57,6 @@ export class JobsController {
     @Query() query: GetJobsQueryDto,
   ) {
     return this.jobsService.getJobs(userId, query);
-  }
-
-  @Delete(':jobId')
-  @ApiOperation({ summary: 'Cancel a job' })
-  async cancelJob(
-    @CurrentUser('id') userId: string,
-    @Param('jobId') jobId: string,
-  ) {
-    return this.jobsService.cancelJob(userId, jobId);
-  }
-
-  @Post(':jobId/retry')
-  @ApiOperation({ summary: 'Retry a failed job' })
-  async retryJob(
-    @CurrentUser('id') userId: string,
-    @Param('jobId') jobId: string,
-  ) {
-    return this.jobsService.retryJob(userId, jobId);
   }
 
   @Delete('admin/:jobId')
@@ -199,5 +175,32 @@ export class JobsController {
   @ApiOperation({ summary: 'Drain a queue (wait for all jobs to complete)' })
   async drainQueue(@Param('queueName') queueName: string) {
     return this.jobsService.drainQueue(queueName);
+  }
+
+  // ============ Single Job Lookup / Mutation (declared last so static
+  // ============ routes like schedules, metrics, dead-letters win) ============
+
+  @Get(':jobId')
+  @ApiOperation({ summary: 'Get job status' })
+  async getJobStatus(@Param('jobId') jobId: string) {
+    return this.jobsService.getJobStatus(jobId);
+  }
+
+  @Delete(':jobId')
+  @ApiOperation({ summary: 'Cancel a job' })
+  async cancelJob(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+  ) {
+    return this.jobsService.cancelJob(userId, jobId);
+  }
+
+  @Post(':jobId/retry')
+  @ApiOperation({ summary: 'Retry a failed job' })
+  async retryJob(
+    @CurrentUser('id') userId: string,
+    @Param('jobId') jobId: string,
+  ) {
+    return this.jobsService.retryJob(userId, jobId);
   }
 }

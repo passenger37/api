@@ -1,8 +1,9 @@
 import { IsOptional, IsString } from 'class-validator';
 
 export class DmReadRequest {
+  @IsOptional()
   @IsString()
-  channelId: string;
+  channelId?: string;
 
   @IsOptional()
   @IsString()

@@ -13,6 +13,18 @@ const MESSAGE_INCLUDE = {
       createdAt: 'asc' as const,
     },
   },
+  author: {
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  },
 } satisfies Prisma.ChannelMessageInclude;
 
 @Injectable()
@@ -27,6 +39,8 @@ export class ChannelMessageRepository {
 
     return client.channelMessage.create({
       data,
+
+      include: MESSAGE_INCLUDE,
     });
   }
 

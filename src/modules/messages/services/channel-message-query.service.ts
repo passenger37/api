@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ChannelMessage } from '@prisma/client';
 
+import { toClientMessage } from '../utils/message.mapper';
 import { ChannelMessageRepository } from '../repositories/channel-message.repository';
 import { ChannelMessageReactionRepository } from '../repositories/channel-message-reaction.repository';
 import { ChannelMessageEditRepository } from '../repositories/channel-message-edit.repository';
@@ -73,7 +74,11 @@ export class ChannelMessageQueryService {
     const hasMore = messages.length > limit;
     const items = hasMore ? messages.slice(0, limit) : messages;
     const nextCursor = hasMore ? items[items.length - 1].id : undefined;
-    const result = { items, nextCursor, hasMore };
+    const result = {
+      items: items.map(toClientMessage),
+      nextCursor,
+      hasMore,
+    };
 
     await this.cache.cachePage(channelId, cursor, limit, result);
 

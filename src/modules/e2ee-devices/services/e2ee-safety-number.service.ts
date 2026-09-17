@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../../core/database/prisma.service';
 import { E2eeDeviceRepository } from '../repositories/e2ee-device.repository';
 import { VerifySafetyNumberRequest } from '../dto/request/safety-number.request';
-import { PublicKey } from '@signalapp/libsignal-client';
+import { PublicKey, Fingerprint } from '../../../core/crypto/libsignal-shim';
 
 @Injectable()
 export class E2eeSafetyNumberService {
@@ -29,9 +29,6 @@ export class E2eeSafetyNumberService {
       throw new NotFoundException('Remote device not found');
     }
 
-    // Use libsignal's Fingerprint class for safety number verification
-    const { Fingerprint } = await import('@signalapp/libsignal-client');
-
     const localIdentifier = new TextEncoder().encode(localDevice.id);
     const remoteIdentifier = new TextEncoder().encode(remoteDevice.id);
     const localKey = PublicKey.deserialize(
@@ -45,13 +42,13 @@ export class E2eeSafetyNumberService {
       dto.iterations,
       1, // version
       localIdentifier,
-      localKey,
+      localKey.serialize(),
       remoteIdentifier,
-      remoteKey,
+      remoteKey.serialize(),
     );
 
-    const scannable = fingerprint.scannableFingerprint().toBuffer();
-    const displayable = fingerprint.displayableFingerprint().toString();
+    const scannable = await fingerprint.scannableFingerprint();
+    const displayable = await fingerprint.displayableFingerprint();
 
     // Store verification status
     await this.prisma.e2eeDeviceVerification.upsert({

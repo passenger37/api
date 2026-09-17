@@ -95,6 +95,51 @@ export class SearchIndexRepository {
     });
   }
 
+  async incrementUserSearchCount(
+    contentId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    const client = tx ?? this.prisma;
+    const existing = await client.searchIndex.findUnique({
+      where: { contentType_contentId: { contentType: 'user', contentId } },
+    });
+    if (!existing) return 0;
+
+    const metadata = (existing.metadata ?? {}) as Record<string, any>;
+    const next = (Number(metadata.searchCount) || 0) + 1;
+    await client.searchIndex.update({
+      where: { contentType_contentId: { contentType: 'user', contentId } },
+      data: { metadata: { ...metadata, searchCount: next } },
+    });
+    return next;
+  }
+
+  async getTopSearchedUsers(
+    limit = 10,
+  ): Promise<
+    { contentId: string; username: string; displayName: string; searchCount: number }[]
+  > {
+    const rows = await this.prisma.searchIndex.findMany({
+      where: { contentType: 'user' },
+      orderBy: { createdAt: 'desc' },
+      take: 1000,
+    });
+
+    return rows
+      .map((r) => {
+        const meta = (r.metadata ?? {}) as Record<string, any>;
+        return {
+          contentId: r.contentId,
+          username: meta.username ?? '',
+          displayName: meta.displayName ?? meta.username ?? '',
+          searchCount: Number(meta.searchCount) || 0,
+        };
+      })
+      .filter((u) => u.searchCount > 0)
+      .sort((a, b) => b.searchCount - a.searchCount)
+      .slice(0, limit);
+  }
+
   // Search Queries
   async createQuery(
     data: Prisma.SearchQueryCreateInput,
@@ -158,12 +203,15 @@ export class SearchIndexRepository {
   }
 
   async findAnalytics(
-    engine: string,
+    engine: string | undefined,
     from: Date,
     to: Date,
   ): Promise<SearchAnalytics[]> {
     return this.prisma.searchAnalytics.findMany({
-      where: { engine, date: { gte: from, lte: to } },
+      where: {
+        ...(engine ? { engine } : {}),
+        date: { gte: from, lte: to },
+      },
       orderBy: { date: 'asc' },
     });
   }

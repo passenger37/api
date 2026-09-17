@@ -123,6 +123,7 @@ export class UserMapper {
     isPrivate: boolean;
     isVerified: boolean;
     status: string;
+    roles: { role: { name: string } }[];
     createdAt: Date;
     updatedAt: Date;
   }): MyProfileResponse {
@@ -166,6 +167,8 @@ export class UserMapper {
       isVerified: user.isVerified,
 
       status: user.status,
+
+      roles: user.roles.map((r) => r.role.name),
 
       createdAt: user.createdAt,
 
