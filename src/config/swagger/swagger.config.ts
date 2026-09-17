@@ -33,6 +33,7 @@ export const NEXUS_DOCUMENTATION_TAGS = [
   'Metrics',
   'Load Model',
   'API Versioning',
+  'Bookmarks',
 ] as const;
 
 /**

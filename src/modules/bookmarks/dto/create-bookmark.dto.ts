@@ -1,6 +1,17 @@
 import { IsEnum, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { BookmarkTargetType } from '../types/bookmark.types';
+
+export enum BookmarkTargetType {
+  POST = 'POST',
+  COMMENT = 'COMMENT',
+  MESSAGE = 'MESSAGE',
+  VIDEO = 'VIDEO',
+  REEL = 'REEL',
+  NEWS = 'NEWS',
+  MARKETPLACE_LISTING = 'MARKETPLACE_LISTING',
+  BUSINESS = 'BUSINESS',
+  EVENT = 'EVENT',
+}
 
 export class CreateBookmarkDto {
   @ApiProperty({ enum: BookmarkTargetType, example: BookmarkTargetType.POST })
