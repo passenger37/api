@@ -64,6 +64,18 @@ describe('ChannelMessageRepository', () => {
       take: 2,
       include: {
         attachments: { orderBy: { createdAt: 'asc' } },
+        author: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
       },
     });
   });
@@ -95,6 +107,18 @@ describe('ChannelMessageRepository', () => {
       take: 10,
       include: {
         attachments: { orderBy: { createdAt: 'asc' } },
+        author: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
       },
     });
   });
@@ -123,6 +147,18 @@ describe('ChannelMessageRepository', () => {
       take: 50,
       include: {
         attachments: { orderBy: { createdAt: 'asc' } },
+        author: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
       },
     });
   });

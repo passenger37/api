@@ -31,11 +31,11 @@ describe('ChannelMessageReactionCommandService', () => {
   } as unknown as ChannelMessageCacheService;
 
   const service = new ChannelMessageReactionCommandService(
-    repository as never,
-    messageQueryService as never,
-    validation as never,
-    memberQueryService as never,
-    cache as never,
+    repository,
+    messageQueryService,
+    validation,
+    memberQueryService,
+    cache,
   );
 
   const message = { id: 'msg-1', serverId: 'sv-1', channelId: 'ch-1' };

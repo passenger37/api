@@ -64,7 +64,7 @@ export class AttachmentStorageService {
   // making the signer's Client type structurally incompatible with S3Client
   // at compile time only; at runtime they are compatible.
   private signable(): Parameters<typeof getSignedUrl>[0] {
-    return this.getClient() as unknown as Parameters<typeof getSignedUrl>[0];
+    return this.getClient();
   }
 
   async createPresignedPutUrl(

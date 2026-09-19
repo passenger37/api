@@ -33,7 +33,7 @@ export class OutboxEventRepository {
     // Embed the active trace id into the payload so the async publisher can
     // restore the same trace context for the outbound WebSocket delivery.
     const traceId = this.traceService.getTraceId() ?? '';
-    const payload = (event.payload as Record<string, unknown> ?? {}) as Record<string, unknown>;
+    const payload = (event.payload as Record<string, unknown>) ?? {};
     const tracedPayload = traceId
       ? { ...payload, [OUTBOX_TRACE_KEY]: { traceId } }
       : payload;

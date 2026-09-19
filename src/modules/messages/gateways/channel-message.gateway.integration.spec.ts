@@ -128,7 +128,7 @@ describe('ChannelMessageGateway Integration', () => {
       clientMessageId: 'client-1',
     };
 
-    const result = await gateway.sendMessage(client, request as any);
+    const result = await gateway.sendMessage(client, request);
 
     expect(rateLimitService.consume).toHaveBeenCalledWith({
       key: 'ws:send-message:u1',
@@ -166,7 +166,7 @@ describe('ChannelMessageGateway Integration', () => {
       clientMessageId: 'client-1',
     };
 
-    const result = await gateway.sendMessage(client, request as any);
+    const result = await gateway.sendMessage(client, request);
 
     expect(commandService.createMessage).toHaveBeenCalledWith(
       'ch1',
@@ -342,7 +342,7 @@ describe('ChannelMessageGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'ch1', lastReadMessageId: 'msg2' };
 
-    const result = await gateway.messageRead(client, request as any);
+    const result = await gateway.messageRead(client, request);
 
     expect(rateLimitService.consume).toHaveBeenCalledWith({
       key: 'ws:message-read:u1',
@@ -374,7 +374,7 @@ describe('ChannelMessageGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'ch1' };
 
-    await gateway.messageRead(client, request as any);
+    await gateway.messageRead(client, request);
 
     expect(commandService.markChannelRead).toHaveBeenCalledWith(
       'ch1',
@@ -390,7 +390,7 @@ describe('ChannelMessageGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'ch1', lastReadMessageId: 'msg2' };
 
-    const result = await gateway.messageRead(client, request as any);
+    const result = await gateway.messageRead(client, request);
 
     expect(errorNormalizer.normalize).toHaveBeenCalledWith(
       expect.any(Error),
@@ -403,7 +403,7 @@ describe('ChannelMessageGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'ch1', lastKnownMessageId: 'msg1' };
 
-    const result = await gateway.syncChannel(client, request as any);
+    const result = await gateway.syncChannel(client, request);
 
     expect(rateLimitService.consume).toHaveBeenCalledWith({
       key: 'ws:sync-channel:u1',
@@ -444,7 +444,7 @@ describe('ChannelMessageGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'ch1', lastKnownMessageId: 'msg1' };
 
-    const result = await gateway.syncChannel(client, request as any);
+    const result = await gateway.syncChannel(client, request);
 
     expect(queryService.getMessagesAfterInChannel).not.toHaveBeenCalled();
     expect(errorNormalizer.normalize).toHaveBeenCalled();
@@ -457,7 +457,7 @@ describe('ChannelMessageGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'ch1', lastKnownMessageId: 'missing' };
 
-    const result = await gateway.syncChannel(client, request as any);
+    const result = await gateway.syncChannel(client, request);
 
     expect(errorNormalizer.normalize).toHaveBeenCalledWith(
       expect.any(Error),
@@ -474,7 +474,7 @@ describe('ChannelMessageGateway Integration', () => {
       expectedVersion: 1,
     };
 
-    const result = await gateway.editMessage(client, request as any);
+    const result = await gateway.editMessage(client, request);
 
     expect(commandService.editMessage).toHaveBeenCalledWith(
       'msg1',

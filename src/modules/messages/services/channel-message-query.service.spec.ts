@@ -110,9 +110,9 @@ describe('ChannelMessageQueryService - pagination', () => {
 
   it('should return items with nextCursor and hasMore when more items exist', async () => {
     const messages = [
-      { id: '3', createdAt: new Date() },
-      { id: '2', createdAt: new Date() },
-      { id: '1', createdAt: new Date() },
+      { id: '3', createdAt: new Date(), updatedAt: new Date() },
+      { id: '2', createdAt: new Date(), updatedAt: new Date() },
+      { id: '1', createdAt: new Date(), updatedAt: new Date() },
     ];
     repository.findManyByChannelPaginated.mockResolvedValue(messages as any);
 
@@ -134,8 +134,8 @@ describe('ChannelMessageQueryService - pagination', () => {
 
   it('should return items without nextCursor when no more items', async () => {
     const messages = [
-      { id: '2', createdAt: new Date() },
-      { id: '1', createdAt: new Date() },
+      { id: '2', createdAt: new Date(), updatedAt: new Date() },
+      { id: '1', createdAt: new Date(), updatedAt: new Date() },
     ];
     repository.findManyByChannelPaginated.mockResolvedValue(messages as any);
 

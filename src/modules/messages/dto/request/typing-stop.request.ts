@@ -1,6 +1,6 @@
-import { IsUUID } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class TypingStopRequest {
-  @IsUUID()
+  @IsString()
   channelId!: string;
 }

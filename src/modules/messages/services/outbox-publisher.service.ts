@@ -4,7 +4,10 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { OutboxEventRepository, OUTBOX_TRACE_KEY } from '../repositories/outbox-event.repository';
+import {
+  OutboxEventRepository,
+  OUTBOX_TRACE_KEY,
+} from '../repositories/outbox-event.repository';
 import { ChannelMessageGateway } from '../gateways/channel-message.gateway';
 import { TraceService } from '../../../core/tracing/trace.service';
 
@@ -46,7 +49,7 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
 
       for (const event of events) {
         try {
-          const payload = event.payload as Record<string, unknown> ?? {};
+          const payload = (event.payload as Record<string, unknown>) ?? {};
           const traceBlob = payload[OUTBOX_TRACE_KEY];
           const traceId =
             (traceBlob as { traceId?: string } | undefined)?.traceId ?? '';
@@ -77,7 +80,7 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
     channelId: string | null;
     payload: unknown;
   }) {
-    const payload = (event.payload as Record<string, unknown> ?? {}) as Record<string, unknown>;
+    const payload = (event.payload as Record<string, unknown>) ?? {};
     // Strip the internal trace marker before broadcasting to clients.
     const { [OUTBOX_TRACE_KEY]: _trace, ...publicPayload } = payload;
 

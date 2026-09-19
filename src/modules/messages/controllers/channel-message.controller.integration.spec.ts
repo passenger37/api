@@ -218,7 +218,7 @@ describe('ChannelMessageController Integration - Pagination', () => {
     const response = await controller.searchMessages('srv-1', 'user-1', {
       q: 'hello',
       limit: 10,
-    } as any);
+    });
 
     expect(searchService.search).toHaveBeenCalledWith('srv-1', 'user-1', {
       q: 'hello',

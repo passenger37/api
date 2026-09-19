@@ -140,7 +140,7 @@ describe('PresenceGateway Integration', () => {
 
     const result = await gateway.setPresence(client, {
       status: PresenceStatus.IDLE,
-    } as any);
+    });
 
     expect(rateLimitService.consume).toHaveBeenCalledWith({
       key: 'ws:set-presence:u1',
@@ -180,7 +180,7 @@ describe('PresenceGateway Integration', () => {
 
     const result = await gateway.setPresence(client, {
       status: PresenceStatus.INVISIBLE,
-    } as any);
+    });
 
     expect(client.broadcast.to).not.toHaveBeenCalled();
     expect(result.success).toBe(true);
@@ -189,7 +189,7 @@ describe('PresenceGateway Integration', () => {
   it('should return visible presence via get-presence', async () => {
     const client = { data: { userId: 'u1' } } as any;
 
-    const result = await gateway.getPresence(client, { userId: 'u2' } as any);
+    const result = await gateway.getPresence(client, { userId: 'u2' });
 
     expect(rateLimitService.consume).toHaveBeenCalledWith({
       key: 'ws:get-presence:u1',
@@ -218,7 +218,7 @@ describe('PresenceGateway Integration', () => {
 
     const result = await gateway.setPresence(client, {
       status: PresenceStatus.IDLE,
-    } as any);
+    });
 
     expect(errorNormalizer.normalize).toHaveBeenCalledWith(
       expect.any(Error),

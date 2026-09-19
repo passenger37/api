@@ -213,7 +213,22 @@ describe('ChannelMessageCommandService - mentions', () => {
         tx,
       );
       expect(result).toEqual({
-        message: expect.objectContaining(fullMessage),
+        message: expect.objectContaining({
+          id: 'msg-1',
+          content: 'hello',
+          channelId: 'channel-1',
+          serverId: 'srv-1',
+          authorMemberId: 'member-1',
+          authorUserId: null,
+          author: undefined,
+          attachments: [],
+          clientMessageId: null,
+          messageSeq: 42,
+          isDeleted: false,
+          isEdited: false,
+          isPinned: false,
+          version: 1,
+        }),
         deduplicated: false,
       });
     });
@@ -250,6 +265,21 @@ describe('ChannelMessageCommandService - mentions', () => {
       repository.findByClientMessageId.mockResolvedValue({
         id: 'msg-1',
         content: 'hello',
+        channelId: 'channel-1',
+        serverId: 'srv-1',
+        authorMemberId: 'member-1',
+        parentMessageId: null,
+        isEdited: false,
+        editedAt: null,
+        isDeleted: false,
+        deletedAt: null,
+        isPinned: false,
+        pinnedAt: null,
+        clientMessageId: null,
+        version: 1,
+        messageSeq: 42,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
       });
 
       const result = await service.createMessage(
@@ -266,7 +296,22 @@ describe('ChannelMessageCommandService - mentions', () => {
       );
       expect(repository.create).not.toHaveBeenCalled();
       expect(result).toEqual({
-        message: { id: 'msg-1', content: 'hello' },
+        message: expect.objectContaining({
+          id: 'msg-1',
+          content: 'hello',
+          channelId: 'channel-1',
+          serverId: 'srv-1',
+          authorMemberId: 'member-1',
+          authorUserId: null,
+          author: undefined,
+          attachments: [],
+          clientMessageId: null,
+          messageSeq: 42,
+          isDeleted: false,
+          isEdited: false,
+          isPinned: false,
+          version: 1,
+        }),
         deduplicated: true,
       });
     });
@@ -315,6 +360,22 @@ describe('ChannelMessageCommandService - mentions', () => {
       });
       repository.findByClientMessageId.mockResolvedValue({
         id: 'msg-1',
+        content: 'hello',
+        channelId: 'channel-1',
+        serverId: 'srv-1',
+        authorMemberId: 'member-1',
+        parentMessageId: null,
+        isEdited: false,
+        editedAt: null,
+        isDeleted: false,
+        deletedAt: null,
+        isPinned: false,
+        pinnedAt: null,
+        clientMessageId: null,
+        version: 1,
+        messageSeq: 42,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
       });
       prisma.$transaction.mockImplementation(async () => {
         throw new Prisma.PrismaClientKnownRequestError(
@@ -332,7 +393,22 @@ describe('ChannelMessageCommandService - mentions', () => {
       );
 
       expect(result).toEqual({
-        message: { id: 'msg-1' },
+        message: expect.objectContaining({
+          id: 'msg-1',
+          content: 'hello',
+          channelId: 'channel-1',
+          serverId: 'srv-1',
+          authorMemberId: 'member-1',
+          authorUserId: null,
+          author: undefined,
+          attachments: [],
+          clientMessageId: null,
+          messageSeq: 42,
+          isDeleted: false,
+          isEdited: false,
+          isPinned: false,
+          version: 1,
+        }),
         deduplicated: true,
       });
     });
