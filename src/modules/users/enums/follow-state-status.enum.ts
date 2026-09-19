@@ -1,0 +1,5 @@
+export enum FollowStateStatus {
+  FOLLOWED = 'FOLLOWED',
+  REQUESTED = 'REQUESTED',
+  NOT_FOLLOWING = 'NOT_FOLLOWING',
+}

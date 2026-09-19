@@ -19,8 +19,7 @@ export class CommunitySlugService {
     const fallback = baseSlug || 'community';
 
     for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
-      const candidate =
-        attempt === 0 ? fallback : `${fallback}-${attempt + 1}`;
+      const candidate = attempt === 0 ? fallback : `${fallback}-${attempt + 1}`;
 
       const exists = await this.repository.existsBySlug(candidate);
 

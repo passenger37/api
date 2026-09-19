@@ -18,7 +18,10 @@ export class E2eeKeyTransparencyRepository {
     return this.prisma.e2eeKeyTransparencyEntry.findUnique({ where: { id } });
   }
 
-  async findByUser(userId: string, limit = 50): Promise<E2eeKeyTransparencyEntry[]> {
+  async findByUser(
+    userId: string,
+    limit = 50,
+  ): Promise<E2eeKeyTransparencyEntry[]> {
     return this.prisma.e2eeKeyTransparencyEntry.findMany({
       where: { userId },
       orderBy: { epoch: 'desc' },
@@ -26,7 +29,10 @@ export class E2eeKeyTransparencyRepository {
     });
   }
 
-  async findByDevice(deviceId: string, limit = 50): Promise<E2eeKeyTransparencyEntry[]> {
+  async findByDevice(
+    deviceId: string,
+    limit = 50,
+  ): Promise<E2eeKeyTransparencyEntry[]> {
     return this.prisma.e2eeKeyTransparencyEntry.findMany({
       where: { deviceId },
       orderBy: { epoch: 'desc' },
@@ -34,7 +40,10 @@ export class E2eeKeyTransparencyRepository {
     });
   }
 
-  async findUnverified(userId: string, limit = 50): Promise<E2eeKeyTransparencyEntry[]> {
+  async findUnverified(
+    userId: string,
+    limit = 50,
+  ): Promise<E2eeKeyTransparencyEntry[]> {
     return this.prisma.e2eeKeyTransparencyEntry.findMany({
       where: { userId, verified: false },
       orderBy: { epoch: 'desc' },

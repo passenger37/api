@@ -52,7 +52,11 @@ function readDotEnvUrl(): string | undefined {
 }
 
 export function resolveDbTestBaseUrl(explicit?: string): string {
-  const url = explicit ?? process.env.NEXUS_DB_TEST_URL ?? process.env.DATABASE_URL ?? readDotEnvUrl();
+  const url =
+    explicit ??
+    process.env.NEXUS_DB_TEST_URL ??
+    process.env.DATABASE_URL ??
+    readDotEnvUrl();
   if (!url) {
     throw new Error(
       'Database Integration Tests require a PostgreSQL connection string. ' +
@@ -60,7 +64,9 @@ export function resolveDbTestBaseUrl(explicit?: string): string {
     );
   }
   if (!/^postgres(ql)?:\/\//.test(url)) {
-    throw new Error(`NEXUS_DB_TEST_URL/DATABASE_URL must be a PostgreSQL URL (got: ${url.slice(0, 30)}...).`);
+    throw new Error(
+      `NEXUS_DB_TEST_URL/DATABASE_URL must be a PostgreSQL URL (got: ${url.slice(0, 30)}...).`,
+    );
   }
   return url;
 }
@@ -93,7 +99,10 @@ function withSchema(url: string, schemaName: string): string {
   return `${url}${sep}schema=${encodeURIComponent(schemaName)}`;
 }
 
-async function createSchema(baseUrl: string, schemaName: string): Promise<void> {
+async function createSchema(
+  baseUrl: string,
+  schemaName: string,
+): Promise<void> {
   const bootstrap = new PrismaService({ datasourceUrl: baseUrl });
   try {
     await bootstrap.$executeRawUnsafe(`CREATE SCHEMA "${schemaName}"`);
@@ -105,7 +114,9 @@ async function createSchema(baseUrl: string, schemaName: string): Promise<void> 
 async function dropSchema(baseUrl: string, schemaName: string): Promise<void> {
   const bootstrap = new PrismaService({ datasourceUrl: baseUrl });
   try {
-    await bootstrap.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
+    await bootstrap.$executeRawUnsafe(
+      `DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`,
+    );
   } finally {
     await bootstrap.$disconnect().catch(() => undefined);
   }
@@ -117,7 +128,11 @@ function sleep(ms: number): void {
   while (Date.now() < end) {}
 }
 
-function pushSchema(schemaPath: string, schemaScopedUrl: string, pushTimeoutMs: number): void {
+function pushSchema(
+  schemaPath: string,
+  schemaScopedUrl: string,
+  pushTimeoutMs: number,
+): void {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nexus-db-int-'));
   try {
     const env: NodeJS.ProcessEnv = {
@@ -129,7 +144,14 @@ function pushSchema(schemaPath: string, schemaScopedUrl: string, pushTimeoutMs: 
 
     execFileSync(
       process.execPath,
-      [resolvePrismaCliJs(), 'db', 'push', '--skip-generate', '--schema', schemaPath],
+      [
+        resolvePrismaCliJs(),
+        'db',
+        'push',
+        '--skip-generate',
+        '--schema',
+        schemaPath,
+      ],
       {
         cwd: tmpDir,
         env,

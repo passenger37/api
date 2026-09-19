@@ -122,7 +122,12 @@ export class CommunityController {
     @CurrentUser('id') userId: string,
     @Body() request: UpdateCategoryRequest,
   ) {
-    return this.commandService.updateCategory(slug, categoryId, userId, request);
+    return this.commandService.updateCategory(
+      slug,
+      categoryId,
+      userId,
+      request,
+    );
   }
 
   @Delete(':slug/categories/:categoryId')

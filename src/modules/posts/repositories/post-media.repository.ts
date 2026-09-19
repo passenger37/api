@@ -35,7 +35,8 @@ export class PostMediaRepository {
           width: m.width,
           height: m.height,
           duration: m.duration,
-          fileSize: typeof m.fileSize === 'bigint' ? m.fileSize : BigInt(m.fileSize),
+          fileSize:
+            typeof m.fileSize === 'bigint' ? m.fileSize : BigInt(m.fileSize),
           mimeType: m.mimeType,
           metadata: m.metadata,
           order: m.order,
@@ -86,7 +87,10 @@ export class PostMediaRepository {
     });
   }
 
-  async removeByPost(postId: string, tx?: Prisma.TransactionClient): Promise<number> {
+  async removeByPost(
+    postId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
     const client = tx ?? this.prisma;
     const result = await client.postMedia.deleteMany({ where: { postId } });
     return result.count;

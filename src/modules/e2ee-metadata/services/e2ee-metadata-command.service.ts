@@ -7,8 +7,16 @@ import {
 import { PrismaService } from '../../../core/database/prisma.service';
 import { E2eeMetadataRepository } from '../repositories/e2ee-metadata.repository';
 import { E2eeDeviceRepository } from '../../e2ee-devices/repositories/e2ee-device.repository';
-import { serializeSealedSenderKey, serializePirRequest, serializeMetadataPolicy } from '../serializers/e2ee-metadata.serializer';
-import { CreateSealedSenderKeyDto, CreatePirRequestDto, UpdateMetadataPolicyDto } from '../dto/metadata.request';
+import {
+  serializeSealedSenderKey,
+  serializePirRequest,
+  serializeMetadataPolicy,
+} from '../serializers/e2ee-metadata.serializer';
+import {
+  CreateSealedSenderKeyDto,
+  CreatePirRequestDto,
+  UpdateMetadataPolicyDto,
+} from '../dto/metadata.request';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -25,11 +33,14 @@ export class E2eeMetadataCommandService {
       throw new NotFoundException('Device not found or revoked');
     }
     if (device.userId !== userId) {
-      throw new ForbiddenException('Not authorized to create sealed sender key for this device');
+      throw new ForbiddenException(
+        'Not authorized to create sealed sender key for this device',
+      );
     }
 
     // Deactivate existing keys for this device
-    const existingKeys = await this.metadataRepo.findSealedSenderKeysByUser(userId);
+    const existingKeys =
+      await this.metadataRepo.findSealedSenderKeysByUser(userId);
     for (const key of existingKeys) {
       if (key.deviceId === dto.deviceId) {
         await this.metadataRepo.deactivateSealedSenderKey(key.id);
@@ -56,7 +67,9 @@ export class E2eeMetadataCommandService {
       throw new NotFoundException('Device not found or revoked');
     }
     if (device.userId !== userId) {
-      throw new ForbiddenException('Not authorized to create PIR request for this device');
+      throw new ForbiddenException(
+        'Not authorized to create PIR request for this device',
+      );
     }
 
     const expiresAt = new Date();
@@ -84,7 +97,10 @@ export class E2eeMetadataCommandService {
       throw new BadRequestException('Request expired');
     }
 
-    const updated = await this.metadataRepo.updatePirRequestResponse(requestId, encryptedResponse);
+    const updated = await this.metadataRepo.updatePirRequestResponse(
+      requestId,
+      encryptedResponse,
+    );
     return { success: true, request: serializePirRequest(updated) };
   }
 
@@ -104,7 +120,8 @@ export class E2eeMetadataCommandService {
 
     // Calculate padding to reach next bucket size
     const bucketSize = 256; // 256-byte buckets
-    const targetLength = Math.ceil((plaintextLength + minPadding) / bucketSize) * bucketSize;
+    const targetLength =
+      Math.ceil((plaintextLength + minPadding) / bucketSize) * bucketSize;
     const paddingNeeded = Math.max(0, targetLength - plaintextLength);
 
     // Add random padding within policy limits

@@ -22,7 +22,10 @@ import { CreateCategoryRequest } from '../dto/request/create-category.request';
 import { UpdateCategoryRequest } from '../dto/request/update-category.request';
 import { CategoryResponse, CommunityResponse } from '../dto/response';
 import { CommunityWithCounts } from '../types/community.types';
-import { serializeCategory, serializeCommunity } from '../mappers/community.mapper';
+import {
+  serializeCategory,
+  serializeCommunity,
+} from '../mappers/community.mapper';
 import { CommunityEventPublisher } from '../events/community-event-publisher';
 import { COMMUNITY_REALTIME_EVENTS } from '../realtime/community-realtime.constants';
 
@@ -108,10 +111,7 @@ export class CommunityCommandService {
     // owner is now a community admin, but more importantly the membership
     // lookup we just did is also serving as a side effect for any future
     // permission cache miss.
-    this.serverPermissionService.clearUserCache(
-      request.serverId,
-      ownerId,
-    );
+    this.serverPermissionService.clearUserCache(request.serverId, ownerId);
 
     const withCounts = (await this.repository.findById(community.id))!;
 
@@ -334,9 +334,7 @@ export class CommunityCommandService {
     );
   }
 
-  private async communityBySlug(
-    slug: string,
-  ): Promise<CommunityWithCounts> {
+  private async communityBySlug(slug: string): Promise<CommunityWithCounts> {
     const community = await this.repository.findBySlugWithRelations(slug);
 
     if (!community) {

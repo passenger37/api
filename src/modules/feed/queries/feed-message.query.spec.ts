@@ -7,8 +7,7 @@ interface RawSql {
   values: unknown[];
 }
 
-const raw = (sql: Prisma.Sql): RawSql =>
-  sql as unknown as { text: string; values: unknown[] };
+const raw = (sql: Prisma.Sql): RawSql => sql;
 
 describe('FeedMessageQueryBuilder', () => {
   it('filters to non-deleted non-empty messages in the given channels', () => {

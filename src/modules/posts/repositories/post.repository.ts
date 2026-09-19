@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, Post, PostStatus, PostVisibility, PostContentType, PostType } from '@prisma/client';
+import {
+  Prisma,
+  Post,
+  PostStatus,
+  PostVisibility,
+  PostContentType,
+  PostType,
+} from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
 
@@ -46,10 +53,7 @@ export class PostRepository {
     });
   }
 
-  async findById(
-    id: string,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async findById(id: string, tx?: Prisma.TransactionClient) {
     const client = tx ?? this.prisma;
 
     return client.post.findUnique({
@@ -94,10 +98,7 @@ export class PostRepository {
     });
   }
 
-  async softDelete(
-    id: string,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async softDelete(id: string, tx?: Prisma.TransactionClient) {
     const client = tx ?? this.prisma;
 
     return client.post.update({
@@ -111,10 +112,7 @@ export class PostRepository {
     });
   }
 
-  async restore(
-    id: string,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async restore(id: string, tx?: Prisma.TransactionClient) {
     const client = tx ?? this.prisma;
 
     return client.post.update({
@@ -169,7 +167,10 @@ export class PostRepository {
       visibility?: PostVisibility[];
       status?: PostStatus[];
     },
-  ): Promise<{ items: any[]; nextCursor: { createdAt: Date; id: string } | null }> {
+  ): Promise<{
+    items: any[];
+    nextCursor: { createdAt: Date; id: string } | null;
+  }> {
     const where: Prisma.PostWhereInput = {
       authorId,
       status: { in: options.status ?? [PostStatus.ACTIVE] },
@@ -192,9 +193,13 @@ export class PostRepository {
 
     const hasMore = posts.length > options.limit;
     const items = hasMore ? posts.slice(0, options.limit) : posts;
-    const nextCursor = hasMore && items.length > 0
-      ? { createdAt: items[items.length - 1].createdAt, id: items[items.length - 1].id }
-      : null;
+    const nextCursor =
+      hasMore && items.length > 0
+        ? {
+            createdAt: items[items.length - 1].createdAt,
+            id: items[items.length - 1].id,
+          }
+        : null;
 
     return { items, nextCursor };
   }
@@ -206,11 +211,20 @@ export class PostRepository {
       cursor?: { createdAt: Date; id: string } | null;
       limit: number;
     },
-  ): Promise<{ items: any[]; nextCursor: { createdAt: Date; id: string } | null }> {
+  ): Promise<{
+    items: any[];
+    nextCursor: { createdAt: Date; id: string } | null;
+  }> {
     const where: Prisma.PostWhereInput = {
       authorId: { in: authorIds },
       status: PostStatus.ACTIVE,
-      visibility: { in: [PostVisibility.PUBLIC, PostVisibility.FOLLOWERS, PostVisibility.FRIENDS] },
+      visibility: {
+        in: [
+          PostVisibility.PUBLIC,
+          PostVisibility.FOLLOWERS,
+          PostVisibility.FRIENDS,
+        ],
+      },
       isDeleted: false,
     };
 
@@ -227,21 +241,26 @@ export class PostRepository {
 
     const hasMore = posts.length > options.limit;
     const items = hasMore ? posts.slice(0, options.limit) : posts;
-    const nextCursor = hasMore && items.length > 0
-      ? { createdAt: items[items.length - 1].createdAt, id: items[items.length - 1].id }
-      : null;
+    const nextCursor =
+      hasMore && items.length > 0
+        ? {
+            createdAt: items[items.length - 1].createdAt,
+            id: items[items.length - 1].id,
+          }
+        : null;
 
     return { items, nextCursor };
   }
 
-  async findPublicPosts(
-    options: {
-      cursor?: { createdAt: Date; id: string } | null;
-      limit: number;
-      authorId?: string;
-      tag?: string;
-    },
-  ): Promise<{ items: any[]; nextCursor: { createdAt: Date; id: string } | null }> {
+  async findPublicPosts(options: {
+    cursor?: { createdAt: Date; id: string } | null;
+    limit: number;
+    authorId?: string;
+    tag?: string;
+  }): Promise<{
+    items: any[];
+    nextCursor: { createdAt: Date; id: string } | null;
+  }> {
     const where: Prisma.PostWhereInput = {
       status: PostStatus.ACTIVE,
       visibility: PostVisibility.PUBLIC,
@@ -269,9 +288,13 @@ export class PostRepository {
 
     const hasMore = posts.length > options.limit;
     const items = hasMore ? posts.slice(0, options.limit) : posts;
-    const nextCursor = hasMore && items.length > 0
-      ? { createdAt: items[items.length - 1].createdAt, id: items[items.length - 1].id }
-      : null;
+    const nextCursor =
+      hasMore && items.length > 0
+        ? {
+            createdAt: items[items.length - 1].createdAt,
+            id: items[items.length - 1].id,
+          }
+        : null;
 
     return { items, nextCursor };
   }
@@ -282,7 +305,10 @@ export class PostRepository {
       cursor?: { createdAt: Date; id: string } | null;
       limit: number;
     },
-  ): Promise<{ items: any[]; nextCursor: { createdAt: Date; id: string } | null }> {
+  ): Promise<{
+    items: any[];
+    nextCursor: { createdAt: Date; id: string } | null;
+  }> {
     const where: Prisma.PostWhereInput = {
       originalPostId,
       status: PostStatus.ACTIVE,
@@ -302,9 +328,13 @@ export class PostRepository {
 
     const hasMore = posts.length > options.limit;
     const items = hasMore ? posts.slice(0, options.limit) : posts;
-    const nextCursor = hasMore && items.length > 0
-      ? { createdAt: items[items.length - 1].createdAt, id: items[items.length - 1].id }
-      : null;
+    const nextCursor =
+      hasMore && items.length > 0
+        ? {
+            createdAt: items[items.length - 1].createdAt,
+            id: items[items.length - 1].id,
+          }
+        : null;
 
     return { items, nextCursor };
   }
@@ -315,7 +345,10 @@ export class PostRepository {
       cursor?: { createdAt: Date; id: string } | null;
       limit: number;
     },
-  ): Promise<{ items: any[]; nextCursor: { createdAt: Date; id: string } | null }> {
+  ): Promise<{
+    items: any[];
+    nextCursor: { createdAt: Date; id: string } | null;
+  }> {
     const where: Prisma.PostWhereInput = {
       quotedPostId,
       status: PostStatus.ACTIVE,
@@ -335,9 +368,13 @@ export class PostRepository {
 
     const hasMore = posts.length > options.limit;
     const items = hasMore ? posts.slice(0, options.limit) : posts;
-    const nextCursor = hasMore && items.length > 0
-      ? { createdAt: items[items.length - 1].createdAt, id: items[items.length - 1].id }
-      : null;
+    const nextCursor =
+      hasMore && items.length > 0
+        ? {
+            createdAt: items[items.length - 1].createdAt,
+            id: items[items.length - 1].id,
+          }
+        : null;
 
     return { items, nextCursor };
   }
@@ -364,7 +401,13 @@ export class PostRepository {
       where: {
         authorId: { in: authorIds },
         status: PostStatus.ACTIVE,
-        visibility: { in: [PostVisibility.PUBLIC, PostVisibility.FOLLOWERS, PostVisibility.FRIENDS] },
+        visibility: {
+          in: [
+            PostVisibility.PUBLIC,
+            PostVisibility.FOLLOWERS,
+            PostVisibility.FRIENDS,
+          ],
+        },
         isDeleted: false,
       },
     });

@@ -1,8 +1,15 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { E2eeBackupRepository } from '../repositories/e2ee-backup.repository';
 import { E2eeDeviceRepository } from '../../e2ee-devices/repositories/e2ee-device.repository';
 import { GetBackupsRequest } from '../dto/backup.request';
-import { serializeBackup, serializeBackupList } from '../serializers/e2ee-backup.serializer';
+import {
+  serializeBackup,
+  serializeBackupList,
+} from '../serializers/e2ee-backup.serializer';
 
 @Injectable()
 export class E2eeBackupQueryService {

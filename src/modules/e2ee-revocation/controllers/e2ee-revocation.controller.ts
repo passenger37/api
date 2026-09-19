@@ -12,7 +12,11 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { E2eeRevocationCommandService } from '../services/e2ee-revocation-command.service';
 import { E2eeRevocationQueryService } from '../services/e2ee-revocation-query.service';
-import { RevokeDeviceRequest, AcknowledgeRevocationRequest, GetRevocationsRequest } from '../dto/revocation.request';
+import {
+  RevokeDeviceRequest,
+  AcknowledgeRevocationRequest,
+  GetRevocationsRequest,
+} from '../dto/revocation.request';
 
 @ApiTags('E2EE Revocation')
 @ApiBearerAuth()
@@ -49,7 +53,11 @@ export class E2eeRevocationController {
     @Body('revokedDeviceId') revokedDeviceId: string,
     @Body('replacementDeviceId') replacementDeviceId: string,
   ) {
-    return this.commandService.requestReplacement(userId, revokedDeviceId, replacementDeviceId);
+    return this.commandService.requestReplacement(
+      userId,
+      revokedDeviceId,
+      replacementDeviceId,
+    );
   }
 
   @Get()

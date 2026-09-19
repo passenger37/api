@@ -1,4 +1,8 @@
-import { CommunityPostContentType, CommunityPostVisibility, CommunityPostStatus } from '@prisma/client';
+import {
+  CommunityPostContentType,
+  CommunityPostVisibility,
+  CommunityPostStatus,
+} from '@prisma/client';
 
 export class PostContentTypeVO {
   private readonly value: CommunityPostContentType;
@@ -134,12 +138,18 @@ export class PostStatusVO {
 
   isDeletable(): boolean {
     return (
-      [CommunityPostStatus.ACTIVE, CommunityPostStatus.HIDDEN, CommunityPostStatus.LOCKED] as CommunityPostStatus[]
+      [
+        CommunityPostStatus.ACTIVE,
+        CommunityPostStatus.HIDDEN,
+        CommunityPostStatus.LOCKED,
+      ] as CommunityPostStatus[]
     ).includes(this.value);
   }
 
   isModeratable(): boolean {
-    return !([CommunityPostStatus.DELETED] as CommunityPostStatus[]).includes(this.value);
+    return !([CommunityPostStatus.DELETED] as CommunityPostStatus[]).includes(
+      this.value,
+    );
   }
 
   static fromString(value: string): PostStatusVO {
@@ -155,6 +165,10 @@ export class PostStatusVO {
   }
 
   static getModerationStates(): CommunityPostStatus[] {
-    return [CommunityPostStatus.HIDDEN, CommunityPostStatus.LOCKED, CommunityPostStatus.MODERATION_PENDING];
+    return [
+      CommunityPostStatus.HIDDEN,
+      CommunityPostStatus.LOCKED,
+      CommunityPostStatus.MODERATION_PENDING,
+    ];
   }
 }

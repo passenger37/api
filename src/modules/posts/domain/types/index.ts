@@ -1,1 +1,4 @@
-export type { ShareDestinationType, ShareDestination } from './share-destination.type';
+export type {
+  ShareDestinationType,
+  ShareDestination,
+} from './share-destination.type';

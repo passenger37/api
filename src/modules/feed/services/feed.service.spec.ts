@@ -93,7 +93,7 @@ describe('FeedService', () => {
       const result = await service.getFeed('user-1', {
         filter: FeedFilter.LATEST,
         limit: 25,
-      } as never);
+      });
 
       expect(permissionService.hasPermission).toHaveBeenCalledWith(
         'srv-1',
@@ -166,7 +166,7 @@ describe('FeedService', () => {
       const result = await service.getFeed('user-1', {
         filter: FeedFilter.LATEST,
         limit: 25,
-      } as never);
+      });
 
       expect(result.items).toHaveLength(25);
       expect(result.hasMore).toBe(true);
@@ -200,7 +200,7 @@ describe('FeedService', () => {
       await service.getFeed('user-1', {
         filter: FeedFilter.FOLLOWING,
         limit: 25,
-      } as never);
+      });
 
       expect(repository.findFollowedUserIds).toHaveBeenCalledWith('user-1');
       expect(repository.findFeedPage).toHaveBeenCalledWith({

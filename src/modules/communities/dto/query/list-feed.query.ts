@@ -24,7 +24,10 @@ export class ListFeedQuery {
   @Max(COMMUNITY_FEED_MAX_PAGE_SIZE)
   limit?: number;
 
-  @ApiPropertyOptional({ enum: POST_SORT_OPTIONS, description: 'Feed ordering.' })
+  @ApiPropertyOptional({
+    enum: POST_SORT_OPTIONS,
+    description: 'Feed ordering.',
+  })
   @IsOptional()
   @IsIn(POST_SORT_OPTIONS)
   sort?: (typeof POST_SORT_OPTIONS)[number];

@@ -1,12 +1,42 @@
-import { Post, PostReaction, PostSave, PostReport, User, PostMedia, PostHashtag, PostMention } from '@prisma/client';
+import {
+  Post,
+  PostReaction,
+  PostSave,
+  PostReport,
+  User,
+  PostMedia,
+  PostHashtag,
+  PostMention,
+} from '@prisma/client';
 import { ReactionType } from '@prisma/client';
 
-import { PostDetailResponse, PostListResponse, ViewerStateDto, ReactionCountsDto, PostAuthorDto, PostMediaDto, PostHashtagDto, PostMentionDto, ReactionDto, BookmarkDto } from '../dto/response/post.response';
+import {
+  PostDetailResponse,
+  PostListResponse,
+  ViewerStateDto,
+  ReactionCountsDto,
+  PostAuthorDto,
+  PostMediaDto,
+  PostHashtagDto,
+  PostMentionDto,
+  ReactionDto,
+  BookmarkDto,
+} from '../dto/response/post.response';
 
-import { PostDetailViewData, PostListViewData } from '../types/post-response.types';
+import {
+  PostDetailViewData,
+  PostListViewData,
+} from '../types/post-response.types';
 
 const EMPTY_REACTION_COUNTS: ReactionCountsDto = {
-  LIKE: 0, LOVE: 0, HAHA: 0, WOW: 0, SAD: 0, ANGRY: 0, FIRE: 0, CELEBRATE: 0,
+  LIKE: 0,
+  LOVE: 0,
+  HAHA: 0,
+  WOW: 0,
+  SAD: 0,
+  ANGRY: 0,
+  FIRE: 0,
+  CELEBRATE: 0,
   total: 0,
 };
 
@@ -43,18 +73,38 @@ export class PostMapper {
     };
   }
 
-  static toMentionDto(mention: PostMention & { mentionedUser?: User }): PostMentionDto {
+  static toMentionDto(
+    mention: PostMention & { mentionedUser?: User },
+  ): PostMentionDto {
     return {
       id: mention.id,
       mentionedUserId: mention.mentionedUserId,
       position: mention.position,
       length: mention.length,
-      mentionedUser: mention.mentionedUser ? this.toAuthorDto(mention.mentionedUser) : { id: mention.mentionedUserId, username: '', displayName: '', isVerified: false },
+      mentionedUser: mention.mentionedUser
+        ? this.toAuthorDto(mention.mentionedUser)
+        : {
+            id: mention.mentionedUserId,
+            username: '',
+            displayName: '',
+            isVerified: false,
+          },
     };
   }
 
-  static toReactionCounts(reactions: Record<ReactionType, number>): ReactionCountsDto {
-    const types: ReactionType[] = ['LIKE', 'LOVE', 'HAHA', 'WOW', 'SAD', 'ANGRY', 'FIRE', 'CELEBRATE'];
+  static toReactionCounts(
+    reactions: Record<ReactionType, number>,
+  ): ReactionCountsDto {
+    const types: ReactionType[] = [
+      'LIKE',
+      'LOVE',
+      'HAHA',
+      'WOW',
+      'SAD',
+      'ANGRY',
+      'FIRE',
+      'CELEBRATE',
+    ];
     const result: ReactionCountsDto = {
       LIKE: 0,
       LOVE: 0,
@@ -75,11 +125,14 @@ export class PostMapper {
     return result;
   }
 
-  static toDetailResponse(post: any, viewData: PostDetailViewData): PostDetailResponse {
+  static toDetailResponse(
+    post: any,
+    viewData: PostDetailViewData,
+  ): PostDetailResponse {
     return {
       id: post.id,
       authorId: post.authorId,
-      type: post.type as any,
+      type: post.type,
       content: post.content ?? undefined,
       contentType: post.contentType,
       visibility: post.visibility,
@@ -98,50 +151,54 @@ export class PostMapper {
       editedAt: post.editedAt ?? undefined,
       deletedAt: post.deletedAt ?? undefined,
       author: this.toAuthorDto(post.User),
-      originalPost: post.originalPost ? {
-        id: post.originalPost.id,
-        authorId: post.originalPost.authorId,
-        type: post.originalPost.type as any,
-        content: post.originalPost.content ?? undefined,
-        contentType: post.originalPost.contentType,
-        visibility: post.originalPost.visibility,
-        status: post.originalPost.status,
-        reactionCount: post.originalPost.reactionCount,
-        reactionCounts: EMPTY_REACTION_COUNTS,
-        commentCount: post.originalPost.commentCount,
-        repostCount: post.originalPost.repostCount,
-        viewCount: post.originalPost.viewCount,
-        isSensitive: post.originalPost.isSensitive,
-        createdAt: post.originalPost.createdAt,
-        updatedAt: post.originalPost.updatedAt,
-        author: this.toAuthorDto(post.originalPost.User),
-        media: [],
-        hashtags: [],
-        mentions: [],
-        viewer: { isBookmarked: false, canEdit: false, canDelete: false },
-      } : undefined,
-      quotedPost: post.quotedPost ? {
-        id: post.quotedPost.id,
-        authorId: post.quotedPost.authorId,
-        type: post.quotedPost.type as any,
-        content: post.quotedPost.content ?? undefined,
-        contentType: post.quotedPost.contentType,
-        visibility: post.quotedPost.visibility,
-        status: post.quotedPost.status,
-        reactionCount: post.quotedPost.reactionCount,
-        reactionCounts: EMPTY_REACTION_COUNTS,
-        commentCount: post.quotedPost.commentCount,
-        repostCount: post.quotedPost.repostCount,
-        viewCount: post.quotedPost.viewCount,
-        isSensitive: post.quotedPost.isSensitive,
-        createdAt: post.quotedPost.createdAt,
-        updatedAt: post.quotedPost.updatedAt,
-        author: this.toAuthorDto(post.quotedPost.User),
-        media: [],
-        hashtags: [],
-        mentions: [],
-        viewer: { isBookmarked: false, canEdit: false, canDelete: false },
-      } : undefined,
+      originalPost: post.originalPost
+        ? {
+            id: post.originalPost.id,
+            authorId: post.originalPost.authorId,
+            type: post.originalPost.type,
+            content: post.originalPost.content ?? undefined,
+            contentType: post.originalPost.contentType,
+            visibility: post.originalPost.visibility,
+            status: post.originalPost.status,
+            reactionCount: post.originalPost.reactionCount,
+            reactionCounts: EMPTY_REACTION_COUNTS,
+            commentCount: post.originalPost.commentCount,
+            repostCount: post.originalPost.repostCount,
+            viewCount: post.originalPost.viewCount,
+            isSensitive: post.originalPost.isSensitive,
+            createdAt: post.originalPost.createdAt,
+            updatedAt: post.originalPost.updatedAt,
+            author: this.toAuthorDto(post.originalPost.User),
+            media: [],
+            hashtags: [],
+            mentions: [],
+            viewer: { isBookmarked: false, canEdit: false, canDelete: false },
+          }
+        : undefined,
+      quotedPost: post.quotedPost
+        ? {
+            id: post.quotedPost.id,
+            authorId: post.quotedPost.authorId,
+            type: post.quotedPost.type,
+            content: post.quotedPost.content ?? undefined,
+            contentType: post.quotedPost.contentType,
+            visibility: post.quotedPost.visibility,
+            status: post.quotedPost.status,
+            reactionCount: post.quotedPost.reactionCount,
+            reactionCounts: EMPTY_REACTION_COUNTS,
+            commentCount: post.quotedPost.commentCount,
+            repostCount: post.quotedPost.repostCount,
+            viewCount: post.quotedPost.viewCount,
+            isSensitive: post.quotedPost.isSensitive,
+            createdAt: post.quotedPost.createdAt,
+            updatedAt: post.quotedPost.updatedAt,
+            author: this.toAuthorDto(post.quotedPost.User),
+            media: [],
+            hashtags: [],
+            mentions: [],
+            viewer: { isBookmarked: false, canEdit: false, canDelete: false },
+          }
+        : undefined,
       media: post.media?.map(this.toMediaDto) ?? [],
       hashtags: post.hashtags?.map(this.toHashtagDto) ?? [],
       mentions: post.mentions?.map(this.toMentionDto) ?? [],
@@ -150,11 +207,14 @@ export class PostMapper {
     };
   }
 
-  static toListResponse(post: any, viewData: PostListViewData): PostListResponse {
+  static toListResponse(
+    post: any,
+    viewData: PostListViewData,
+  ): PostListResponse {
     return {
       id: post.id,
       authorId: post.authorId,
-      type: post.type as any,
+      type: post.type,
       content: post.content ?? undefined,
       contentType: post.contentType,
       visibility: post.visibility,
@@ -170,48 +230,52 @@ export class PostMapper {
       updatedAt: post.updatedAt,
       editedAt: post.editedAt ?? undefined,
       author: this.toAuthorDto(post.User),
-      originalPost: post.originalPost ? {
-        id: post.originalPost.id,
-        authorId: post.originalPost.authorId,
-        type: post.originalPost.type as any,
-        content: post.originalPost.content ?? undefined,
-        contentType: post.originalPost.contentType,
-        visibility: post.originalPost.visibility,
-        status: post.originalPost.status,
-        reactionCount: post.originalPost.reactionCount,
-        commentCount: post.originalPost.commentCount,
-        repostCount: post.originalPost.repostCount,
-        viewCount: post.originalPost.viewCount,
-        isSensitive: post.originalPost.isSensitive,
-        createdAt: post.originalPost.createdAt,
-        updatedAt: post.originalPost.updatedAt,
-        author: this.toAuthorDto(post.originalPost.User),
-        media: [],
-        hashtags: [],
-        mentions: [],
-        viewer: { isBookmarked: false, canEdit: false, canDelete: false },
-      } : undefined,
-      quotedPost: post.quotedPost ? {
-        id: post.quotedPost.id,
-        authorId: post.quotedPost.authorId,
-        type: post.quotedPost.type as any,
-        content: post.quotedPost.content ?? undefined,
-        contentType: post.quotedPost.contentType,
-        visibility: post.quotedPost.visibility,
-        status: post.quotedPost.status,
-        reactionCount: post.quotedPost.reactionCount,
-        commentCount: post.quotedPost.commentCount,
-        repostCount: post.quotedPost.repostCount,
-        viewCount: post.quotedPost.viewCount,
-        isSensitive: post.quotedPost.isSensitive,
-        createdAt: post.quotedPost.createdAt,
-        updatedAt: post.quotedPost.updatedAt,
-        author: this.toAuthorDto(post.quotedPost.User),
-        media: [],
-        hashtags: [],
-mentions: [],
-        viewer: { isBookmarked: false, canEdit: false, canDelete: false },
-      } : undefined,
+      originalPost: post.originalPost
+        ? {
+            id: post.originalPost.id,
+            authorId: post.originalPost.authorId,
+            type: post.originalPost.type,
+            content: post.originalPost.content ?? undefined,
+            contentType: post.originalPost.contentType,
+            visibility: post.originalPost.visibility,
+            status: post.originalPost.status,
+            reactionCount: post.originalPost.reactionCount,
+            commentCount: post.originalPost.commentCount,
+            repostCount: post.originalPost.repostCount,
+            viewCount: post.originalPost.viewCount,
+            isSensitive: post.originalPost.isSensitive,
+            createdAt: post.originalPost.createdAt,
+            updatedAt: post.originalPost.updatedAt,
+            author: this.toAuthorDto(post.originalPost.User),
+            media: [],
+            hashtags: [],
+            mentions: [],
+            viewer: { isBookmarked: false, canEdit: false, canDelete: false },
+          }
+        : undefined,
+      quotedPost: post.quotedPost
+        ? {
+            id: post.quotedPost.id,
+            authorId: post.quotedPost.authorId,
+            type: post.quotedPost.type,
+            content: post.quotedPost.content ?? undefined,
+            contentType: post.quotedPost.contentType,
+            visibility: post.quotedPost.visibility,
+            status: post.quotedPost.status,
+            reactionCount: post.quotedPost.reactionCount,
+            commentCount: post.quotedPost.commentCount,
+            repostCount: post.quotedPost.repostCount,
+            viewCount: post.quotedPost.viewCount,
+            isSensitive: post.quotedPost.isSensitive,
+            createdAt: post.quotedPost.createdAt,
+            updatedAt: post.quotedPost.updatedAt,
+            author: this.toAuthorDto(post.quotedPost.User),
+            media: [],
+            hashtags: [],
+            mentions: [],
+            viewer: { isBookmarked: false, canEdit: false, canDelete: false },
+          }
+        : undefined,
       media: post.media?.map(this.toMediaDto) ?? [],
       hashtags: post.hashtags?.map(this.toHashtagDto) ?? [],
       mentions: post.mentions?.map(this.toMentionDto) ?? [],
@@ -226,7 +290,14 @@ mentions: [],
       userId: reaction.userId,
       type: reaction.type,
       createdAt: reaction.createdAt,
-      user: reaction.user ? this.toAuthorDto(reaction.user) : { id: reaction.userId, username: '', displayName: '', isVerified: false },
+      user: reaction.user
+        ? this.toAuthorDto(reaction.user)
+        : {
+            id: reaction.userId,
+            username: '',
+            displayName: '',
+            isVerified: false,
+          },
     };
   }
 
@@ -236,18 +307,44 @@ mentions: [],
       postId: bookmark.postId,
       userId: bookmark.userId,
       createdAt: bookmark.createdAt,
-      post: bookmark.post ? {
-        ...bookmark.post,
-        hashtags: bookmark.post.hashtags?.map(this.toHashtagDto) ?? [],
-        mentions: bookmark.post.mentions?.map(this.toMentionDto) ?? [],
-        viewer: {
-          viewerReaction: null,
-          isBookmarked: true,
-          reactionCounts: EMPTY_REACTION_COUNTS,
-          canEdit: false,
-          canDelete: false,
-        },
-      } : { id: '', authorId: '', type: 'POST', contentType: 'TEXT', visibility: 'PUBLIC', status: 'ACTIVE', reactionCount: 0, commentCount: 0, repostCount: 0, viewCount: 0, isSensitive: false, createdAt: new Date(), updatedAt: new Date(), author: { id: '', username: '', displayName: '', isVerified: false }, media: [], hashtags: [], mentions: [], viewer: { isBookmarked: false, canEdit: false, canDelete: false } },
+      post: bookmark.post
+        ? {
+            ...bookmark.post,
+            hashtags: bookmark.post.hashtags?.map(this.toHashtagDto) ?? [],
+            mentions: bookmark.post.mentions?.map(this.toMentionDto) ?? [],
+            viewer: {
+              viewerReaction: null,
+              isBookmarked: true,
+              reactionCounts: EMPTY_REACTION_COUNTS,
+              canEdit: false,
+              canDelete: false,
+            },
+          }
+        : {
+            id: '',
+            authorId: '',
+            type: 'POST',
+            contentType: 'TEXT',
+            visibility: 'PUBLIC',
+            status: 'ACTIVE',
+            reactionCount: 0,
+            commentCount: 0,
+            repostCount: 0,
+            viewCount: 0,
+            isSensitive: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            author: {
+              id: '',
+              username: '',
+              displayName: '',
+              isVerified: false,
+            },
+            media: [],
+            hashtags: [],
+            mentions: [],
+            viewer: { isBookmarked: false, canEdit: false, canDelete: false },
+          },
     };
   }
 }

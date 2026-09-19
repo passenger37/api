@@ -33,7 +33,9 @@ export class CommunityModeratorRepository {
   ): Promise<void> {
     const client = tx ?? this.prisma;
 
-    await client.communityModerator.deleteMany({ where: { communityId, userId } });
+    await client.communityModerator.deleteMany({
+      where: { communityId, userId },
+    });
   }
 
   async find(

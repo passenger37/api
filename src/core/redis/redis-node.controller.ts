@@ -10,7 +10,9 @@ export class RedisNodeController {
 
   @Public()
   @Get()
-  @ApiOperation({ summary: 'Live API instance registry (multi-instance scaling view)' })
+  @ApiOperation({
+    summary: 'Live API instance registry (multi-instance scaling view)',
+  })
   async list() {
     return {
       instanceId: this.nodeRegistry.instanceId(),

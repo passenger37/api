@@ -1,5 +1,8 @@
 import { RealtimeGateway } from './realtime.gateway';
-import { RealtimePresenceStatus, RealtimePresencePrivacy } from '../types/realtime.types';
+import {
+  RealtimePresenceStatus,
+  RealtimePresencePrivacy,
+} from '../types/realtime.types';
 
 describe('RealtimeGateway Integration', () => {
   let gateway: RealtimeGateway;
@@ -48,8 +51,12 @@ describe('RealtimeGateway Integration', () => {
       canViewerSeePresence: jest.fn().mockResolvedValue(true),
     };
     typingService = {
-      startTyping: jest.fn().mockResolvedValue({ channelId: 'c1', userId: 'u1' }),
-      stopTyping: jest.fn().mockResolvedValue({ channelId: 'c1', userId: 'u1' }),
+      startTyping: jest
+        .fn()
+        .mockResolvedValue({ channelId: 'c1', userId: 'u1' }),
+      stopTyping: jest
+        .fn()
+        .mockResolvedValue({ channelId: 'c1', userId: 'u1' }),
     };
     accessService = {
       validateChannelAccess: jest.fn().mockResolvedValue({
@@ -58,8 +65,13 @@ describe('RealtimeGateway Integration', () => {
         username: 'testuser',
       }),
     };
-    bridge = { registerHandler: jest.fn(), publish: jest.fn().mockResolvedValue(undefined) };
-    connectionAuth = { authenticate: jest.fn().mockResolvedValue({ userId: 'u1' }) };
+    bridge = {
+      registerHandler: jest.fn(),
+      publish: jest.fn().mockResolvedValue(undefined),
+    };
+    connectionAuth = {
+      authenticate: jest.fn().mockResolvedValue({ userId: 'u1' }),
+    };
     connectionLimit = {
       acquire: jest.fn().mockResolvedValue(true),
       release: jest.fn().mockResolvedValue(undefined),
@@ -83,7 +95,7 @@ describe('RealtimeGateway Integration', () => {
       bridge,
       connectionAuth,
       connectionLimit,
-      commentAuthorizationService as any,
+      commentAuthorizationService,
     );
 
     // @ts-ignore
@@ -94,7 +106,13 @@ describe('RealtimeGateway Integration', () => {
   });
 
   it('should connect authenticated user, attach session, join rooms, publish online', async () => {
-    const client = { disconnect: jest.fn(), emit: jest.fn(), join: jest.fn(), data: {}, id: 's1' } as any;
+    const client = {
+      disconnect: jest.fn(),
+      emit: jest.fn(),
+      join: jest.fn(),
+      data: {},
+      id: 's1',
+    } as any;
 
     await gateway.handleConnection(client);
 
@@ -103,10 +121,12 @@ describe('RealtimeGateway Integration', () => {
     expect(presenceService.attachSession).toHaveBeenCalledWith('u1', 's1');
     expect(client.join).toHaveBeenCalledWith('rt:user:u1');
     expect(client.join).toHaveBeenCalledWith('realtime');
-    expect(bridge.publish).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'presence:online',
-      presence: expect.objectContaining({ userId: 'u1' }),
-    }));
+    expect(bridge.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'presence:online',
+        presence: expect.objectContaining({ userId: 'u1' }),
+      }),
+    );
   });
 
   it('should reject unauthenticated connection', async () => {
@@ -126,7 +146,10 @@ describe('RealtimeGateway Integration', () => {
     await gateway.handleConnection(client);
 
     expect(client.disconnect).toHaveBeenCalledWith(true);
-    expect(client.emit).toHaveBeenCalledWith('error', expect.objectContaining({ statusCode: 429 }));
+    expect(client.emit).toHaveBeenCalledWith(
+      'error',
+      expect.objectContaining({ statusCode: 429 }),
+    );
   });
 
   it('should release connection slot on disconnect and publish offline', async () => {
@@ -136,9 +159,11 @@ describe('RealtimeGateway Integration', () => {
 
     expect(connectionLimit.release).toHaveBeenCalledWith('u1');
     expect(presenceService.detachSession).toHaveBeenCalledWith('u1', 's1');
-    expect(bridge.publish).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'presence:offline',
-    }));
+    expect(bridge.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'presence:offline',
+      }),
+    );
   });
 
   it('should handle heartbeat and return presence', async () => {
@@ -158,19 +183,28 @@ describe('RealtimeGateway Integration', () => {
 
   it('should set presence and publish update', async () => {
     const client = { data: { userId: 'u1' } } as any;
-    const request = { status: RealtimePresenceStatus.DND, privacy: RealtimePresencePrivacy.EVERYONE };
+    const request = {
+      status: RealtimePresenceStatus.DND,
+      privacy: RealtimePresencePrivacy.EVERYONE,
+    };
 
-    const result = await gateway.setPresence(client, request as any);
+    const result = await gateway.setPresence(client, request);
 
     expect(rateLimit.consume).toHaveBeenCalledWith({
       key: 'ws:presence-set:u1',
       limit: 10,
       windowSeconds: 10,
     });
-    expect(presenceService.setStatus).toHaveBeenCalledWith('u1', RealtimePresenceStatus.DND, RealtimePresencePrivacy.EVERYONE);
-    expect(bridge.publish).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'presence:update',
-    }));
+    expect(presenceService.setStatus).toHaveBeenCalledWith(
+      'u1',
+      RealtimePresenceStatus.DND,
+      RealtimePresencePrivacy.EVERYONE,
+    );
+    expect(bridge.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'presence:update',
+      }),
+    );
     expect(result.success).toBe(true);
   });
 
@@ -178,7 +212,7 @@ describe('RealtimeGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { userId: 'u2' };
 
-    const result = await gateway.getPresence(client, request as any);
+    const result = await gateway.getPresence(client, request);
 
     expect(presenceService.getVisibleStatus).toHaveBeenCalledWith('u2');
     expect(result.success).toBe(true);
@@ -189,9 +223,12 @@ describe('RealtimeGateway Integration', () => {
     const client = { data: { userId: 'u1' }, join: jest.fn() } as any;
     const request = { userId: 'u2' };
 
-    const result = await gateway.subscribePresence(client, request as any);
+    const result = await gateway.subscribePresence(client, request);
 
-    expect(presenceService.canViewerSeePresence).toHaveBeenCalledWith('u2', 'u1');
+    expect(presenceService.canViewerSeePresence).toHaveBeenCalledWith(
+      'u2',
+      'u1',
+    );
     expect(client.join).toHaveBeenCalledWith('rt:user:u2');
     expect(result.success).toBe(true);
   });
@@ -201,7 +238,7 @@ describe('RealtimeGateway Integration', () => {
     const client = { data: { userId: 'u1' }, join: jest.fn() } as any;
     const request = { userId: 'u2' };
 
-    const result = await gateway.subscribePresence(client, request as any);
+    const result = await gateway.subscribePresence(client, request);
 
     expect(errorNormalizer.normalize).toHaveBeenCalled();
     expect(result).toEqual({ error: true });
@@ -211,7 +248,7 @@ describe('RealtimeGateway Integration', () => {
     const client = { data: { userId: 'u1' }, leave: jest.fn() } as any;
     const request = { userId: 'u2' };
 
-    const result = await gateway.unsubscribePresence(client, request as any);
+    const result = await gateway.unsubscribePresence(client, request);
 
     expect(client.leave).toHaveBeenCalledWith('rt:user:u2');
     expect(result.success).toBe(true);
@@ -221,9 +258,12 @@ describe('RealtimeGateway Integration', () => {
     const client = { data: { userId: 'u1' }, join: jest.fn() } as any;
     const request = { channelId: 'c1' };
 
-    const result = await gateway.joinChannel(client, request as any);
+    const result = await gateway.joinChannel(client, request);
 
-    expect(accessService.validateChannelAccess).toHaveBeenCalledWith('c1', 'u1');
+    expect(accessService.validateChannelAccess).toHaveBeenCalledWith(
+      'c1',
+      'u1',
+    );
     expect(client.join).toHaveBeenCalledWith('rt:channel:c1');
     expect(result.success).toBe(true);
   });
@@ -232,7 +272,7 @@ describe('RealtimeGateway Integration', () => {
     const client = { data: { userId: 'u1' }, leave: jest.fn() } as any;
     const request = { channelId: 'c1' };
 
-    const result = await gateway.leaveChannel(client, request as any);
+    const result = await gateway.leaveChannel(client, request);
 
     expect(client.leave).toHaveBeenCalledWith('rt:channel:c1');
     expect(result.success).toBe(true);
@@ -242,9 +282,11 @@ describe('RealtimeGateway Integration', () => {
     const client = { data: { userId: 'u1' }, join: jest.fn() } as any;
     const request = { postId: 'p1' };
 
-    const result = await gateway.joinPost(client, request as any);
+    const result = await gateway.joinPost(client, request);
 
-    expect(commentAuthorizationService.resolvePostType).toHaveBeenCalledWith('p1');
+    expect(commentAuthorizationService.resolvePostType).toHaveBeenCalledWith(
+      'p1',
+    );
     expect(commentAuthorizationService.assertCanAccessPost).toHaveBeenCalled();
     expect(client.join).toHaveBeenCalledWith('rt:post:p1');
     expect(result.success).toBe(true);
@@ -254,7 +296,7 @@ describe('RealtimeGateway Integration', () => {
     const client = { data: { userId: 'u1' }, leave: jest.fn() } as any;
     const request = { postId: 'p1' };
 
-    const result = await gateway.leavePost(client, request as any);
+    const result = await gateway.leavePost(client, request);
 
     expect(client.leave).toHaveBeenCalledWith('rt:post:p1');
     expect(result.success).toBe(true);
@@ -264,16 +306,21 @@ describe('RealtimeGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'c1' };
 
-    const result = await gateway.typingStart(client, request as any);
+    const result = await gateway.typingStart(client, request);
 
-    expect(accessService.validateChannelAccess).toHaveBeenCalledWith('c1', 'u1');
+    expect(accessService.validateChannelAccess).toHaveBeenCalledWith(
+      'c1',
+      'u1',
+    );
     expect(typingService.startTyping).toHaveBeenCalledWith('c1', 'u1');
-    expect(bridge.publish).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'typing:start',
-      channelId: 'c1',
-      userId: 'u1',
-      username: 'testuser',
-    }));
+    expect(bridge.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'typing:start',
+        channelId: 'c1',
+        userId: 'u1',
+        username: 'testuser',
+      }),
+    );
     expect(result.success).toBe(true);
   });
 
@@ -281,15 +328,20 @@ describe('RealtimeGateway Integration', () => {
     const client = { data: { userId: 'u1' } } as any;
     const request = { channelId: 'c1' };
 
-    const result = await gateway.typingStop(client, request as any);
+    const result = await gateway.typingStop(client, request);
 
-    expect(accessService.validateChannelAccess).toHaveBeenCalledWith('c1', 'u1');
+    expect(accessService.validateChannelAccess).toHaveBeenCalledWith(
+      'c1',
+      'u1',
+    );
     expect(typingService.stopTyping).toHaveBeenCalledWith('c1', 'u1');
-    expect(bridge.publish).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'typing:stop',
-      channelId: 'c1',
-      userId: 'u1',
-    }));
+    expect(bridge.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'typing:stop',
+        channelId: 'c1',
+        userId: 'u1',
+      }),
+    );
     expect(result.success).toBe(true);
   });
 
@@ -299,7 +351,10 @@ describe('RealtimeGateway Integration', () => {
 
     const result = await gateway.heartbeat(client);
 
-    expect(errorNormalizer.normalize).toHaveBeenCalledWith(expect.any(Error), 'heartbeat');
+    expect(errorNormalizer.normalize).toHaveBeenCalledWith(
+      expect.any(Error),
+      'heartbeat',
+    );
     expect(result).toEqual({ error: true });
   });
 
@@ -307,13 +362,21 @@ describe('RealtimeGateway Integration', () => {
     mockServer.to.mockClear();
     mockServer.emit.mockClear();
 
-    const presence = { userId: 'u1', status: RealtimePresenceStatus.ONLINE, lastSeen: 1000, sessionCount: 1 };
+    const presence = {
+      userId: 'u1',
+      status: RealtimePresenceStatus.ONLINE,
+      lastSeen: 1000,
+      sessionCount: 1,
+    };
 
     const handler = bridge.registerHandler.mock.calls[0][0];
     handler({ type: 'presence:online', presence });
 
     expect(mockServer.to).toHaveBeenCalledWith('rt:user:u1');
-    expect(mockServer.emit).toHaveBeenCalledWith('presence:online', expect.any(Object));
+    expect(mockServer.emit).toHaveBeenCalledWith(
+      'presence:online',
+      expect.any(Object),
+    );
     expect(mockServer.to).toHaveBeenCalledWith('realtime');
   });
 
@@ -321,7 +384,12 @@ describe('RealtimeGateway Integration', () => {
     mockServer.to.mockClear();
     mockServer.emit.mockClear();
 
-    const presence = { userId: 'u1', status: RealtimePresenceStatus.INVISIBLE, lastSeen: 1000, sessionCount: 1 };
+    const presence = {
+      userId: 'u1',
+      status: RealtimePresenceStatus.INVISIBLE,
+      lastSeen: 1000,
+      sessionCount: 1,
+    };
 
     const handler = bridge.registerHandler.mock.calls[0][0];
     handler({ type: 'presence:update', presence });
@@ -335,10 +403,18 @@ describe('RealtimeGateway Integration', () => {
     mockServer.emit.mockClear();
 
     const handler = bridge.registerHandler.mock.calls[0][0];
-    handler({ type: 'typing:start', channelId: 'c1', userId: 'u1', username: 'test' });
+    handler({
+      type: 'typing:start',
+      channelId: 'c1',
+      userId: 'u1',
+      username: 'test',
+    });
 
     expect(mockServer.to).toHaveBeenCalledWith('rt:channel:c1');
-    expect(mockServer.emit).toHaveBeenCalledWith('typing:start', expect.any(Object));
+    expect(mockServer.emit).toHaveBeenCalledWith(
+      'typing:start',
+      expect.any(Object),
+    );
   });
 
   it('should forward comment events to the post room', () => {
@@ -355,6 +431,9 @@ describe('RealtimeGateway Integration', () => {
     });
 
     expect(mockServer.to).toHaveBeenCalledWith('rt:post:p1');
-    expect(mockServer.emit).toHaveBeenCalledWith('comment:created', expect.any(Object));
+    expect(mockServer.emit).toHaveBeenCalledWith(
+      'comment:created',
+      expect.any(Object),
+    );
   });
 });

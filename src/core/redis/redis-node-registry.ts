@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { hostname } from 'os';
 import { randomUUID } from 'crypto';
 import { RedisService } from './redis.service';
@@ -15,7 +20,9 @@ export interface RegisteredNode {
 const DEFAULT_HEARTBEAT_TTL_SEC = 30;
 
 /** Heartbeat TTL for a registered API node (seconds). */
-export function nodeHeartbeatTtlSec(env: NodeJS.ProcessEnv = process.env): number {
+export function nodeHeartbeatTtlSec(
+  env: NodeJS.ProcessEnv = process.env,
+): number {
   const raw = Number(env.NODE_HEARTBEAT_TTL_SEC);
   if (Number.isFinite(raw) && raw > 0) return raw;
   return DEFAULT_HEARTBEAT_TTL_SEC;
@@ -55,7 +62,10 @@ export class RedisNodeRegistry implements OnModuleInit, OnModuleDestroy {
     const intervalMs = Math.max(1, Math.floor((this.ttlSec * 1000) / 3));
     this.timer = setInterval(() => {
       void this.renew().catch((err) => {
-        this.logger.error('Node heartbeat renewal failed', { err, nodeId: this.nodeId });
+        this.logger.error('Node heartbeat renewal failed', {
+          err,
+          nodeId: this.nodeId,
+        });
       });
     }, intervalMs);
     // Do not keep the event loop alive purely for heartbeats.

@@ -46,7 +46,8 @@ export const API_VERSION_REGISTRY: readonly ApiVersionEntry[] = [
   {
     major: 1,
     introducedBy: '40.00',
-    summary: 'Legacy REST/WS surface; preserved verbatim as the pre-40.84 contract.',
+    summary:
+      'Legacy REST/WS surface; preserved verbatim as the pre-40.84 contract.',
     deprecated: true,
     successor: [2],
     sunset: futureIso(SUNSET_DEFAULT_DAYS, INTRODUCED_AT),

@@ -22,10 +22,7 @@ import { PrismaService } from '../../core/database/prisma.service';
 import { BackgroundJobsRepository } from '../../modules/jobs/repositories/jobs.repository';
 import { JobsQueueService } from '../../modules/jobs/queues/jobs-queue.service';
 import { JobsService } from '../../modules/jobs/services/jobs.service';
-import {
-  createDbTestHarness,
-  DbTestContext,
-} from '../db/db-test.harness';
+import { createDbTestHarness, DbTestContext } from '../db/db-test.harness';
 
 describe('Failure Injection: queue failure (40.90)', () => {
   let ctx: DbTestContext;

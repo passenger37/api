@@ -51,7 +51,7 @@ describe('RedisPubSubService', () => {
       expect.any(Function),
     );
 
-    const listener = (subscriberClient.subscribe as jest.Mock).mock.calls[0][1];
+    const listener = subscriberClient.subscribe.mock.calls[0][1];
     listener(JSON.stringify({ userId: 'u1' }), 'chan');
 
     expect(handler).toHaveBeenCalledWith({ userId: 'u1' });
@@ -64,7 +64,7 @@ describe('RedisPubSubService', () => {
     await service.subscribe('chan', first);
     await service.subscribe('chan', second);
 
-    const listener = (subscriberClient.subscribe as jest.Mock).mock.calls[0][1];
+    const listener = subscriberClient.subscribe.mock.calls[0][1];
     expect(subscriberClient.subscribe).toHaveBeenCalledTimes(1);
     listener('payload', 'chan');
 

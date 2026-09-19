@@ -43,10 +43,7 @@ export class CommunityPostEditHistoryRepository {
     });
   }
 
-  async countRecent(
-    postId: string,
-    since: Date,
-  ): Promise<number> {
+  async countRecent(postId: string, since: Date): Promise<number> {
     return this.prisma.communityPostEditHistory.count({
       where: {
         postId,

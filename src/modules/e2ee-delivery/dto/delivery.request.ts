@@ -1,4 +1,12 @@
-import { IsUUID, IsOptional, IsEnum, IsNumber, Min, Max, IsString } from 'class-validator';
+import {
+  IsUUID,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  Min,
+  Max,
+  IsString,
+} from 'class-validator';
 import { E2eeDeliveryStatus } from '@prisma/client';
 
 export class CreateDeliveryRequest {

@@ -9,10 +9,7 @@
  */
 import { ChannelMessageRepository } from '../../modules/messages/repositories/channel-message.repository';
 import { PrismaService } from '../../core/database/prisma.service';
-import {
-  createDbTestHarness,
-  DbTestContext,
-} from '../db/db-test.harness';
+import { createDbTestHarness, DbTestContext } from '../db/db-test.harness';
 import {
   createChannel,
   createChannelMessage,

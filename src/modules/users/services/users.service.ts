@@ -154,6 +154,10 @@ export class UsersService {
     return this.queryService.getRelationshipStats(currentUserId, targetUserId);
   }
 
+  async getFollowState(currentUserId: string, targetUserId: string) {
+    return this.queryService.getFollowState(currentUserId, targetUserId);
+  }
+
   // =====================================================
   // Block User
   // =====================================================

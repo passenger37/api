@@ -63,7 +63,7 @@ export async function createRedisTestHarness(
 
   const redis = new RedisService();
   await redis.onModuleInit();
-  const raw = redis.getClient() as ReturnType<RedisService['getClient']>;
+  const raw = redis.getClient();
   await raw.select(db);
 
   // Restore the app env after the client is bound (it captured url already).

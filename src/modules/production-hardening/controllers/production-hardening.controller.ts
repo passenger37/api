@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Body, Query, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  UseGuards,
+  Req,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
@@ -41,7 +56,8 @@ export class ProductionHardeningController {
   @ApiOperation({ summary: 'Log audit event' })
   async logAuditEvent(
     @CurrentUser('id') userId: string,
-    @Body() body: {
+    @Body()
+    body: {
       action: string;
       resourceType?: string;
       resourceId?: string;
@@ -79,7 +95,10 @@ export class ProductionHardeningController {
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
   ) {
-    return { message: 'Audit logs endpoint', params: { userId, action, severity, from, to, limit, offset } };
+    return {
+      message: 'Audit logs endpoint',
+      params: { userId, action, severity, from, to, limit, offset },
+    };
   }
 
   @Post('rate-limit/reset')

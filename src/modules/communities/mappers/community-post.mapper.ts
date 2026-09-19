@@ -27,9 +27,7 @@ import {
 } from '../types/community-post.types';
 
 export class CommunityPostMapper {
-  static toAuthorDto(
-    user: CommunityPostAuthor,
-  ): {
+  static toAuthorDto(user: CommunityPostAuthor): {
     id: string;
     username: string;
     displayName: string;
@@ -63,7 +61,9 @@ export class CommunityPostMapper {
     };
   }
 
-  static toHashtagDto(hashtag: CommunityPostHashtag): CommunityPostHashtagResponse {
+  static toHashtagDto(
+    hashtag: CommunityPostHashtag,
+  ): CommunityPostHashtagResponse {
     return {
       id: hashtag.id,
       tag: hashtag.tag,
@@ -139,7 +139,13 @@ export class CommunityPostMapper {
       editedAt: post.editedAt ?? null,
       author: post.author
         ? this.toAuthorDto(post.author)
-        : { id: post.authorUserId, username: '', displayName: '', avatarUrl: null, isVerified: false },
+        : {
+            id: post.authorUserId,
+            username: '',
+            displayName: '',
+            avatarUrl: null,
+            isVerified: false,
+          },
       category: post.category
         ? {
             id: post.category.id,
@@ -151,7 +157,9 @@ export class CommunityPostMapper {
       originalPost: post.originalPost
         ? this.toReferencedPost(post.originalPost)
         : null,
-      quotedPost: post.quotedPost ? this.toReferencedPost(post.quotedPost) : null,
+      quotedPost: post.quotedPost
+        ? this.toReferencedPost(post.quotedPost)
+        : null,
       media: (post.media ?? []).map((m) => this.toMediaDto(m)),
       hashtags: (post.hashtags ?? []).map((h) => this.toHashtagDto(h)),
       mentions: (post.mentions ?? []).map((m) => this.toMentionDto(m)),
@@ -190,7 +198,13 @@ export class CommunityPostMapper {
       editedAt: post.editedAt ?? null,
       author: post.author
         ? this.toAuthorDto(post.author)
-        : { id: post.authorUserId, username: '', displayName: '', avatarUrl: null, isVerified: false },
+        : {
+            id: post.authorUserId,
+            username: '',
+            displayName: '',
+            avatarUrl: null,
+            isVerified: false,
+          },
       category: post.category
         ? {
             id: post.category.id,
@@ -199,8 +213,12 @@ export class CommunityPostMapper {
             position: post.category.position,
           }
         : null,
-      originalPost: post.originalPost ? this.toReferencedPost(post.originalPost) : null,
-      quotedPost: post.quotedPost ? this.toReferencedPost(post.quotedPost) : null,
+      originalPost: post.originalPost
+        ? this.toReferencedPost(post.originalPost)
+        : null,
+      quotedPost: post.quotedPost
+        ? this.toReferencedPost(post.quotedPost)
+        : null,
       media: (post.media ?? []).map((m) => this.toMediaDto(m)),
       viewer,
     };
@@ -212,7 +230,12 @@ export class CommunityPostMapper {
     id: string;
     title: string;
     content: string | null;
-    author: { id: string; username: string; displayName: string; avatarUrl: string | null };
+    author: {
+      id: string;
+      username: string;
+      displayName: string;
+      avatarUrl: string | null;
+    };
   } {
     return {
       id: ref.id,
@@ -225,11 +248,18 @@ export class CommunityPostMapper {
             displayName: ref.author.displayName,
             avatarUrl: ref.author.avatarUrl ?? null,
           }
-        : { id: ref.authorUserId, username: '', displayName: '', avatarUrl: null },
+        : {
+            id: ref.authorUserId,
+            username: '',
+            displayName: '',
+            avatarUrl: null,
+          },
     };
   }
 
-  static toVoteResponse(vote: CommunityPostVoteWithUser): CommunityPostVoteResponse {
+  static toVoteResponse(
+    vote: CommunityPostVoteWithUser,
+  ): CommunityPostVoteResponse {
     return {
       id: vote.id,
       postId: vote.postId,
@@ -268,10 +298,12 @@ export class CommunityPostMapper {
       postId: bookmark.postId,
       userId: bookmark.userId,
       createdAt: bookmark.createdAt,
-      post: this.toListResponse(
-        bookmark.post,
-        { vote: null, isBookmarked: false, canEdit: false, canDelete: false },
-      ),
+      post: this.toListResponse(bookmark.post, {
+        vote: null,
+        isBookmarked: false,
+        canEdit: false,
+        canDelete: false,
+      }),
     };
   }
 }

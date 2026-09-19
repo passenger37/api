@@ -76,7 +76,9 @@ export class CommunityModerationActionRepository {
    * order" predicate. Without this, two rows with identical `createdAt`
    * could split across pages because the underlying cursor index is `id`.
    */
-  private cursorWhere(cursor?: TwoFieldCursor): Prisma.CommunityModerationActionWhereInput {
+  private cursorWhere(
+    cursor?: TwoFieldCursor,
+  ): Prisma.CommunityModerationActionWhereInput {
     if (!cursor) {
       return {};
     }
@@ -85,10 +87,7 @@ export class CommunityModerationActionRepository {
       OR: [
         { createdAt: { lt: cursor.createdAt } },
         {
-          AND: [
-            { createdAt: cursor.createdAt },
-            { id: { lt: cursor.id } },
-          ],
+          AND: [{ createdAt: cursor.createdAt }, { id: { lt: cursor.id } }],
         },
       ],
     };

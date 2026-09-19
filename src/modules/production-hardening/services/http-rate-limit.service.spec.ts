@@ -27,7 +27,11 @@ describe('HttpRateLimitService', () => {
   });
 
   it('allows request within limit', async () => {
-    const result = await service.consume({ key: 'test-key', limit: 10, windowSeconds: 60 });
+    const result = await service.consume({
+      key: 'test-key',
+      limit: 10,
+      windowSeconds: 60,
+    });
 
     expect(result.limit).toBe(10);
     expect(result.remaining).toBeGreaterThanOrEqual(0);
@@ -37,7 +41,9 @@ describe('HttpRateLimitService', () => {
   it('throws when limit exceeded', async () => {
     redisClient.exec.mockResolvedValueOnce([null, 10, null, null]);
 
-    await expect(service.consume({ key: 'test-key', limit: 10, windowSeconds: 60 })).rejects.toThrow();
+    await expect(
+      service.consume({ key: 'test-key', limit: 10, windowSeconds: 60 }),
+    ).rejects.toThrow();
   });
 
   it('resets key', async () => {

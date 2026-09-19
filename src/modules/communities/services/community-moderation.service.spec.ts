@@ -217,12 +217,8 @@ describe('CommunityModerationService', () => {
 
       // Soft delete must happen before the audit row; the publish must
       // happen after the audit row.
-      expect(calls.indexOf('soft-delete')).toBeLessThan(
-        calls.indexOf('audit'),
-      );
-      expect(calls.indexOf('audit')).toBeLessThan(
-        calls.indexOf('publish'),
-      );
+      expect(calls.indexOf('soft-delete')).toBeLessThan(calls.indexOf('audit'));
+      expect(calls.indexOf('audit')).toBeLessThan(calls.indexOf('publish'));
 
       // Two publishes: MODERATION_RECORDED first, POST_DELETED second.
       expect(eventPublisher.publish).toHaveBeenCalledTimes(2);
@@ -388,7 +384,13 @@ describe('CommunityModerationService', () => {
       access.assertModerator.mockResolvedValue(undefined);
       actionRepository.list.mockResolvedValue([{ id: 'a1', createdAt: now }]);
 
-      const result = await service.list('nexus', 'u1', undefined, undefined, 20);
+      const result = await service.list(
+        'nexus',
+        'u1',
+        undefined,
+        undefined,
+        20,
+      );
 
       expect(result.items).toHaveLength(1);
       expect(result.nextCursor).toBeNull();

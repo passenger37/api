@@ -41,9 +41,13 @@ export class PostSharePolicy {
     }
 
     if (post.visibility === 'FOLLOWERS' || post.visibility === 'FRIENDS') {
-      const isFollowing = await this.socialRepository.existsFollow(actorId, post.authorId);
-      const isBlocked = await this.socialRepository.existsBlock(post.authorId, actorId) ||
-                         await this.socialRepository.existsBlock(actorId, post.authorId);
+      const isFollowing = await this.socialRepository.existsFollow(
+        actorId,
+        post.authorId,
+      );
+      const isBlocked =
+        (await this.socialRepository.existsBlock(post.authorId, actorId)) ||
+        (await this.socialRepository.existsBlock(actorId, post.authorId));
 
       if (isBlocked) {
         throw new ForbiddenException('Cannot share this post');
@@ -69,7 +73,8 @@ export class PostSharePolicy {
       throw new NotFoundException('Conversation not found');
     }
 
-    const isMember = conversation.userAId === actorId || conversation.userBId === actorId;
+    const isMember =
+      conversation.userAId === actorId || conversation.userBId === actorId;
     if (!isMember) {
       throw new ForbiddenException('Not a member of this conversation');
     }
@@ -89,7 +94,10 @@ export class PostSharePolicy {
       throw new ForbiddenException('Cannot share to this channel type');
     }
 
-    const member = await this.memberQueryService.getMember(channel.serverId, actorId);
+    const member = await this.memberQueryService.getMember(
+      channel.serverId,
+      actorId,
+    );
     if (!member) {
       throw new ForbiddenException('Not a member of this server');
     }
@@ -112,7 +120,10 @@ export class PostSharePolicy {
     }
   }
 
-  async canShareExternally(actorId: string, post: PostForSharePolicy): Promise<void> {
+  async canShareExternally(
+    actorId: string,
+    post: PostForSharePolicy,
+  ): Promise<void> {
     if (post.visibility !== 'PUBLIC') {
       throw new ForbiddenException('Cannot share non-public post externally');
     }

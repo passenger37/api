@@ -1,6 +1,17 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { PostStatus, PostVisibility, PostContentType, ReactionType, PostType } from '@prisma/client';
+import {
+  PostStatus,
+  PostVisibility,
+  PostContentType,
+  ReactionType,
+  PostType,
+} from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
 import { OutboxEventRepository } from '../../messages/repositories/outbox-event.repository';
@@ -15,7 +26,10 @@ import { UserSocialRepository } from '../../users/repositories/user-social.repos
 import { MediaProcessingService } from '../../media/services/media-processing.service';
 
 import { PostMapper } from '../mappers/post.mapper';
-import { PostDetailResponse, PostListResponse } from '../dto/response/post.response';
+import {
+  PostDetailResponse,
+  PostListResponse,
+} from '../dto/response/post.response';
 
 import { encodePostCursor } from '../constants/post.constants';
 import { POST_DEFAULTS } from '../constants/post.constants';
@@ -55,37 +69,56 @@ export class PostCommandService {
 
   async createPost(input: CreatePostInput): Promise<PostDetailResponse> {
     // Validate content
-    if (!input.content?.trim() && (!input.mediaIds || input.mediaIds.length === 0)) {
+    if (
+      !input.content?.trim() &&
+      (!input.mediaIds || input.mediaIds.length === 0)
+    ) {
       throw new BadRequestException('Post must have content or media');
     }
 
-    if (input.content && input.content.length > POST_DEFAULTS.MAX_CONTENT_LENGTH) {
-      throw new BadRequestException(`Content exceeds maximum length of ${POST_DEFAULTS.MAX_CONTENT_LENGTH}`);
+    if (
+      input.content &&
+      input.content.length > POST_DEFAULTS.MAX_CONTENT_LENGTH
+    ) {
+      throw new BadRequestException(
+        `Content exceeds maximum length of ${POST_DEFAULTS.MAX_CONTENT_LENGTH}`,
+      );
     }
 
-    if (input.mediaIds && input.mediaIds.length > POST_DEFAULTS.MAX_MEDIA_COUNT) {
-      throw new BadRequestException(`Maximum ${POST_DEFAULTS.MAX_MEDIA_COUNT} media items allowed`);
+    if (
+      input.mediaIds &&
+      input.mediaIds.length > POST_DEFAULTS.MAX_MEDIA_COUNT
+    ) {
+      throw new BadRequestException(
+        `Maximum ${POST_DEFAULTS.MAX_MEDIA_COUNT} media items allowed`,
+      );
     }
 
     // Determine content type
     const hasContent = !!input.content?.trim();
     const hasMedia = input.mediaIds && input.mediaIds.length > 0;
-    const contentType = hasContent && hasMedia ? PostContentType.MIXED
-      : hasMedia ? PostContentType.MEDIA
-      : PostContentType.TEXT;
+    const contentType =
+      hasContent && hasMedia
+        ? PostContentType.MIXED
+        : hasMedia
+          ? PostContentType.MEDIA
+          : PostContentType.TEXT;
 
     const post = await this.prisma.$transaction(async (tx) => {
       // Create post
-      const created = await this.postRepository.create({
-        authorId: input.authorId,
-        content: input.content?.trim(),
-        contentType,
-        visibility: input.visibility,
-        contentWarning: input.contentWarning,
-        isSensitive: input.isSensitive,
-        language: input.language,
-        scheduledAt: input.scheduledAt,
-      }, tx);
+      const created = await this.postRepository.create(
+        {
+          authorId: input.authorId,
+          content: input.content?.trim(),
+          contentType,
+          visibility: input.visibility,
+          contentWarning: input.contentWarning,
+          isSensitive: input.isSensitive,
+          language: input.language,
+          scheduledAt: input.scheduledAt,
+        },
+        tx,
+      );
 
       // Attach media if provided
       if (input.mediaIds && input.mediaIds.length > 0) {
@@ -101,7 +134,9 @@ export class PostCommandService {
           }
 
           if (attachment.userId !== input.authorId) {
-            throw new ForbiddenException(`Cannot attach media owned by another user`);
+            throw new ForbiddenException(
+              `Cannot attach media owned by another user`,
+            );
           }
         }
 
@@ -120,17 +155,20 @@ export class PostCommandService {
       }
 
       // Publish PostCreated event
-      await this.outboxRepository.create({
-        eventType: 'post-created',
-        channelId: null,
-        payload: {
-          postId: created.id,
-          authorId: input.authorId,
-          content: created.content,
-          visibility: created.visibility,
-          createdAt: created.createdAt,
+      await this.outboxRepository.create(
+        {
+          eventType: 'post-created',
+          channelId: null,
+          payload: {
+            postId: created.id,
+            authorId: input.authorId,
+            content: created.content,
+            visibility: created.visibility,
+            createdAt: created.createdAt,
+          },
         },
-      }, tx);
+        tx,
+      );
 
       return created;
     });
@@ -150,7 +188,7 @@ export class PostCommandService {
     }
 
     if (post.authorId !== userId) {
-      throw new ForbiddenException('Cannot edit another user\'s post');
+      throw new ForbiddenException("Cannot edit another user's post");
     }
 
     if (post.isDeleted || post.status === PostStatus.DELETED) {
@@ -163,7 +201,9 @@ export class PostCommandService {
         throw new BadRequestException('Content cannot be empty');
       }
       if (input.content.length > POST_DEFAULTS.MAX_CONTENT_LENGTH) {
-        throw new BadRequestException(`Content exceeds maximum length of ${POST_DEFAULTS.MAX_CONTENT_LENGTH}`);
+        throw new BadRequestException(
+          `Content exceeds maximum length of ${POST_DEFAULTS.MAX_CONTENT_LENGTH}`,
+        );
       }
     }
 
@@ -196,7 +236,7 @@ export class PostCommandService {
     }
 
     if (post.authorId !== userId) {
-      throw new ForbiddenException('Cannot delete another user\'s post');
+      throw new ForbiddenException("Cannot delete another user's post");
     }
 
     await this.postRepository.softDelete(postId);
@@ -213,7 +253,10 @@ export class PostCommandService {
     });
   }
 
-  async restorePost(postId: string, userId: string): Promise<PostDetailResponse> {
+  async restorePost(
+    postId: string,
+    userId: string,
+  ): Promise<PostDetailResponse> {
     const post = await this.postRepository.findByIdForUpdate(postId);
 
     if (!post) {
@@ -221,7 +264,7 @@ export class PostCommandService {
     }
 
     if (post.authorId !== userId) {
-      throw new ForbiddenException('Cannot restore another user\'s post');
+      throw new ForbiddenException("Cannot restore another user's post");
     }
 
     if (!post.isDeleted) {
@@ -254,7 +297,7 @@ export class PostCommandService {
       throw new NotFoundException('Post not found');
     }
 
-    if (!await this.canInteractWithPost(userId, post)) {
+    if (!(await this.canInteractWithPost(userId, post))) {
       throw new ForbiddenException('Cannot react to this post');
     }
 
@@ -291,7 +334,7 @@ export class PostCommandService {
       throw new NotFoundException('Post not found');
     }
 
-    if (!await this.canInteractWithPost(userId, post)) {
+    if (!(await this.canInteractWithPost(userId, post))) {
       throw new ForbiddenException('Cannot remove reaction from this post');
     }
 
@@ -319,7 +362,7 @@ export class PostCommandService {
       throw new NotFoundException('Post not found');
     }
 
-    if (!await this.canInteractWithPost(userId, post)) {
+    if (!(await this.canInteractWithPost(userId, post))) {
       throw new ForbiddenException('Cannot bookmark this post');
     }
 
@@ -353,7 +396,7 @@ export class PostCommandService {
       throw new NotFoundException('Post not found');
     }
 
-    if (!await this.canInteractWithPost(reporterUserId, post)) {
+    if (!(await this.canInteractWithPost(reporterUserId, post))) {
       throw new ForbiddenException('Cannot report this post');
     }
 
@@ -361,7 +404,10 @@ export class PostCommandService {
       throw new BadRequestException('Cannot report your own post');
     }
 
-    const existing = await this.reportRepository.findByPostAndReporter(postId, reporterUserId);
+    const existing = await this.reportRepository.findByPostAndReporter(
+      postId,
+      reporterUserId,
+    );
     if (existing) {
       throw new BadRequestException('You have already reported this post');
     }
@@ -385,7 +431,7 @@ export class PostCommandService {
       throw new NotFoundException('Original post not found');
     }
 
-    if (!await this.canViewPost(userId, originalPost)) {
+    if (!(await this.canViewPost(userId, originalPost))) {
       throw new ForbiddenException('Cannot repost this post');
     }
 
@@ -418,16 +464,19 @@ export class PostCommandService {
         },
       });
 
-      await this.outboxRepository.create({
-        eventType: 'post-reposted',
-        channelId: null,
-        payload: {
-          repostId: created.id,
-          originalPostId,
-          userId,
-          createdAt: created.createdAt,
+      await this.outboxRepository.create(
+        {
+          eventType: 'post-reposted',
+          channelId: null,
+          payload: {
+            repostId: created.id,
+            originalPostId,
+            userId,
+            createdAt: created.createdAt,
+          },
         },
-      }, tx);
+        tx,
+      );
 
       return created;
     });
@@ -467,7 +516,7 @@ export class PostCommandService {
       throw new NotFoundException('Quoted post not found');
     }
 
-    if (!await this.canViewPost(userId, quotedPost)) {
+    if (!(await this.canViewPost(userId, quotedPost))) {
       throw new ForbiddenException('Cannot quote this post');
     }
 
@@ -491,16 +540,19 @@ export class PostCommandService {
         },
       });
 
-      await this.outboxRepository.create({
-        eventType: 'post-quoted',
-        channelId: null,
-        payload: {
-          quotePostId: created.id,
-          quotedPostId,
-          userId,
-          createdAt: created.createdAt,
+      await this.outboxRepository.create(
+        {
+          eventType: 'post-quoted',
+          channelId: null,
+          payload: {
+            quotePostId: created.id,
+            quotedPostId,
+            userId,
+            createdAt: created.createdAt,
+          },
         },
-      }, tx);
+        tx,
+      );
 
       return created;
     });
@@ -519,13 +571,20 @@ export class PostCommandService {
 
     if (post.visibility === PostVisibility.PUBLIC) return true;
 
-    const isFollowing = await this.socialRepository.existsFollow(viewerId, post.authorId);
-    const isBlocked = await this.socialRepository.existsBlock(post.authorId, viewerId) ||
-                       await this.socialRepository.existsBlock(viewerId, post.authorId);
+    const isFollowing = await this.socialRepository.existsFollow(
+      viewerId,
+      post.authorId,
+    );
+    const isBlocked =
+      (await this.socialRepository.existsBlock(post.authorId, viewerId)) ||
+      (await this.socialRepository.existsBlock(viewerId, post.authorId));
 
     if (isBlocked) return false;
 
-    if (post.visibility === PostVisibility.FOLLOWERS || post.visibility === PostVisibility.FRIENDS) {
+    if (
+      post.visibility === PostVisibility.FOLLOWERS ||
+      post.visibility === PostVisibility.FRIENDS
+    ) {
       return isFollowing;
     }
 
@@ -536,11 +595,17 @@ export class PostCommandService {
     return false;
   }
 
-  private async canInteractWithPost(viewerId: string, post: any): Promise<boolean> {
+  private async canInteractWithPost(
+    viewerId: string,
+    post: any,
+  ): Promise<boolean> {
     return this.canViewPost(viewerId, post);
   }
 
-  private async getPostDetail(postId: string, viewerId: string): Promise<PostDetailResponse> {
+  private async getPostDetail(
+    postId: string,
+    viewerId: string,
+  ): Promise<PostDetailResponse> {
     const post = await this.postRepository.findById(postId);
     if (!post) {
       throw new NotFoundException('Post not found');

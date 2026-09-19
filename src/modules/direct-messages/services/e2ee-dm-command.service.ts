@@ -242,18 +242,21 @@ export class E2eeDmCommandService {
 
     await this.validateAttachmentEnvelopes(userId, partnerUserId, dto);
 
-    const attachmentResult = await this.e2eeAttachmentService.createAttachment(userId, {
-      sessionId: dto.attachment.envelopes[0]?.sessionId,
-      fileName: dto.attachment.fileName,
-      mimeType: dto.attachment.mimeType,
-      sizeBytes: dto.attachment.sizeBytes,
-      encryptedFileKey: dto.attachment.encryptedFileKey,
-      fileHash: dto.attachment.fileHash,
-      encryptedThumbnailKey: dto.attachment.encryptedThumbnailKey,
-      thumbnailHash: dto.attachment.thumbnailHash,
-      senderDeviceId: dto.senderDeviceId,
-      messageId: undefined,
-    });
+    const attachmentResult = await this.e2eeAttachmentService.createAttachment(
+      userId,
+      {
+        sessionId: dto.attachment.envelopes[0]?.sessionId,
+        fileName: dto.attachment.fileName,
+        mimeType: dto.attachment.mimeType,
+        sizeBytes: dto.attachment.sizeBytes,
+        encryptedFileKey: dto.attachment.encryptedFileKey,
+        fileHash: dto.attachment.fileHash,
+        encryptedThumbnailKey: dto.attachment.encryptedThumbnailKey,
+        thumbnailHash: dto.attachment.thumbnailHash,
+        senderDeviceId: dto.senderDeviceId,
+        messageId: undefined,
+      },
+    );
 
     const attachment = attachmentResult.attachment;
 
@@ -460,7 +463,9 @@ export class E2eeDmCommandService {
     }
 
     if (!message.isE2ee) {
-      throw new BadRequestException('Cannot edit non-E2EE messages via this endpoint.');
+      throw new BadRequestException(
+        'Cannot edit non-E2EE messages via this endpoint.',
+      );
     }
 
     if (message.isDeleted) {
@@ -477,8 +482,8 @@ export class E2eeDmCommandService {
       envelopes: dto.envelopes,
     });
 
-    const { message: updatedMessage, envelopes } = await this.prisma.$transaction(
-      async (tx) => {
+    const { message: updatedMessage, envelopes } =
+      await this.prisma.$transaction(async (tx) => {
         const updated = await this.messageRepository.update(
           dto.messageId,
           {
@@ -512,8 +517,7 @@ export class E2eeDmCommandService {
         );
 
         return { message: updated, envelopes: createdEnvelopes };
-      },
-    );
+      });
 
     const messagePayload = serializeDirectMessage(updatedMessage);
     const envelopesPayload = envelopes.map(serializeEnvelope);
@@ -578,7 +582,9 @@ export class E2eeDmCommandService {
     }
 
     if (!message.isE2ee) {
-      throw new BadRequestException('Cannot delete non-E2EE messages via this endpoint.');
+      throw new BadRequestException(
+        'Cannot delete non-E2EE messages via this endpoint.',
+      );
     }
 
     if (message.isDeleted) {
@@ -595,42 +601,39 @@ export class E2eeDmCommandService {
       envelopes: dto.envelopes,
     });
 
-    const { envelopes } = await this.prisma.$transaction(
-      async (tx) => {
-        await this.messageRepository.update(
-          dto.messageId,
-          {
-            isDeleted: true,
-            deletedAt: new Date(),
-          },
-          tx,
-        );
+    const { envelopes } = await this.prisma.$transaction(async (tx) => {
+      await this.messageRepository.update(
+        dto.messageId,
+        {
+          isDeleted: true,
+          deletedAt: new Date(),
+        },
+        tx,
+      );
 
-        const createdEnvelopes = await Promise.all(
-          dto.envelopes.map((envelope) =>
-            this.envelopeRepo.create(
-              {
-                session: { connect: { id: envelope.sessionId } },
-                type: envelope.type,
-                ciphertext: envelope.ciphertext,
-                protocolVersion:
-                  envelope.protocolVersion ?? dto.protocolVersion,
-                associatedData: envelope.associatedData,
-                senderDevice: { connect: { id: dto.senderDeviceId } },
-                recipientDevice: {
-                  connect: { id: envelope.recipientDeviceId },
-                },
-                channelId: dto.channelId,
-                clientMessageId: `${dto.messageId}-delete-${Date.now()}`,
+      const createdEnvelopes = await Promise.all(
+        dto.envelopes.map((envelope) =>
+          this.envelopeRepo.create(
+            {
+              session: { connect: { id: envelope.sessionId } },
+              type: envelope.type,
+              ciphertext: envelope.ciphertext,
+              protocolVersion: envelope.protocolVersion ?? dto.protocolVersion,
+              associatedData: envelope.associatedData,
+              senderDevice: { connect: { id: dto.senderDeviceId } },
+              recipientDevice: {
+                connect: { id: envelope.recipientDeviceId },
               },
-              tx,
-            ),
+              channelId: dto.channelId,
+              clientMessageId: `${dto.messageId}-delete-${Date.now()}`,
+            },
+            tx,
           ),
-        );
+        ),
+      );
 
-        return { envelopes: createdEnvelopes };
-      },
-    );
+      return { envelopes: createdEnvelopes };
+    });
 
     const envelopesPayload = envelopes.map(serializeEnvelope);
 
@@ -687,7 +690,9 @@ export class E2eeDmCommandService {
     }
 
     if (!message.isE2ee) {
-      throw new BadRequestException('Cannot add reaction to non-E2EE messages via this endpoint.');
+      throw new BadRequestException(
+        'Cannot add reaction to non-E2EE messages via this endpoint.',
+      );
     }
 
     const partnerUserId =
@@ -700,33 +705,30 @@ export class E2eeDmCommandService {
       envelopes: dto.envelopes,
     });
 
-    const { envelopes } = await this.prisma.$transaction(
-      async (tx) => {
-        const createdEnvelopes = await Promise.all(
-          dto.envelopes.map((envelope) =>
-            this.envelopeRepo.create(
-              {
-                session: { connect: { id: envelope.sessionId } },
-                type: envelope.type,
-                ciphertext: envelope.ciphertext,
-                protocolVersion:
-                  envelope.protocolVersion ?? dto.protocolVersion,
-                associatedData: envelope.associatedData,
-                senderDevice: { connect: { id: dto.senderDeviceId } },
-                recipientDevice: {
-                  connect: { id: envelope.recipientDeviceId },
-                },
-                channelId: dto.channelId,
-                clientMessageId: `${dto.messageId}-reaction-${Date.now()}`,
+    const { envelopes } = await this.prisma.$transaction(async (tx) => {
+      const createdEnvelopes = await Promise.all(
+        dto.envelopes.map((envelope) =>
+          this.envelopeRepo.create(
+            {
+              session: { connect: { id: envelope.sessionId } },
+              type: envelope.type,
+              ciphertext: envelope.ciphertext,
+              protocolVersion: envelope.protocolVersion ?? dto.protocolVersion,
+              associatedData: envelope.associatedData,
+              senderDevice: { connect: { id: dto.senderDeviceId } },
+              recipientDevice: {
+                connect: { id: envelope.recipientDeviceId },
               },
-              tx,
-            ),
+              channelId: dto.channelId,
+              clientMessageId: `${dto.messageId}-reaction-${Date.now()}`,
+            },
+            tx,
           ),
-        );
+        ),
+      );
 
-        return { envelopes: createdEnvelopes };
-      },
-    );
+      return { envelopes: createdEnvelopes };
+    });
 
     const envelopesPayload = envelopes.map(serializeEnvelope);
 
@@ -786,7 +788,9 @@ export class E2eeDmCommandService {
     }
 
     if (!message.isE2ee) {
-      throw new BadRequestException('Cannot remove reaction from non-E2EE messages via this endpoint.');
+      throw new BadRequestException(
+        'Cannot remove reaction from non-E2EE messages via this endpoint.',
+      );
     }
 
     const partnerUserId =
@@ -799,33 +803,30 @@ export class E2eeDmCommandService {
       envelopes: dto.envelopes,
     });
 
-    const { envelopes } = await this.prisma.$transaction(
-      async (tx) => {
-        const createdEnvelopes = await Promise.all(
-          dto.envelopes.map((envelope) =>
-            this.envelopeRepo.create(
-              {
-                session: { connect: { id: envelope.sessionId } },
-                type: envelope.type,
-                ciphertext: envelope.ciphertext,
-                protocolVersion:
-                  envelope.protocolVersion ?? dto.protocolVersion,
-                associatedData: envelope.associatedData,
-                senderDevice: { connect: { id: dto.senderDeviceId } },
-                recipientDevice: {
-                  connect: { id: envelope.recipientDeviceId },
-                },
-                channelId: dto.channelId,
-                clientMessageId: `${dto.messageId}-reaction-remove-${Date.now()}`,
+    const { envelopes } = await this.prisma.$transaction(async (tx) => {
+      const createdEnvelopes = await Promise.all(
+        dto.envelopes.map((envelope) =>
+          this.envelopeRepo.create(
+            {
+              session: { connect: { id: envelope.sessionId } },
+              type: envelope.type,
+              ciphertext: envelope.ciphertext,
+              protocolVersion: envelope.protocolVersion ?? dto.protocolVersion,
+              associatedData: envelope.associatedData,
+              senderDevice: { connect: { id: dto.senderDeviceId } },
+              recipientDevice: {
+                connect: { id: envelope.recipientDeviceId },
               },
-              tx,
-            ),
+              channelId: dto.channelId,
+              clientMessageId: `${dto.messageId}-reaction-remove-${Date.now()}`,
+            },
+            tx,
           ),
-        );
+        ),
+      );
 
-        return { envelopes: createdEnvelopes };
-      },
-    );
+      return { envelopes: createdEnvelopes };
+    });
 
     const envelopesPayload = envelopes.map(serializeEnvelope);
 
@@ -866,7 +867,9 @@ export class E2eeDmCommandService {
     }
 
     if (!message.isE2ee) {
-      throw new BadRequestException('Cannot mark non-E2EE messages as read via this endpoint.');
+      throw new BadRequestException(
+        'Cannot mark non-E2EE messages as read via this endpoint.',
+      );
     }
 
     const readerDevice = await this.deviceRepo.findById(dto.readerDeviceId);
@@ -1004,12 +1007,9 @@ export class E2eeDmCommandService {
       throw new BadRequestException('TTL must be non-negative');
     }
 
-    const updatedChannel = await this.channelRepository.update(
-      dto.channelId,
-      {
-        disappearingTtlSeconds: dto.ttlSeconds ?? null,
-      },
-    );
+    const updatedChannel = await this.channelRepository.update(dto.channelId, {
+      disappearingTtlSeconds: dto.ttlSeconds ?? null,
+    });
 
     return {
       channelId: updatedChannel.id,

@@ -1,5 +1,8 @@
 import { RealtimePresenceService } from './realtime-presence.service';
-import { RealtimePresenceStatus, RealtimePresencePrivacy } from '../types/realtime.types';
+import {
+  RealtimePresenceStatus,
+  RealtimePresencePrivacy,
+} from '../types/realtime.types';
 
 describe('RealtimePresenceService', () => {
   let service: RealtimePresenceService;
@@ -32,18 +35,26 @@ describe('RealtimePresenceService', () => {
       expect.stringContaining('"sessionId":"s1"'),
       60,
     );
-    expect(redis.getClient().sAdd).toHaveBeenCalledWith('presence:user:u1:sessions', 's1');
+    expect(redis.getClient().sAdd).toHaveBeenCalledWith(
+      'presence:user:u1:sessions',
+      's1',
+    );
   });
 
   it('detaches a session and cleans up', async () => {
     await service.detachSession('u1', 's1');
 
     expect(redis.del).toHaveBeenCalledWith('presence:session:s1');
-    expect(redis.getClient().sRem).toHaveBeenCalledWith('presence:user:u1:sessions', 's1');
+    expect(redis.getClient().sRem).toHaveBeenCalledWith(
+      'presence:user:u1:sessions',
+      's1',
+    );
   });
 
   it('heartbeat updates session TTL and commits user presence ONLINE', async () => {
-    redis.get.mockResolvedValueOnce(JSON.stringify({ sessionId: 's1', userId: 'u1', lastSeen: 1000 }));
+    redis.get.mockResolvedValueOnce(
+      JSON.stringify({ sessionId: 's1', userId: 'u1', lastSeen: 1000 }),
+    );
     jest.spyOn(service, 'getSessionCount').mockResolvedValue(1);
 
     await service.heartbeat('u1', 's1');
@@ -63,7 +74,10 @@ describe('RealtimePresenceService', () => {
   it('setStatus OFFLINE commits offline presence', async () => {
     jest.spyOn(service, 'getSessionCount').mockResolvedValue(0);
 
-    const result = await service.setStatus('u1', RealtimePresenceStatus.OFFLINE);
+    const result = await service.setStatus(
+      'u1',
+      RealtimePresenceStatus.OFFLINE,
+    );
 
     expect(result.status).toBe(RealtimePresenceStatus.OFFLINE);
     expect(redis.set).toHaveBeenCalledWith(
@@ -89,9 +103,15 @@ describe('RealtimePresenceService', () => {
   });
 
   it('normalizePrivacy validates and defaults', () => {
-    expect(service.normalizePrivacy(undefined)).toBe(RealtimePresencePrivacy.EVERYONE);
-    expect(service.normalizePrivacy('CONNECTIONS')).toBe(RealtimePresencePrivacy.CONNECTIONS);
-    expect(service.normalizePrivacy('INVALID')).toBe(RealtimePresencePrivacy.EVERYONE);
+    expect(service.normalizePrivacy(undefined)).toBe(
+      RealtimePresencePrivacy.EVERYONE,
+    );
+    expect(service.normalizePrivacy('CONNECTIONS')).toBe(
+      RealtimePresencePrivacy.CONNECTIONS,
+    );
+    expect(service.normalizePrivacy('INVALID')).toBe(
+      RealtimePresencePrivacy.EVERYONE,
+    );
   });
 
   it('canViewerSeePresence allows self and EVERYONE, blocks NOBODY', async () => {

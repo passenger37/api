@@ -41,7 +41,11 @@ describe('CommunityDiscoveryService', () => {
 
       const result = await service.discover('nex', undefined, 2);
 
-      expect(repository.discoverPublic).toHaveBeenCalledWith('nex', 2, undefined);
+      expect(repository.discoverPublic).toHaveBeenCalledWith(
+        'nex',
+        2,
+        undefined,
+      );
       expect(result.items).toHaveLength(2);
       expect(result.items[0]).toEqual(
         expect.objectContaining({

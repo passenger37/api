@@ -1,5 +1,20 @@
-import { Controller, Post, Get, Param, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Get,
+  Param,
+  Body,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+} from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
@@ -48,7 +63,10 @@ export class PostShareController {
   @ApiOperation({ summary: 'Get share link for a post' })
   @ApiParam({ name: 'postId', description: 'Post ID' })
   @ApiResponse({ status: 200, description: 'Share link generated' })
-  @ApiResponse({ status: 403, description: 'Cannot generate link for this post' })
+  @ApiResponse({
+    status: 403,
+    description: 'Cannot generate link for this post',
+  })
   @ApiResponse({ status: 404, description: 'Post not found' })
   async getShareLink(
     @Param('postId') postId: string,

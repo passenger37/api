@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { CommunityPostVisibility, CommunityPostStatus, CommunityPost } from '@prisma/client';
+import {
+  CommunityPostVisibility,
+  CommunityPostStatus,
+  CommunityPost,
+} from '@prisma/client';
 
 import { CommunityAccessService } from '../../services/community-access.service';
 import { CommunitySubscriptionRepository } from '../../repositories/community-subscription.repository';
@@ -26,7 +30,8 @@ export class CommunityPostVisibilityPolicy {
   ) {}
 
   async canView(context: PostVisibilityContext): Promise<boolean> {
-    const { viewerId, post, isModerator, isMember, isBanned, isBlocked } = context;
+    const { viewerId, post, isModerator, isMember, isBanned, isBlocked } =
+      context;
 
     if (isBanned || isBlocked) {
       return false;
@@ -65,7 +70,9 @@ export class CommunityPostVisibilityPolicy {
     return false;
   }
 
-  private async checkCommunityMembership(context: PostVisibilityContext): Promise<boolean> {
+  private async checkCommunityMembership(
+    context: PostVisibilityContext,
+  ): Promise<boolean> {
     const { viewerId } = context;
 
     const isSubscribed = await this.subscriptionRepository.isSubscribed(
@@ -80,11 +87,17 @@ export class CommunityPostVisibilityPolicy {
     viewerId: string,
     communityId: string,
     isModerator: boolean,
-  ): Promise<{ canView: boolean; allowedVisibilities: CommunityPostVisibility[] }> {
+  ): Promise<{
+    canView: boolean;
+    allowedVisibilities: CommunityPostVisibility[];
+  }> {
     if (isModerator) {
       return {
         canView: true,
-        allowedVisibilities: [CommunityPostVisibility.PUBLIC, CommunityPostVisibility.COMMUNITY_MEMBERS],
+        allowedVisibilities: [
+          CommunityPostVisibility.PUBLIC,
+          CommunityPostVisibility.COMMUNITY_MEMBERS,
+        ],
       };
     }
 
@@ -100,11 +113,17 @@ export class CommunityPostVisibilityPolicy {
 
     return {
       canView: true,
-      allowedVisibilities: [CommunityPostVisibility.PUBLIC, CommunityPostVisibility.COMMUNITY_MEMBERS],
+      allowedVisibilities: [
+        CommunityPostVisibility.PUBLIC,
+        CommunityPostVisibility.COMMUNITY_MEMBERS,
+      ],
     };
   }
 
-  private async isCommunityMember(communityId: string, userId: string): Promise<boolean> {
+  private async isCommunityMember(
+    communityId: string,
+    userId: string,
+  ): Promise<boolean> {
     // This would typically check CommunitySubscriptionRepository
     // For now, we'll return true if subscribed
     return true;
@@ -117,11 +136,17 @@ export class CommunityPostVisibilityPolicy {
     isModerator: boolean,
   ): Promise<CommunityPostVisibility[]> {
     if (viewerId === authorId) {
-      return [CommunityPostVisibility.PUBLIC, CommunityPostVisibility.COMMUNITY_MEMBERS];
+      return [
+        CommunityPostVisibility.PUBLIC,
+        CommunityPostVisibility.COMMUNITY_MEMBERS,
+      ];
     }
 
     if (isModerator) {
-      return [CommunityPostVisibility.PUBLIC, CommunityPostVisibility.COMMUNITY_MEMBERS];
+      return [
+        CommunityPostVisibility.PUBLIC,
+        CommunityPostVisibility.COMMUNITY_MEMBERS,
+      ];
     }
 
     const isBanned = await this.accessService.isBanned(communityId, viewerId);
@@ -129,7 +154,10 @@ export class CommunityPostVisibilityPolicy {
       return [];
     }
 
-    const isFollowing = await this.socialRepository.existsFollow(viewerId, authorId);
+    const isFollowing = await this.socialRepository.existsFollow(
+      viewerId,
+      authorId,
+    );
     const isBlocked =
       (await this.socialRepository.existsBlock(authorId, viewerId)) ||
       (await this.socialRepository.existsBlock(viewerId, authorId));
@@ -138,7 +166,9 @@ export class CommunityPostVisibilityPolicy {
       return [];
     }
 
-    const visibilities: CommunityPostVisibility[] = [CommunityPostVisibility.PUBLIC];
+    const visibilities: CommunityPostVisibility[] = [
+      CommunityPostVisibility.PUBLIC,
+    ];
 
     if (isFollowing) {
       visibilities.push(CommunityPostVisibility.COMMUNITY_MEMBERS);

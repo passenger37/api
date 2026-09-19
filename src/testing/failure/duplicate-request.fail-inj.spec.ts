@@ -12,10 +12,7 @@ import { Prisma } from '@prisma/client';
 
 import { ChannelMessageRepository } from '../../modules/messages/repositories/channel-message.repository';
 import { PrismaService } from '../../core/database/prisma.service';
-import {
-  createDbTestHarness,
-  DbTestContext,
-} from '../db/db-test.harness';
+import { createDbTestHarness, DbTestContext } from '../db/db-test.harness';
 import {
   createChannel,
   createChannelMessage,
@@ -78,9 +75,7 @@ describe('Failure Injection: duplicate request (40.90)', () => {
       duplicateError = error;
     }
 
-    expect(duplicateError).toBeInstanceOf(
-      Prisma.PrismaClientKnownRequestError,
-    );
+    expect(duplicateError).toBeInstanceOf(Prisma.PrismaClientKnownRequestError);
     if (duplicateError instanceof Prisma.PrismaClientKnownRequestError) {
       expect(duplicateError.code).toBe('P2002');
     }

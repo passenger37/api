@@ -84,7 +84,9 @@ export class CommunityCommentRepository {
    * Build a "rows strictly after this cursor in [createdAt asc, id asc]
    * order" predicate.
    */
-  private cursorWhere(cursor?: TwoFieldCursor): Prisma.CommunityCommentWhereInput {
+  private cursorWhere(
+    cursor?: TwoFieldCursor,
+  ): Prisma.CommunityCommentWhereInput {
     if (!cursor) {
       return {};
     }
@@ -93,10 +95,7 @@ export class CommunityCommentRepository {
       OR: [
         { createdAt: { gt: cursor.createdAt } },
         {
-          AND: [
-            { createdAt: cursor.createdAt },
-            { id: { gt: cursor.id } },
-          ],
+          AND: [{ createdAt: cursor.createdAt }, { id: { gt: cursor.id } }],
         },
       ],
     };

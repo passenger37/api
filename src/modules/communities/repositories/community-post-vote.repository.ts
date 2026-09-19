@@ -177,10 +177,7 @@ export class CommunityPostVoteRepository {
    * Remove a vote and decrement the matching denormalized count. Returns
    * false when no vote exists.
    */
-  async removeVoteAndCounts(
-    postId: string,
-    userId: string,
-  ): Promise<boolean> {
+  async removeVoteAndCounts(postId: string, userId: string): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.communityPostVote.findUnique({
         where: { postId_userId: { postId, userId } },
@@ -206,7 +203,9 @@ export class CommunityPostVoteRepository {
     });
   }
 
-  private cursorWhere(cursor?: TwoFieldCursor): Prisma.CommunityPostVoteWhereInput {
+  private cursorWhere(
+    cursor?: TwoFieldCursor,
+  ): Prisma.CommunityPostVoteWhereInput {
     if (!cursor) {
       return {};
     }

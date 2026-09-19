@@ -7,7 +7,10 @@ import {
 import { PrismaService } from '../../../core/database/prisma.service';
 import { E2eeBackupRepository } from '../repositories/e2ee-backup.repository';
 import { E2eeDeviceRepository } from '../../e2ee-devices/repositories/e2ee-device.repository';
-import { serializeBackup, serializeBackupList } from '../serializers/e2ee-backup.serializer';
+import {
+  serializeBackup,
+  serializeBackupList,
+} from '../serializers/e2ee-backup.serializer';
 import { CreateBackupRequest } from '../dto/backup.request';
 import * as crypto from 'crypto';
 
@@ -25,7 +28,9 @@ export class E2eeBackupCommandService {
       throw new NotFoundException('Device not found or revoked');
     }
     if (device.userId !== userId) {
-      throw new ForbiddenException('Not authorized to create backup for this device');
+      throw new ForbiddenException(
+        'Not authorized to create backup for this device',
+      );
     }
 
     // Hash recovery password if provided

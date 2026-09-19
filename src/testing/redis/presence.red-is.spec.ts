@@ -6,7 +6,10 @@
  * invisible masking, and typing indicators.
  */
 
-import { PresenceService, PresenceStatus } from '../../modules/messages/services/presence.service';
+import {
+  PresenceService,
+  PresenceStatus,
+} from '../../modules/messages/services/presence.service';
 import { TypingService } from '../../modules/messages/services/typing.service';
 import { createRedisTestHarness, RedisTestHarness } from './redis-test.harness';
 
@@ -77,19 +80,23 @@ describe('Redis Integration: Presence', () => {
     // PresenceService TTL comes from REDIS_TTL.PRESENCE (module scope). Manually
     // write a short-TTL presence directly to verify the read-side expiry path.
     const raw = harness.raw;
-    await raw.set(`user:${userId}:presence`, JSON.stringify({ status: 'ONLINE', lastSeen: Date.now() }), {
-      EX: 1,
-    });
+    await raw.set(
+      `user:${userId}:presence`,
+      JSON.stringify({ status: 'ONLINE', lastSeen: Date.now() }),
+      {
+        EX: 1,
+      },
+    );
 
-    await expect(
-      presence.getStatus(userId),
-    ).resolves.toMatchObject({ status: PresenceStatus.ONLINE });
+    await expect(presence.getStatus(userId)).resolves.toMatchObject({
+      status: PresenceStatus.ONLINE,
+    });
 
     await new Promise((r) => setTimeout(r, 1100));
 
-    await expect(
-      presence.getStatus(userId),
-    ).resolves.toMatchObject({ status: PresenceStatus.OFFLINE });
+    await expect(presence.getStatus(userId)).resolves.toMatchObject({
+      status: PresenceStatus.OFFLINE,
+    });
   });
 
   it('starts and stops typing indicators', async () => {

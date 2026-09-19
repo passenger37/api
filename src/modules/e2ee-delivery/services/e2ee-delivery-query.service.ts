@@ -1,9 +1,19 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { E2eeDeliveryRepository } from '../repositories/e2ee-delivery.repository';
 import { E2eeEnvelopeRepository } from '../../e2ee-transport/repositories/e2ee-envelope.repository';
 import { E2eeGroupRepository } from '../../e2ee-groups/repositories/e2ee-group.repository';
-import { GetDeliveryQueueRequest, GetGroupDeliveryQueueRequest } from '../dto/delivery.request';
-import { serializeDeliveryQueue, serializeGroupDeliveryQueue } from '../serializers/e2ee-delivery.serializer';
+import {
+  GetDeliveryQueueRequest,
+  GetGroupDeliveryQueueRequest,
+} from '../dto/delivery.request';
+import {
+  serializeDeliveryQueue,
+  serializeGroupDeliveryQueue,
+} from '../serializers/e2ee-delivery.serializer';
 
 @Injectable()
 export class E2eeDeliveryQueryService {
@@ -15,11 +25,11 @@ export class E2eeDeliveryQueryService {
   ) {}
 
   // 1:1 Delivery
-  async getPendingDeliveries(
-    targetDeviceId: string,
-    limit = 50,
-  ) {
-    const queues = await this.deliveryRepo.findPendingByTargetDevice(targetDeviceId, limit);
+  async getPendingDeliveries(targetDeviceId: string, limit = 50) {
+    const queues = await this.deliveryRepo.findPendingByTargetDevice(
+      targetDeviceId,
+      limit,
+    );
     return { success: true, queues: queues.map(serializeDeliveryQueue) };
   }
 
@@ -31,7 +41,10 @@ export class E2eeDeliveryQueryService {
       if (!envelope) {
         throw new NotFoundException('Envelope not found');
       }
-      if (envelope.senderDeviceId !== userId && envelope.recipientDeviceId !== userId) {
+      if (
+        envelope.senderDeviceId !== userId &&
+        envelope.recipientDeviceId !== userId
+      ) {
         throw new NotFoundException('Envelope not found');
       }
     }
@@ -42,17 +55,24 @@ export class E2eeDeliveryQueryService {
   }
 
   async countPendingDeliveries(targetDeviceId: string) {
-    const count = await this.deliveryRepo.countPendingByTargetDevice(targetDeviceId);
+    const count =
+      await this.deliveryRepo.countPendingByTargetDevice(targetDeviceId);
     return { success: true, count };
   }
 
   // Group Delivery
   async getPendingGroupDeliveries(targetDeviceId: string, limit = 50) {
-    const queues = await this.groupDeliveryRepo.findPendingGroupByTargetDevice(targetDeviceId, limit);
+    const queues = await this.groupDeliveryRepo.findPendingGroupByTargetDevice(
+      targetDeviceId,
+      limit,
+    );
     return { success: true, queues: queues.map(serializeGroupDeliveryQueue) };
   }
 
-  async getGroupDeliveryQueue(userId: string, dto: GetGroupDeliveryQueueRequest) {
+  async getGroupDeliveryQueue(
+    userId: string,
+    dto: GetGroupDeliveryQueueRequest,
+  ) {
     if (dto.envelopeId) {
       const envelope = await this.groupEnvelopeRepo.findById(dto.envelopeId);
       if (!envelope) {
@@ -65,7 +85,10 @@ export class E2eeDeliveryQueryService {
   }
 
   async countPendingGroupDeliveries(targetDeviceId: string) {
-    const count = await this.groupDeliveryRepo.countPendingGroupByTargetDevice(targetDeviceId);
+    const count =
+      await this.groupDeliveryRepo.countPendingGroupByTargetDevice(
+        targetDeviceId,
+      );
     return { success: true, count };
   }
 }

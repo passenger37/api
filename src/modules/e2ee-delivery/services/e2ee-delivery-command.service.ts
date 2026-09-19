@@ -8,8 +8,16 @@ import { E2eeDeliveryRepository } from '../repositories/e2ee-delivery.repository
 import { E2eeEnvelopeRepository } from '../../e2ee-transport/repositories/e2ee-envelope.repository';
 import { E2eeGroupRepository } from '../../e2ee-groups/repositories/e2ee-group.repository';
 import { E2eeDeviceRepository } from '../../e2ee-devices/repositories/e2ee-device.repository';
-import { serializeDeliveryQueue, serializeGroupDeliveryQueue } from '../serializers/e2ee-delivery.serializer';
-import { CreateDeliveryRequest, CreateGroupDeliveryRequest, MarkDeliveryDeliveredDto, MarkDeliveryFailedDto } from '../dto/delivery.request';
+import {
+  serializeDeliveryQueue,
+  serializeGroupDeliveryQueue,
+} from '../serializers/e2ee-delivery.serializer';
+import {
+  CreateDeliveryRequest,
+  CreateGroupDeliveryRequest,
+  MarkDeliveryDeliveredDto,
+  MarkDeliveryFailedDto,
+} from '../dto/delivery.request';
 import { E2eeEnvelopeStatus } from '@prisma/client';
 
 @Injectable()
@@ -33,10 +41,14 @@ export class E2eeDeliveryCommandService {
       throw new BadRequestException('Envelope is expired');
     }
     if (envelope.recipientDeviceId !== dto.targetDeviceId) {
-      throw new BadRequestException('Target device does not match envelope recipient');
+      throw new BadRequestException(
+        'Target device does not match envelope recipient',
+      );
     }
 
-    const targetDevice = await this.deviceRepo.findActiveById(dto.targetDeviceId);
+    const targetDevice = await this.deviceRepo.findActiveById(
+      dto.targetDeviceId,
+    );
     if (!targetDevice) {
       throw new NotFoundException('Target device not found or revoked');
     }
@@ -55,7 +67,10 @@ export class E2eeDeliveryCommandService {
       throw new NotFoundException('Delivery queue entry not found');
     }
 
-    const updated = await this.deliveryRepo.updateStatus(dto.queueId, 'DELIVERED');
+    const updated = await this.deliveryRepo.updateStatus(
+      dto.queueId,
+      'DELIVERED',
+    );
 
     // Update envelope status
     await this.prisma.e2eeEnvelope.update({
@@ -72,14 +87,20 @@ export class E2eeDeliveryCommandService {
       throw new NotFoundException('Delivery queue entry not found');
     }
 
-    const updated = await this.deliveryRepo.updateStatus(dto.queueId, 'FAILED', dto.error);
+    const updated = await this.deliveryRepo.updateStatus(
+      dto.queueId,
+      'FAILED',
+      dto.error,
+    );
 
     return { success: true, queue: serializeDeliveryQueue(updated) };
   }
 
   // Group Delivery
   async enqueueGroupDelivery(userId: string, dto: CreateGroupDeliveryRequest) {
-    const envelope = await this.groupEnvelopeRepo.findEnvelopeById(dto.envelopeId);
+    const envelope = await this.groupEnvelopeRepo.findEnvelopeById(
+      dto.envelopeId,
+    );
     if (!envelope) {
       throw new NotFoundException('Group envelope not found');
     }
@@ -102,10 +123,17 @@ export class E2eeDeliveryCommandService {
     }
 
     const member = await this.prisma.e2eeGroupMember.findUnique({
-      where: { groupId_deviceId: { groupId: envelope.groupId, deviceId: dto.targetDeviceId } },
+      where: {
+        groupId_deviceId: {
+          groupId: envelope.groupId,
+          deviceId: dto.targetDeviceId,
+        },
+      },
     });
     if (!member || !member.isActive) {
-      throw new BadRequestException('Target device is not a member of this group');
+      throw new BadRequestException(
+        'Target device is not a member of this group',
+      );
     }
 
     const queue = await this.groupDeliveryRepo.createGroupDelivery({
@@ -122,7 +150,10 @@ export class E2eeDeliveryCommandService {
       throw new NotFoundException('Group delivery queue entry not found');
     }
 
-    const updated = await this.groupDeliveryRepo.updateGroupStatus(queueId, 'DELIVERED');
+    const updated = await this.groupDeliveryRepo.updateGroupStatus(
+      queueId,
+      'DELIVERED',
+    );
 
     await this.prisma.e2eeGroupEnvelope.update({
       where: { id: queue.envelopeId },
@@ -138,7 +169,11 @@ export class E2eeDeliveryCommandService {
       throw new NotFoundException('Group delivery queue entry not found');
     }
 
-    const updated = await this.groupDeliveryRepo.updateGroupStatus(queueId, 'FAILED', error);
+    const updated = await this.groupDeliveryRepo.updateGroupStatus(
+      queueId,
+      'FAILED',
+      error,
+    );
     return { success: true, queue: serializeGroupDeliveryQueue(updated) };
   }
 }

@@ -168,7 +168,12 @@ export class CommunityPostInteractionController {
     @CurrentUser('id') userId: string,
     @Body() request: ResolveReportRequest,
   ) {
-    return this.interactionService.resolveReport(slug, reportId, userId, request);
+    return this.interactionService.resolveReport(
+      slug,
+      reportId,
+      userId,
+      request,
+    );
   }
 
   @Post(':slug/posts/:postId/moderate')

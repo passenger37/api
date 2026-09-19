@@ -13,12 +13,31 @@ describe('MetricsService', () => {
     });
 
     it('should count increments', () => {
-      metrics.increment('jobs_processed_total', { queue: 'jobs:default', status: 'success' });
-      metrics.increment('jobs_processed_total', { queue: 'jobs:default', status: 'success' });
-      metrics.increment('jobs_processed_total', { queue: 'jobs:default', status: 'failed' });
+      metrics.increment('jobs_processed_total', {
+        queue: 'jobs:default',
+        status: 'success',
+      });
+      metrics.increment('jobs_processed_total', {
+        queue: 'jobs:default',
+        status: 'success',
+      });
+      metrics.increment('jobs_processed_total', {
+        queue: 'jobs:default',
+        status: 'failed',
+      });
 
-      expect(metrics.getCount('jobs_processed_total', { queue: 'jobs:default', status: 'success' })).toBe(2);
-      expect(metrics.getCount('jobs_processed_total', { queue: 'jobs:default', status: 'failed' })).toBe(1);
+      expect(
+        metrics.getCount('jobs_processed_total', {
+          queue: 'jobs:default',
+          status: 'success',
+        }),
+      ).toBe(2);
+      expect(
+        metrics.getCount('jobs_processed_total', {
+          queue: 'jobs:default',
+          status: 'failed',
+        }),
+      ).toBe(1);
     });
 
     it('should support an increment amount', () => {
@@ -27,40 +46,73 @@ describe('MetricsService', () => {
     });
 
     it('should separate label sets', () => {
-      metrics.increment('http_requests_total', { method: 'GET', status: '200' });
-      metrics.increment('http_requests_total', { method: 'POST', status: '200' });
+      metrics.increment('http_requests_total', {
+        method: 'GET',
+        status: '200',
+      });
+      metrics.increment('http_requests_total', {
+        method: 'POST',
+        status: '200',
+      });
 
-      expect(metrics.getCount('http_requests_total', { method: 'GET', status: '200' })).toBe(1);
-      expect(metrics.getCount('http_requests_total', { method: 'POST', status: '200' })).toBe(1);
+      expect(
+        metrics.getCount('http_requests_total', {
+          method: 'GET',
+          status: '200',
+        }),
+      ).toBe(1);
+      expect(
+        metrics.getCount('http_requests_total', {
+          method: 'POST',
+          status: '200',
+        }),
+      ).toBe(1);
     });
   });
 
   describe('observeDuration', () => {
     it('should accumulate sum and count', () => {
-      metrics.observeDuration('http_request_duration_ms', 10, { route: '/health' });
-      metrics.observeDuration('http_request_duration_ms', 30, { route: '/health' });
+      metrics.observeDuration('http_request_duration_ms', 10, {
+        route: '/health',
+      });
+      metrics.observeDuration('http_request_duration_ms', 30, {
+        route: '/health',
+      });
 
       const out = metrics.renderPrometheus();
       expect(out).toContain('http_request_duration_ms_sum{route="/health"} 40');
-      expect(out).toContain('http_request_duration_ms_count{route="/health"} 2');
+      expect(out).toContain(
+        'http_request_duration_ms_count{route="/health"} 2',
+      );
     });
 
     it('should bucket values by le (cumulative)', () => {
       metrics.observeDuration('http_request_duration_ms', 12, { route: '/a' });
       const out = metrics.renderPrometheus();
       // 12 > 10 -> 0; 12 <= 25 -> 1 (cumulative)
-      expect(out).toContain('http_request_duration_ms_bucket{route="/a",le="10"} 0');
-      expect(out).toContain('http_request_duration_ms_bucket{route="/a",le="25"} 1');
-      expect(out).toContain('http_request_duration_ms_bucket{route="/a",le="+Inf"} 1');
+      expect(out).toContain(
+        'http_request_duration_ms_bucket{route="/a",le="10"} 0',
+      );
+      expect(out).toContain(
+        'http_request_duration_ms_bucket{route="/a",le="25"} 1',
+      );
+      expect(out).toContain(
+        'http_request_duration_ms_bucket{route="/a",le="+Inf"} 1',
+      );
     });
   });
 
   describe('renderPrometheus', () => {
     it('should render counters with labels in Prometheus format', () => {
-      metrics.increment('jobs_enqueued_total', { queue: 'jobs:default', job: 'send-email' });
+      metrics.increment('jobs_enqueued_total', {
+        queue: 'jobs:default',
+        job: 'send-email',
+      });
       const out = metrics.renderPrometheus();
 
-      expect(out).toContain('jobs_enqueued_total{job="send-email",queue="jobs:default"} 1');
+      expect(out).toContain(
+        'jobs_enqueued_total{job="send-email",queue="jobs:default"} 1',
+      );
     });
 
     it('should render unlabeled counters without braces', () => {

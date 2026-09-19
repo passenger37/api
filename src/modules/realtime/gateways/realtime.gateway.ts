@@ -253,7 +253,7 @@ export class RealtimeGateway
 
       if (!canView) {
         throw new ForbiddenException(
-          'You do not have permission to view this user\'s presence.',
+          "You do not have permission to view this user's presence.",
         );
       }
 
@@ -523,9 +523,7 @@ export class RealtimeGateway
       case RealtimeEventType.COMMENT_REACTION: {
         const postId = event.postId as string;
 
-        this.server
-          .to(realtimePostRoom(postId))
-          .emit(event.type, { ...event });
+        this.server.to(realtimePostRoom(postId)).emit(event.type, { ...event });
         break;
       }
       default:
@@ -547,10 +545,7 @@ export class RealtimeGateway
     });
   }
 
-  private publishUpdate(
-    presence: RealtimeUserPresence,
-    userId: string,
-  ): void {
+  private publishUpdate(presence: RealtimeUserPresence, userId: string): void {
     void this.bridge.publish({
       type: RealtimeEventType.PRESENCE_UPDATE,
       presence: { ...presence, userId },

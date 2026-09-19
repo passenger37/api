@@ -1,8 +1,4 @@
-import {
-  parseEnvelope,
-  suggestWireVersion,
-  wsEnvelope,
-} from './ws-envelope';
+import { parseEnvelope, suggestWireVersion, wsEnvelope } from './ws-envelope';
 
 describe('ws-envelope (backward-compatible WS evolution)', () => {
   it('emits the identical flat payload/event for v1 (non-breaking)', () => {
@@ -51,7 +47,9 @@ describe('ws-envelope (backward-compatible WS evolution)', () => {
   });
 
   it('strips any numeric version suffix from the parsed event name', () => {
-    expect(parseEnvelope('presence.ping.v7', { v: 7, data: {} }).event).toBe('presence.ping');
+    expect(parseEnvelope('presence.ping.v7', { v: 7, data: {} }).event).toBe(
+      'presence.ping',
+    );
     expect(parseEnvelope('typing', { ok: true }).event).toBe('typing');
   });
 });

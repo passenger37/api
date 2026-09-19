@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, PostReport, ReportStatus, PostReportReason, User } from '@prisma/client';
+import {
+  Prisma,
+  PostReport,
+  ReportStatus,
+  PostReportReason,
+  User,
+} from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
 
@@ -50,7 +56,25 @@ export class PostReportRepository {
       limit: number;
       status?: ReportStatus;
     },
-  ): Promise<{ items: (PostReport & { reporter: { id: string; username: string; displayName: string; avatarUrl: string | null; isVerified: boolean }; handledBy: { id: string; username: string; displayName: string; avatarUrl: string | null; isVerified: boolean } | null })[]; nextCursor: { createdAt: Date; id: string } | null }> {
+  ): Promise<{
+    items: (PostReport & {
+      reporter: {
+        id: string;
+        username: string;
+        displayName: string;
+        avatarUrl: string | null;
+        isVerified: boolean;
+      };
+      handledBy: {
+        id: string;
+        username: string;
+        displayName: string;
+        avatarUrl: string | null;
+        isVerified: boolean;
+      } | null;
+    })[];
+    nextCursor: { createdAt: Date; id: string } | null;
+  }> {
     const where: Prisma.PostReportWhereInput = { postId };
 
     if (options.status) {
@@ -70,20 +94,44 @@ export class PostReportRepository {
 
     const hasMore = reports.length > options.limit;
     const items = hasMore ? reports.slice(0, options.limit) : reports;
-    const nextCursor = hasMore && items.length > 0
-      ? { createdAt: items[items.length - 1].createdAt, id: items[items.length - 1].id }
-      : null;
+    const nextCursor =
+      hasMore && items.length > 0
+        ? {
+            createdAt: items[items.length - 1].createdAt,
+            id: items[items.length - 1].id,
+          }
+        : null;
 
     return { items, nextCursor };
   }
 
-  async findPendingReports(
-    options: {
-      cursor?: { createdAt: Date; id: string } | null;
-      limit: number;
-    },
-  ): Promise<{ items: (PostReport & { reporter: { id: string; username: string; displayName: string; avatarUrl: string | null; isVerified: boolean }; handledBy: { id: string; username: string; displayName: string; avatarUrl: string | null; isVerified: boolean } | null })[]; nextCursor: { createdAt: Date; id: string } | null }> {
-    return this.findByPost('', { cursor: options.cursor, limit: options.limit, status: ReportStatus.PENDING });
+  async findPendingReports(options: {
+    cursor?: { createdAt: Date; id: string } | null;
+    limit: number;
+  }): Promise<{
+    items: (PostReport & {
+      reporter: {
+        id: string;
+        username: string;
+        displayName: string;
+        avatarUrl: string | null;
+        isVerified: boolean;
+      };
+      handledBy: {
+        id: string;
+        username: string;
+        displayName: string;
+        avatarUrl: string | null;
+        isVerified: boolean;
+      } | null;
+    })[];
+    nextCursor: { createdAt: Date; id: string } | null;
+  }> {
+    return this.findByPost('', {
+      cursor: options.cursor,
+      limit: options.limit,
+      status: ReportStatus.PENDING,
+    });
   }
 
   async updateStatus(

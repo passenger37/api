@@ -53,7 +53,10 @@ export class PostBookmarkRepository {
       cursor?: { createdAt: Date; id: string } | null;
       limit: number;
     },
-  ): Promise<{ items: (PostSave & { Post: any })[]; nextCursor: { createdAt: Date; id: string } | null }> {
+  ): Promise<{
+    items: (PostSave & { Post: any })[];
+    nextCursor: { createdAt: Date; id: string } | null;
+  }> {
     const where: Prisma.PostSaveWhereInput = { userId };
 
     if (options.cursor) {
@@ -93,9 +96,13 @@ export class PostBookmarkRepository {
 
     const hasMore = bookmarks.length > options.limit;
     const items = hasMore ? bookmarks.slice(0, options.limit) : bookmarks;
-    const nextCursor = hasMore && items.length > 0
-      ? { createdAt: items[items.length - 1].createdAt, id: items[items.length - 1].id }
-      : null;
+    const nextCursor =
+      hasMore && items.length > 0
+        ? {
+            createdAt: items[items.length - 1].createdAt,
+            id: items[items.length - 1].id,
+          }
+        : null;
 
     return { items, nextCursor };
   }

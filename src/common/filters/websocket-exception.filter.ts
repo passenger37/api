@@ -37,10 +37,15 @@ export class WebSocketExceptionFilter implements ExceptionFilter {
       `WebSocket error | socket=${client.id} | event=${response.event} | code=${error.code}`,
     );
 
-    // Call the ack callback if present to prevent client timeout
-    const ack = host.switchToWs().getData();
-    if (typeof ack === 'function') {
-      ack(response);
+    // Call the ack callback if present to prevent client timeout.
+    // The ack is the last argument socket.io appends when the client uses emitWithAck;
+    // it is NOT switchToWs().getData() (which is just the message payload).
+    const args = host.getArgs();
+
+    const maybeAck = args.length > 0 ? args[args.length - 1] : undefined;
+
+    if (typeof maybeAck === 'function') {
+      maybeAck(response);
     } else {
       // Fallback: emit error event (legacy behavior)
       client.emit('error', response);

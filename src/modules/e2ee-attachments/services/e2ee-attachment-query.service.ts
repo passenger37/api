@@ -1,11 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { E2eeAttachmentRepository } from '../repositories/e2ee-attachment.repository';
 import { E2eeSessionRepository } from '../../e2ee-sessions/repositories/e2ee-session.repository';
 import { E2eeGroupRepository } from '../../e2ee-groups/repositories/e2ee-group.repository';
 import { AttachmentStorageService } from '../../messages/services/attachment-storage.service';
 import { GetAttachmentsRequest } from '../dto/attachment.request';
-import { serializeAttachment, serializeAttachmentList } from '../serializers/e2ee-attachment.serializer';
+import {
+  serializeAttachment,
+  serializeAttachmentList,
+} from '../serializers/e2ee-attachment.serializer';
 
 @Injectable()
 export class E2eeAttachmentQueryService {
@@ -17,10 +24,7 @@ export class E2eeAttachmentQueryService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async getAttachmentsBySession(
-    userId: string,
-    dto: GetAttachmentsRequest,
-  ) {
+  async getAttachmentsBySession(userId: string, dto: GetAttachmentsRequest) {
     if (!dto.sessionId) {
       throw new BadRequestException('sessionId is required');
     }
@@ -47,10 +51,7 @@ export class E2eeAttachmentQueryService {
     };
   }
 
-  async getAttachmentsByGroup(
-    userId: string,
-    dto: GetAttachmentsRequest,
-  ) {
+  async getAttachmentsByGroup(userId: string, dto: GetAttachmentsRequest) {
     if (!dto.groupId) {
       throw new BadRequestException('groupId is required');
     }
@@ -59,7 +60,10 @@ export class E2eeAttachmentQueryService {
     if (!group) {
       throw new NotFoundException('Group not found');
     }
-    const membership = await this.groupRepo.findMemberByUser(dto.groupId, userId);
+    const membership = await this.groupRepo.findMemberByUser(
+      dto.groupId,
+      userId,
+    );
     if (!membership) {
       throw new NotFoundException('Group not found');
     }
@@ -129,7 +133,10 @@ export class E2eeAttachmentQueryService {
     if (!authorized && attachment.sessionId) {
       const session = await this.sessionRepo.findById(attachment.sessionId);
       if (session) {
-        for (const deviceId of [session.senderDeviceId, session.recipientDeviceId]) {
+        for (const deviceId of [
+          session.senderDeviceId,
+          session.recipientDeviceId,
+        ]) {
           const device = await this.prisma.e2eeDevice.findUnique({
             where: { id: deviceId },
           });
@@ -142,7 +149,10 @@ export class E2eeAttachmentQueryService {
     }
 
     if (!authorized && attachment.groupId) {
-      const member = await this.groupRepo.findMemberByUser(attachment.groupId, userId);
+      const member = await this.groupRepo.findMemberByUser(
+        attachment.groupId,
+        userId,
+      );
       if (member) authorized = true;
     }
 

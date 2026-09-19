@@ -30,7 +30,10 @@ export class PostShareRepository {
     });
   }
 
-  async findByIdempotencyKey(actorUserId: string, clientRequestId: string): Promise<PostShare | null> {
+  async findByIdempotencyKey(
+    actorUserId: string,
+    clientRequestId: string,
+  ): Promise<PostShare | null> {
     return this.prisma.postShare.findUnique({
       where: {
         actorUserId_clientRequestId: {
@@ -53,7 +56,10 @@ export class PostShareRepository {
       cursor?: { createdAt: Date; id: string } | null;
       limit: number;
     },
-  ): Promise<{ items: PostShare[]; nextCursor: { createdAt: Date; id: string } | null }> {
+  ): Promise<{
+    items: PostShare[];
+    nextCursor: { createdAt: Date; id: string } | null;
+  }> {
     const where: Prisma.PostShareWhereInput = { postId };
 
     if (options.cursor) {
@@ -68,9 +74,13 @@ export class PostShareRepository {
 
     const hasMore = shares.length > options.limit;
     const items = hasMore ? shares.slice(0, options.limit) : shares;
-    const nextCursor = hasMore && items.length > 0
-      ? { createdAt: items[items.length - 1].createdAt, id: items[items.length - 1].id }
-      : null;
+    const nextCursor =
+      hasMore && items.length > 0
+        ? {
+            createdAt: items[items.length - 1].createdAt,
+            id: items[items.length - 1].id,
+          }
+        : null;
 
     return { items, nextCursor };
   }

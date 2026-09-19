@@ -14,7 +14,9 @@ export class CommunityPostHashtagRepository {
   ): Promise<CommunityPostHashtag[]> {
     const client = tx ?? this.prisma;
 
-    const normalized = [...new Set(tags.map((t) => t.replace(/^#/, '').toLowerCase()))];
+    const normalized = [
+      ...new Set(tags.map((t) => t.replace(/^#/, '').toLowerCase())),
+    ];
 
     const creates = normalized.map((tag) =>
       client.communityPostHashtag.create({

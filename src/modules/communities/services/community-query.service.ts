@@ -15,8 +15,14 @@ import {
   CommunityResponse,
   CategoryResponse,
 } from '../dto/response';
-import { serializeCommunity, serializeCategory } from '../mappers/community.mapper';
-import { decodeTwoFieldCursor, encodeTwoFieldCursor } from '../pagination/community-cursor';
+import {
+  serializeCommunity,
+  serializeCategory,
+} from '../mappers/community.mapper';
+import {
+  decodeTwoFieldCursor,
+  encodeTwoFieldCursor,
+} from '../pagination/community-cursor';
 
 @Injectable()
 export class CommunityQueryService {

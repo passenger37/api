@@ -1,4 +1,8 @@
-import { E2eeSealedSenderKey, E2eePirRequest, E2eeMetadataPolicy } from '@prisma/client';
+import {
+  E2eeSealedSenderKey,
+  E2eePirRequest,
+  E2eeMetadataPolicy,
+} from '@prisma/client';
 
 export interface SealedSenderKeyResponse {
   id: string;
@@ -36,7 +40,9 @@ export interface MetadataPolicyResponse {
   updatedAt: Date;
 }
 
-export function serializeSealedSenderKey(key: E2eeSealedSenderKey): SealedSenderKeyResponse {
+export function serializeSealedSenderKey(
+  key: E2eeSealedSenderKey,
+): SealedSenderKeyResponse {
   return {
     id: key.id,
     userId: key.userId,
@@ -49,7 +55,9 @@ export function serializeSealedSenderKey(key: E2eeSealedSenderKey): SealedSender
   };
 }
 
-export function serializePirRequest(request: E2eePirRequest): PirRequestResponse {
+export function serializePirRequest(
+  request: E2eePirRequest,
+): PirRequestResponse {
   return {
     id: request.id,
     userId: request.userId,
@@ -63,7 +71,9 @@ export function serializePirRequest(request: E2eePirRequest): PirRequestResponse
   };
 }
 
-export function serializeMetadataPolicy(policy: E2eeMetadataPolicy): MetadataPolicyResponse {
+export function serializeMetadataPolicy(
+  policy: E2eeMetadataPolicy,
+): MetadataPolicyResponse {
   return {
     userId: policy.userId,
     minPaddingSize: policy.minPaddingSize,

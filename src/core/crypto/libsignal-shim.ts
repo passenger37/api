@@ -56,7 +56,14 @@ export class Fingerprint {
     remoteIdentifier: Uint8Array,
     remoteKey: Uint8Array,
   ): Fingerprint {
-    return new Fingerprint(iterations, version, localIdentifier, localKey, remoteIdentifier, remoteKey);
+    return new Fingerprint(
+      iterations,
+      version,
+      localIdentifier,
+      localKey,
+      remoteIdentifier,
+      remoteKey,
+    );
   }
 
   async scannableFingerprint(): Promise<Buffer> {

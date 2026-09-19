@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { CommunityModerationActionType, CommunityPost, CommunityPostStatus } from '@prisma/client';
+import {
+  CommunityModerationActionType,
+  CommunityPost,
+  CommunityPostStatus,
+} from '@prisma/client';
 
 import { CommunityAccessService } from './community-access.service';
 import {
@@ -17,7 +21,10 @@ import { CommunitySubscriptionRepository } from '../repositories/community-subsc
 import { CommunityModerationActionRepository } from '../repositories/community-moderation-action.repository';
 import { CreateModerationActionRequest } from '../dto/request/create-moderation-action.request';
 import { ModerationListResponse } from '../dto/response';
-import { encodeTwoFieldCursor, decodeTwoFieldCursor } from '../pagination/community-cursor';
+import {
+  encodeTwoFieldCursor,
+  decodeTwoFieldCursor,
+} from '../pagination/community-cursor';
 import { serializeModerationAction } from '../mappers/community.mapper';
 import { CommunityEventPublisher } from '../events/community-event-publisher';
 import {
@@ -58,9 +65,13 @@ export class CommunityModerationService {
       reason: request.reason ?? null,
     });
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.MODERATION_RECORDED, {
-      action: serializeModerationAction(action),
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.MODERATION_RECORDED,
+      {
+        action: serializeModerationAction(action),
+      },
+    );
 
     // Resource-level side-effect events (POST_DELETED, COMMENT_DELETED,
     // POST_UPDATED) fire only AFTER the audit row is durably written, so
@@ -95,7 +106,11 @@ export class CommunityModerationService {
           limit + 1,
           decoded ?? undefined,
         )
-      : await this.actionRepository.list(community.id, limit + 1, decoded ?? undefined);
+      : await this.actionRepository.list(
+          community.id,
+          limit + 1,
+          decoded ?? undefined,
+        );
 
     const hasMore = actions.length > limit;
     const page = hasMore ? actions.slice(0, limit) : actions;
@@ -125,7 +140,10 @@ export class CommunityModerationService {
     communityId: string,
     request: CreateModerationActionRequest,
   ): Promise<
-    Array<{ event: CommunityRealtimeEventName; payload: Record<string, unknown> }>
+    Array<{
+      event: CommunityRealtimeEventName;
+      payload: Record<string, unknown>;
+    }>
   > {
     const sideEffects: Array<{
       event: CommunityRealtimeEventName;
@@ -200,9 +218,7 @@ export class CommunityModerationService {
           );
         }
 
-        const comment = await this.commentRepository.findById(
-          request.objectId,
-        );
+        const comment = await this.commentRepository.findById(request.objectId);
 
         if (!comment) {
           throw new CommunityCommentNotFoundException();

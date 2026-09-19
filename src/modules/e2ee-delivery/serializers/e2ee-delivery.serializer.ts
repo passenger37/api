@@ -1,4 +1,8 @@
-import { E2eeDeliveryQueue, E2eeGroupDeliveryQueue, E2eeDeliveryStatus } from '@prisma/client';
+import {
+  E2eeDeliveryQueue,
+  E2eeGroupDeliveryQueue,
+  E2eeDeliveryStatus,
+} from '@prisma/client';
 
 export interface DeliveryQueueResponse {
   id: string;
@@ -30,7 +34,9 @@ export interface GroupDeliveryQueueResponse {
   updatedAt: Date;
 }
 
-export function serializeDeliveryQueue(queue: E2eeDeliveryQueue): DeliveryQueueResponse {
+export function serializeDeliveryQueue(
+  queue: E2eeDeliveryQueue,
+): DeliveryQueueResponse {
   return {
     id: queue.id,
     envelopeId: queue.envelopeId,
@@ -47,7 +53,9 @@ export function serializeDeliveryQueue(queue: E2eeDeliveryQueue): DeliveryQueueR
   };
 }
 
-export function serializeGroupDeliveryQueue(queue: E2eeGroupDeliveryQueue): GroupDeliveryQueueResponse {
+export function serializeGroupDeliveryQueue(
+  queue: E2eeGroupDeliveryQueue,
+): GroupDeliveryQueueResponse {
   return {
     id: queue.id,
     envelopeId: queue.envelopeId,

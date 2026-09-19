@@ -15,8 +15,8 @@ describe('WebSocketConnectionAuthService', () => {
   } as unknown as UserQueryService;
 
   const service = new WebSocketConnectionAuthService(
-    jwtService as never,
-    userQueryService as never,
+    jwtService,
+    userQueryService,
   );
 
   const client = {

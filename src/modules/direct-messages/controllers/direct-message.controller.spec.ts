@@ -135,7 +135,7 @@ describe('DirectMessageController', () => {
 
     const result = await controller.markRead('dm1', 'u1', {
       lastReadMessageId: 'm9',
-    } as any);
+    });
 
     expect(commandService.markRead).toHaveBeenCalledWith('dm1', 'u1', 'm9');
     expect(result).toEqual({ unreadCount: 0 });

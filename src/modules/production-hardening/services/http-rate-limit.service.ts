@@ -27,12 +27,12 @@ export class HttpRateLimitService {
     const client = this.redis.getClient();
 
     const pipeline = client.multi();
-    
+
     pipeline.zRemRangeByScore(fullKey, 0, windowStart);
     pipeline.zCard(fullKey);
     pipeline.zAdd(fullKey, { score: now, value: `${now}:${Math.random()}` });
     pipeline.expire(fullKey, options.windowSeconds);
-    
+
     const results = await pipeline.exec();
     const currentCount = (results?.[1] as unknown as number) ?? 0;
 

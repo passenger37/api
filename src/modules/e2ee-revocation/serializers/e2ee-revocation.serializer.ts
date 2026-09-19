@@ -13,7 +13,9 @@ export interface RevocationResponse {
   updatedAt: Date;
 }
 
-export function serializeRevocation(revocation: E2eeDeviceRevocation): RevocationResponse {
+export function serializeRevocation(
+  revocation: E2eeDeviceRevocation,
+): RevocationResponse {
   return {
     id: revocation.id,
     deviceId: revocation.deviceId,
@@ -28,6 +30,8 @@ export function serializeRevocation(revocation: E2eeDeviceRevocation): Revocatio
   };
 }
 
-export function serializeRevocationList(revocations: E2eeDeviceRevocation[]): RevocationResponse[] {
+export function serializeRevocationList(
+  revocations: E2eeDeviceRevocation[],
+): RevocationResponse[] {
   return revocations.map(serializeRevocation);
 }

@@ -20,7 +20,7 @@ import { DmOpenRequest } from '../dto/request/dm-open.request';
 import { DmReadRequest } from '../dto/request/dm-read.request';
 import { DmSendRequest } from '../dto/request/dm-send.request';
 import { DmEditRequest } from '../dto/request/dm-edit.request';
-import { DmReactionRequest } from '../dto/request/dm-reaction.request';
+import { DmReactionRestRequest } from '../dto/request/dm-reaction-rest.request';
 import { DmChannelSettingsRequest } from '../dto/request/dm-channel-settings.request';
 import { DmAttachmentUploadRequest } from '../dto/request/dm-attachment-upload.request';
 import { DmE2eeSendRequest } from '../dto/request/dm-e2ee-send.request';
@@ -311,7 +311,7 @@ export class DirectMessageController {
   async addReaction(
     @Param('messageId') messageId: string,
     @CurrentUser('id') userId: string,
-    @Body() request: DmReactionRequest,
+    @Body() request: DmReactionRestRequest,
   ) {
     return this.reactionCommandService.addReaction(
       messageId,
@@ -324,7 +324,7 @@ export class DirectMessageController {
   async removeReaction(
     @Param('messageId') messageId: string,
     @CurrentUser('id') userId: string,
-    @Body() request: DmReactionRequest,
+    @Body() request: DmReactionRestRequest,
   ) {
     return this.reactionCommandService.removeReaction(
       messageId,
@@ -396,7 +396,12 @@ export class DirectMessageController {
     @Query('limit') limit?: string,
   ) {
     const parsedLimit = limit ? Number.parseInt(limit, 10) : undefined;
-    return this.reportCommandService.listByChannel(channelId, status as ReportStatus | undefined, cursorId, parsedLimit);
+    return this.reportCommandService.listByChannel(
+      channelId,
+      status as ReportStatus | undefined,
+      cursorId,
+      parsedLimit,
+    );
   }
 
   @Patch('channels/:channelId/reports/:reportId/resolve')

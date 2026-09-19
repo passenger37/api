@@ -36,7 +36,10 @@ export class TraceService {
   runCurrent<TReturn>(fn: () => TReturn): TReturn {
     const current = this.getContext();
     return this.storage.run(
-      { traceId: current?.traceId ?? randomUUID(), parentId: current?.parentId },
+      {
+        traceId: current?.traceId ?? randomUUID(),
+        parentId: current?.parentId,
+      },
       fn,
     );
   }

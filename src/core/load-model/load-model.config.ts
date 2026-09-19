@@ -109,20 +109,104 @@ export const LOAD_MODEL: LoadModelSpec = {
   // REST message-domain mix (weights sum to 100). These mirror the endpoints in
   // the messaging / dm / search / media / social modules.
   operations: [
-    { name: 'message.create', weightPct: 15, p50Ms: 150, p99Ms: 500, errorRateMax: 0.01 },
-    { name: 'message.history', weightPct: 20, p50Ms: 100, p99Ms: 400, errorRateMax: 0.01 },
-    { name: 'dm.open', weightPct: 6, p50Ms: 120, p99Ms: 450, errorRateMax: 0.01 },
-    { name: 'dm.send', weightPct: 8, p50Ms: 180, p99Ms: 550, errorRateMax: 0.01 },
-    { name: 'channel.typing', weightPct: 12, p50Ms: 60, p99Ms: 300, errorRateMax: 0.02 },
-    { name: 'presence', weightPct: 8, p50Ms: 80, p99Ms: 350, errorRateMax: 0.02 },
-    { name: 'search.query', weightPct: 4, p50Ms: 250, p99Ms: 900, errorRateMax: 0.01 },
-    { name: 'attachment.upload', weightPct: 3, p50Ms: 400, p99Ms: 2000, errorRateMax: 0.01 },
-    { name: 'server.list', weightPct: 3, p50Ms: 120, p99Ms: 450, errorRateMax: 0.01 },
-    { name: 'call.create', weightPct: 2, p50Ms: 200, p99Ms: 800, errorRateMax: 0.01 },
-    { name: 'call.ring', weightPct: 3, p50Ms: 100, p99Ms: 400, errorRateMax: 0.02 },
-    { name: 'call.accept', weightPct: 2, p50Ms: 150, p99Ms: 500, errorRateMax: 0.01 },
-    { name: 'call.end', weightPct: 1, p50Ms: 100, p99Ms: 300, errorRateMax: 0.01 },
-    { name: 'call.signal', weightPct: 13, p50Ms: 50, p99Ms: 200, errorRateMax: 0.02 },
+    {
+      name: 'message.create',
+      weightPct: 15,
+      p50Ms: 150,
+      p99Ms: 500,
+      errorRateMax: 0.01,
+    },
+    {
+      name: 'message.history',
+      weightPct: 20,
+      p50Ms: 100,
+      p99Ms: 400,
+      errorRateMax: 0.01,
+    },
+    {
+      name: 'dm.open',
+      weightPct: 6,
+      p50Ms: 120,
+      p99Ms: 450,
+      errorRateMax: 0.01,
+    },
+    {
+      name: 'dm.send',
+      weightPct: 8,
+      p50Ms: 180,
+      p99Ms: 550,
+      errorRateMax: 0.01,
+    },
+    {
+      name: 'channel.typing',
+      weightPct: 12,
+      p50Ms: 60,
+      p99Ms: 300,
+      errorRateMax: 0.02,
+    },
+    {
+      name: 'presence',
+      weightPct: 8,
+      p50Ms: 80,
+      p99Ms: 350,
+      errorRateMax: 0.02,
+    },
+    {
+      name: 'search.query',
+      weightPct: 4,
+      p50Ms: 250,
+      p99Ms: 900,
+      errorRateMax: 0.01,
+    },
+    {
+      name: 'attachment.upload',
+      weightPct: 3,
+      p50Ms: 400,
+      p99Ms: 2000,
+      errorRateMax: 0.01,
+    },
+    {
+      name: 'server.list',
+      weightPct: 3,
+      p50Ms: 120,
+      p99Ms: 450,
+      errorRateMax: 0.01,
+    },
+    {
+      name: 'call.create',
+      weightPct: 2,
+      p50Ms: 200,
+      p99Ms: 800,
+      errorRateMax: 0.01,
+    },
+    {
+      name: 'call.ring',
+      weightPct: 3,
+      p50Ms: 100,
+      p99Ms: 400,
+      errorRateMax: 0.02,
+    },
+    {
+      name: 'call.accept',
+      weightPct: 2,
+      p50Ms: 150,
+      p99Ms: 500,
+      errorRateMax: 0.01,
+    },
+    {
+      name: 'call.end',
+      weightPct: 1,
+      p50Ms: 100,
+      p99Ms: 300,
+      errorRateMax: 0.01,
+    },
+    {
+      name: 'call.signal',
+      weightPct: 13,
+      p50Ms: 50,
+      p99Ms: 200,
+      errorRateMax: 0.02,
+    },
   ],
   // Background job mix fed by the outbox + media pipeline + search indexing
   // (weights sum to 100). Workers must drain faster than they are produced.
@@ -135,14 +219,44 @@ export const LOAD_MODEL: LoadModelSpec = {
   // cache architecture's "what to cache" decision (read-heavy + stable =
   // cacheable; write-heavy or volatile = not cached).
   db: [
-    { path: 'message.history', readRatio: 0.98, writeRatio: 0.02, stabilitySec: 10 },
+    {
+      path: 'message.history',
+      readRatio: 0.98,
+      writeRatio: 0.02,
+      stabilitySec: 10,
+    },
     { path: 'dm.open', readRatio: 0.95, writeRatio: 0.05, stabilitySec: 60 },
-    { path: 'server.list', readRatio: 0.99, writeRatio: 0.01, stabilitySec: 300 },
-    { path: 'server.channel', readRatio: 0.98, writeRatio: 0.02, stabilitySec: 300 },
-    { path: 'server.members', readRatio: 0.95, writeRatio: 0.05, stabilitySec: 60 },
-    { path: 'channel.readstate', readRatio: 0.7, writeRatio: 0.3, stabilitySec: 10 },
+    {
+      path: 'server.list',
+      readRatio: 0.99,
+      writeRatio: 0.01,
+      stabilitySec: 300,
+    },
+    {
+      path: 'server.channel',
+      readRatio: 0.98,
+      writeRatio: 0.02,
+      stabilitySec: 300,
+    },
+    {
+      path: 'server.members',
+      readRatio: 0.95,
+      writeRatio: 0.05,
+      stabilitySec: 60,
+    },
+    {
+      path: 'channel.readstate',
+      readRatio: 0.7,
+      writeRatio: 0.3,
+      stabilitySec: 10,
+    },
     { path: 'search.query', readRatio: 1.0, writeRatio: 0.0, stabilitySec: 60 },
-    { path: 'message.create', readRatio: 0.0, writeRatio: 1.0, stabilitySec: 0 },
+    {
+      path: 'message.create',
+      readRatio: 0.0,
+      writeRatio: 1.0,
+      stabilitySec: 0,
+    },
     { path: 'dm.send', readRatio: 0.0, writeRatio: 1.0, stabilitySec: 0 },
   ],
 };
@@ -150,7 +264,9 @@ export const LOAD_MODEL: LoadModelSpec = {
 /** Compute the model, honouring env overrides for the driving scale knobs. */
 export function loadModel(env: NodeJS.ProcessEnv = process.env): LoadModelSpec {
   const users = Number(env.LOAD_USERS ?? LOAD_MODEL.registeredUsers);
-  const ratio = Number(env.LOAD_CONCURRENCY_RATIO ?? LOAD_MODEL.concurrentRatio);
+  const ratio = Number(
+    env.LOAD_CONCURRENCY_RATIO ?? LOAD_MODEL.concurrentRatio,
+  );
   const actions = Number(
     env.LOAD_ACTIONS_PER_USER_MIN ?? LOAD_MODEL.actionsPerUserPerMin,
   );

@@ -85,9 +85,7 @@ describe('Redis Integration: Distributed Coordination', () => {
       const pub = new RedisPubSubService(harness.redis);
       const subRedis = harness.redis.getClient().duplicate();
       await subRedis.connect();
-      const sub = new RedisPubSubService(
-        { getClient: () => subRedis } as any,
-      );
+      const sub = new RedisPubSubService({ getClient: () => subRedis } as any);
       await sub.onModuleInit();
 
       const received: unknown[] = [];
@@ -128,9 +126,7 @@ describe('Redis Integration: Distributed Coordination', () => {
 
         await registry.deregister();
         const after = await registry.listInstances();
-        expect(
-          after.some((n) => n.nodeId === process.env.NODE_ID),
-        ).toBe(false);
+        expect(after.some((n) => n.nodeId === process.env.NODE_ID)).toBe(false);
       } finally {
         if (prevNodeId === undefined) {
           delete process.env.NODE_ID;

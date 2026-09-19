@@ -30,11 +30,7 @@ import { MediaController } from './controllers/media.controller';
     ),
   ],
   controllers: [MediaController],
-  providers: [
-    MediaQueueService,
-    MediaProcessingService,
-    MediaWorkersService,
-  ],
+  providers: [MediaQueueService, MediaProcessingService, MediaWorkersService],
   exports: [MediaQueueService, MediaProcessingService],
 })
 export class MediaModule {}

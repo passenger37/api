@@ -10,7 +10,7 @@ describe('SessionsService', () => {
     revoke: jest.fn(),
   } as unknown as SessionsRepository;
 
-  const service = new SessionsService(repository as never);
+  const service = new SessionsService(repository);
 
   beforeEach(() => {
     jest.resetAllMocks();

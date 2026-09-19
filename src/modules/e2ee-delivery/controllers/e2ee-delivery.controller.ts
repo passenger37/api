@@ -13,7 +13,12 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { E2eeDeliveryCommandService } from '../services/e2ee-delivery-command.service';
 import { E2eeDeliveryQueryService } from '../services/e2ee-delivery-query.service';
-import { CreateDeliveryRequest, MarkDeliveryDeliveredDto, MarkDeliveryFailedDto, CreateGroupDeliveryRequest } from '../dto/delivery.request';
+import {
+  CreateDeliveryRequest,
+  MarkDeliveryDeliveredDto,
+  MarkDeliveryFailedDto,
+  CreateGroupDeliveryRequest,
+} from '../dto/delivery.request';
 
 @ApiTags('E2EE Delivery')
 @ApiBearerAuth()
@@ -61,7 +66,10 @@ export class E2eeDeliveryController {
     @Query('deviceId') deviceId: string,
     @Query('limit') limit?: string,
   ) {
-    return this.queryService.getPendingDeliveries(deviceId, limit ? parseInt(limit, 10) : 50);
+    return this.queryService.getPendingDeliveries(
+      deviceId,
+      limit ? parseInt(limit, 10) : 50,
+    );
   }
 
   @Get('pending/count')
@@ -75,7 +83,9 @@ export class E2eeDeliveryController {
 
   // Group Delivery
   @Post('group/enqueue')
-  @ApiOperation({ summary: 'Enqueue a group envelope for delivery to a device' })
+  @ApiOperation({
+    summary: 'Enqueue a group envelope for delivery to a device',
+  })
   async enqueueGroupDelivery(
     @CurrentUser('id') userId: string,
     @Body() dto: CreateGroupDeliveryRequest,
@@ -109,7 +119,10 @@ export class E2eeDeliveryController {
     @Query('deviceId') deviceId: string,
     @Query('limit') limit?: string,
   ) {
-    return this.queryService.getPendingGroupDeliveries(deviceId, limit ? parseInt(limit, 10) : 50);
+    return this.queryService.getPendingGroupDeliveries(
+      deviceId,
+      limit ? parseInt(limit, 10) : 50,
+    );
   }
 
   @Get('group/pending/count')

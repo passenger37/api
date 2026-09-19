@@ -12,7 +12,11 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { E2eeMetadataCommandService } from '../services/e2ee-metadata-command.service';
 import { E2eeMetadataQueryService } from '../services/e2ee-metadata-query.service';
-import { CreateSealedSenderKeyDto, CreatePirRequestDto, UpdateMetadataPolicyDto } from '../dto/metadata.request';
+import {
+  CreateSealedSenderKeyDto,
+  CreatePirRequestDto,
+  UpdateMetadataPolicyDto,
+} from '../dto/metadata.request';
 
 @ApiTags('E2EE Metadata Minimization')
 @ApiBearerAuth()
@@ -73,7 +77,10 @@ export class E2eeMetadataController {
     @Param('requestId') requestId: string,
     @Body('encryptedResponse') encryptedResponse: string,
   ) {
-    return this.commandService.respondToPirRequest(requestId, encryptedResponse);
+    return this.commandService.respondToPirRequest(
+      requestId,
+      encryptedResponse,
+    );
   }
 
   @Post('policy')

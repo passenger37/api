@@ -18,22 +18,30 @@ describe('LoadModelService', () => {
 
     it('computes peak concurrent users from the concurrency curve', () => {
       const model = service.getModel();
-      expect(model.peakConcurrentUsers).toBe(Math.round(1_000_000 * model.concurrentRatio));
+      expect(model.peakConcurrentUsers).toBe(
+        Math.round(1_000_000 * model.concurrentRatio),
+      );
     });
 
     it('derives peak Ops/sec from peak users x actions per minute', () => {
       const model = service.getModel();
-      const expected = Math.round((model.peakConcurrentUsers * model.actionsPerUserPerMin) / 60);
+      const expected = Math.round(
+        (model.peakConcurrentUsers * model.actionsPerUserPerMin) / 60,
+      );
       expect(model.peakOpsPerSec).toBe(expected);
     });
 
     it('operation weights sum to 100', () => {
-      const sum = service.getModel().operations.reduce((s, o) => s + o.weightPct, 0);
+      const sum = service
+        .getModel()
+        .operations.reduce((s, o) => s + o.weightPct, 0);
       expect(sum).toBe(100);
     });
 
     it('async job weights sum to 100', () => {
-      const sum = service.getModel().asyncJobs.reduce((s, j) => s + j.weightPct, 0);
+      const sum = service
+        .getModel()
+        .asyncJobs.reduce((s, j) => s + j.weightPct, 0);
       expect(sum).toBe(100);
     });
 
@@ -66,7 +74,9 @@ describe('LoadModelService', () => {
       const custom = cfg.loadModel(overrides);
       expect(custom.registeredUsers).toBe(100_000);
       expect(custom.peakConcurrentUsers).toBe(10_000);
-      expect(custom.peakOpsPerSec).toBe(Math.round(10_000 * custom.actionsPerUserPerMin / 60));
+      expect(custom.peakOpsPerSec).toBe(
+        Math.round((10_000 * custom.actionsPerUserPerMin) / 60),
+      );
       void model;
     });
   });
@@ -112,7 +122,11 @@ describe('LoadModelService', () => {
           status: '200',
         });
       }
-      metrics.increment('http_errors_total', { method: 'GET', route: '/x', status: '500' }, 3);
+      metrics.increment(
+        'http_errors_total',
+        { method: 'GET', route: '/x', status: '500' },
+        3,
+      );
       const report = service.baseline();
       expect(report.observed.httpRequestsTotal).toBe(10);
       expect(report.observed.httpErrorsTotal).toBe(3);
@@ -133,14 +147,22 @@ describe('LoadModelService', () => {
           status: '200',
         });
       }
-      metrics.increment('http_errors_total', { method: 'GET', route: '/x', status: '500' }, 1);
+      metrics.increment(
+        'http_errors_total',
+        { method: 'GET', route: '/x', status: '500' },
+        1,
+      );
       const report = service.baseline();
       expect(report.observed.errorRate).toBeCloseTo(0.001, 3);
       expect(report.errorsWithinSlo).toBe(true);
     });
 
     it('aggregates job processed/failed counters', () => {
-      metrics.increment('jobs_processed_total', { queue: 'q', job: 'outbox', status: 'success' }, 50);
+      metrics.increment(
+        'jobs_processed_total',
+        { queue: 'q', job: 'outbox', status: 'success' },
+        50,
+      );
       metrics.increment('jobs_failed_total', { queue: 'q', job: 'outbox' }, 5);
       const report = service.baseline();
       expect(report.observed.jobsProcessedTotal).toBe(50);

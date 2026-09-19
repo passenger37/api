@@ -1,7 +1,15 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { E2eeMetadataRepository } from '../repositories/e2ee-metadata.repository';
 import { E2eeDeviceRepository } from '../../e2ee-devices/repositories/e2ee-device.repository';
-import { serializeSealedSenderKey, serializePirRequest, serializeMetadataPolicy } from '../serializers/e2ee-metadata.serializer';
+import {
+  serializeSealedSenderKey,
+  serializePirRequest,
+  serializeMetadataPolicy,
+} from '../serializers/e2ee-metadata.serializer';
 
 @Injectable()
 export class E2eeMetadataQueryService {

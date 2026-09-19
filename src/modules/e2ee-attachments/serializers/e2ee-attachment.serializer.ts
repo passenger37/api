@@ -23,7 +23,9 @@ export interface AttachmentResponse {
   updatedAt: Date;
 }
 
-export function serializeAttachment(attachment: E2eeAttachment): AttachmentResponse {
+export function serializeAttachment(
+  attachment: E2eeAttachment,
+): AttachmentResponse {
   return {
     id: attachment.id,
     sessionId: attachment.sessionId,
@@ -48,6 +50,8 @@ export function serializeAttachment(attachment: E2eeAttachment): AttachmentRespo
   };
 }
 
-export function serializeAttachmentList(attachments: E2eeAttachment[]): AttachmentResponse[] {
+export function serializeAttachmentList(
+  attachments: E2eeAttachment[],
+): AttachmentResponse[] {
   return attachments.map(serializeAttachment);
 }

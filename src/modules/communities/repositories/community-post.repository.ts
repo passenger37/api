@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { CommunityPost, CommunityPostStatus, CommunityPostVisibility, Prisma } from '@prisma/client';
+import {
+  CommunityPost,
+  CommunityPostStatus,
+  CommunityPostVisibility,
+  Prisma,
+} from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
 import { PostCursor } from '../pagination/community-cursor';
@@ -174,7 +179,10 @@ export class CommunityPostRepository {
     });
   }
 
-  async incrementViewCount(id: string, tx?: Prisma.TransactionClient): Promise<void> {
+  async incrementViewCount(
+    id: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
     const client = tx ?? this.prisma;
 
     await client.communityPost.update({
@@ -198,12 +206,15 @@ export class CommunityPostRepository {
     communityId: string,
     sort: FeedSort,
     limit: number,
-    cursor?: { isPinned: boolean; sortKey: string; createdAt: string; id: string },
+    cursor?: {
+      isPinned: boolean;
+      sortKey: string;
+      createdAt: string;
+      id: string;
+    },
     options?: { categoryId?: string; authorId?: string },
   ): Promise<CommunityPostWithRelations[]> {
-    const visibleStatuses: CommunityPostStatus[] = [
-      CommunityPostStatus.ACTIVE,
-    ];
+    const visibleStatuses: CommunityPostStatus[] = [CommunityPostStatus.ACTIVE];
 
     return this.prisma.communityPost.findMany({
       where: {
@@ -211,7 +222,10 @@ export class CommunityPostRepository {
         isDeleted: false,
         status: { in: visibleStatuses },
         visibility: {
-          in: [CommunityPostVisibility.PUBLIC, CommunityPostVisibility.COMMUNITY_MEMBERS],
+          in: [
+            CommunityPostVisibility.PUBLIC,
+            CommunityPostVisibility.COMMUNITY_MEMBERS,
+          ],
         },
         ...(options?.categoryId ? { categoryId: options.categoryId } : {}),
         ...(options?.authorId ? { authorUserId: options.authorId } : {}),
@@ -259,11 +273,7 @@ export class CommunityPostRepository {
         ];
       case 'LATEST':
       default:
-        return [
-          { isPinned: 'desc' },
-          { createdAt: 'desc' },
-          { id: 'desc' },
-        ];
+        return [{ isPinned: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }];
     }
   }
 
@@ -277,7 +287,12 @@ export class CommunityPostRepository {
    */
   private feedCursorWhere(
     sort: FeedSort,
-    cursor?: { isPinned: boolean; sortKey: string; createdAt: string; id: string },
+    cursor?: {
+      isPinned: boolean;
+      sortKey: string;
+      createdAt: string;
+      id: string;
+    },
   ): Prisma.CommunityPostWhereInput {
     if (!cursor) {
       return {};
@@ -297,16 +312,12 @@ export class CommunityPostRepository {
       // orderBy: [isPinned desc, createdAt desc, id desc]
       return cursor.isPinned
         ? {
-            OR: [
-              { AND: [{ isPinned: true }, timeAfter] },
-              { isPinned: false },
-            ],
+            OR: [{ AND: [{ isPinned: true }, timeAfter] }, { isPinned: false }],
           }
         : { AND: [{ isPinned: false }, timeAfter] };
     }
 
-    const keyField =
-      sort === 'CONTROVERSIAL' ? 'downvoteCount' : 'upvoteCount';
+    const keyField = sort === 'CONTROVERSIAL' ? 'downvoteCount' : 'upvoteCount';
 
     const keyAfter = {
       OR: [
@@ -320,10 +331,7 @@ export class CommunityPostRepository {
     // orderBy (keyed): [isPinned desc, keyField desc, createdAt desc, id desc]
     return cursor.isPinned
       ? {
-          OR: [
-            { AND: [{ isPinned: true }, keyAfter] },
-            { isPinned: false },
-          ],
+          OR: [{ AND: [{ isPinned: true }, keyAfter] }, { isPinned: false }],
         }
       : { AND: [{ isPinned: false }, keyAfter] };
   }
@@ -363,10 +371,7 @@ export class CommunityPostRepository {
         // Cursor is pinned: only the same-pinned-group rows that are older
         // or same-time-with-smaller-id are "before" the cursor.
         {
-          AND: [
-            { isPinned: true },
-            { createdAt: { lt: cursor.createdAt } },
-          ],
+          AND: [{ isPinned: true }, { createdAt: { lt: cursor.createdAt } }],
         },
         {
           AND: [

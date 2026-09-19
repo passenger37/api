@@ -26,13 +26,19 @@ describe('TraceService', () => {
   });
 
   it('should propagate the trace id across nested async calls', async () => {
-    await service.run({ traceId: 'trace-nested', parentId: 'span-1' }, async () => {
-      expect(service.getTraceId()).toBe('trace-nested');
-      expect(service.getContext()).toEqual({ traceId: 'trace-nested', parentId: 'span-1' });
+    await service.run(
+      { traceId: 'trace-nested', parentId: 'span-1' },
+      async () => {
+        expect(service.getTraceId()).toBe('trace-nested');
+        expect(service.getContext()).toEqual({
+          traceId: 'trace-nested',
+          parentId: 'span-1',
+        });
 
-      await new Promise((resolve) => setTimeout(resolve, 5));
-      expect(service.getTraceId()).toBe('trace-nested');
-    });
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        expect(service.getTraceId()).toBe('trace-nested');
+      },
+    );
   });
 
   it('should not leak trace id between concurrent runs', async () => {

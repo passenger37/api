@@ -1,6 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { UsersRepository } from '../repositories/users.repository';
+import { UserSocialRepository } from '../repositories/user-social.repository';
+
+import { FollowStateResponse } from '../dto/response/follow-state.response';
+import { FollowStateStatus } from '../enums/follow-state-status.enum';
 
 import {
   CurrentUserDto,
@@ -8,31 +12,20 @@ import {
   UserResponseDto,
 } from '../responses';
 
-import { UserMapper } from '../mappers';
-
-import { PaginationMapper } from '../../../common/pagination/mappers/pagination.mapper';
-
-import { QueryUsersDto } from '../dto/query-users.dto';
-
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { PaginationResponseDto } from 'src/common/dto/pagination-response.dto';
 
-import { SearchUsersRequest } from '../dto/request/search-users.request';
-
-import { SearchUserResponse } from '../dto/response/search-user.response';
-
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
-
 import { FollowerResponse } from '../dto/response/follower.response';
-
-import { UserSocialRepository } from '../repositories/user-social.repository';
-
 import { UserRelationshipStatsResponse } from '../dto/response/user-relationship-stats.response';
-
 import { BlockedUserResponse } from '../dto/response/blocked-user.response';
-
 import { MutedUserResponse } from '../dto/response/muted-user.response';
-
 import { CircleMemberResponse } from '../dto/response/circle-member.response';
+
+import { UserMapper } from '../mappers/user.mapper';
+import { SearchUsersRequest } from '../dto/request/search-users.request';
+import { SearchUserResponse } from '../dto/response/search-user.response';
+import { PaginationMapper } from 'src/common/pagination/mappers/pagination.mapper';
+import { QueryUsersDto } from '../dto/query-users.dto';
 
 @Injectable()
 export class UserQueryService {
@@ -234,6 +227,30 @@ export class UserQueryService {
   // =====================================================
   // Relationship Statistics
   // =====================================================
+
+  async getFollowState(
+    currentUserId: string,
+    targetUserId: string,
+  ): Promise<FollowStateResponse> {
+    const targetExists = await this.usersRepository.existsById(targetUserId);
+
+    if (!targetExists) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const [isFollowing, hasRequest] = await Promise.all([
+      this.socialRepository.existsFollow(currentUserId, targetUserId),
+      this.socialRepository.existsFollowRequest(currentUserId, targetUserId),
+    ]);
+
+    const status = isFollowing
+      ? FollowStateStatus.FOLLOWED
+      : hasRequest
+        ? FollowStateStatus.REQUESTED
+        : FollowStateStatus.NOT_FOLLOWING;
+
+    return { status };
+  }
 
   async getRelationshipStats(
     currentUserId: string,

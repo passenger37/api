@@ -1,5 +1,13 @@
-import { serializeSession, serializeUserPresence, serializeTypingState } from './realtime.mapper';
-import { RealtimePresenceStatus, RealtimeTypingState, RealtimeUserPresence } from '../types/realtime.types';
+import {
+  serializeSession,
+  serializeUserPresence,
+  serializeTypingState,
+} from './realtime.mapper';
+import {
+  RealtimePresenceStatus,
+  RealtimeTypingState,
+  RealtimeUserPresence,
+} from '../types/realtime.types';
 
 describe('realtime.mapper', () => {
   it('serializeSession returns expected shape', () => {

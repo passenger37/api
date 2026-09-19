@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { BackgroundJob, BackgroundJobSchedule, BackgroundJobDeadLetter, BackgroundJobMetrics, Prisma } from '@prisma/client';
+import {
+  BackgroundJob,
+  BackgroundJobSchedule,
+  BackgroundJobDeadLetter,
+  BackgroundJobMetrics,
+  Prisma,
+} from '@prisma/client';
 
 @Injectable()
 export class BackgroundJobsRepository {
@@ -20,12 +26,18 @@ export class BackgroundJobsRepository {
   }
 
   async findJobByIdempotencyKey(key: string): Promise<BackgroundJob | null> {
-    return this.prisma.backgroundJob.findUnique({ where: { idempotencyKey: key } });
+    return this.prisma.backgroundJob.findUnique({
+      where: { idempotencyKey: key },
+    });
   }
 
   async findJobs(
     where: Prisma.BackgroundJobWhereInput,
-    options?: { limit?: number; cursor?: string; orderBy?: Prisma.BackgroundJobOrderByWithRelationInput },
+    options?: {
+      limit?: number;
+      cursor?: string;
+      orderBy?: Prisma.BackgroundJobOrderByWithRelationInput;
+    },
   ): Promise<BackgroundJob[]> {
     return this.prisma.backgroundJob.findMany({
       where,
@@ -71,7 +83,9 @@ export class BackgroundJobsRepository {
     return this.prisma.backgroundJobSchedule.findUnique({ where: { id } });
   }
 
-  async findScheduleByName(name: string): Promise<BackgroundJobSchedule | null> {
+  async findScheduleByName(
+    name: string,
+  ): Promise<BackgroundJobSchedule | null> {
     return this.prisma.backgroundJobSchedule.findUnique({ where: { name } });
   }
 
@@ -121,7 +135,10 @@ export class BackgroundJobsRepository {
     });
   }
 
-  async resolveDeadLetter(id: string, resolutionNotes: string): Promise<BackgroundJobDeadLetter> {
+  async resolveDeadLetter(
+    id: string,
+    resolutionNotes: string,
+  ): Promise<BackgroundJobDeadLetter> {
     return this.prisma.backgroundJobDeadLetter.update({
       where: { id },
       data: {
@@ -135,10 +152,7 @@ export class BackgroundJobsRepository {
   async upsertMetrics(
     date: Date,
     queueName: string,
-    data: Omit<
-      Prisma.BackgroundJobMetricsCreateInput,
-      'date' | 'queueName'
-    >,
+    data: Omit<Prisma.BackgroundJobMetricsCreateInput, 'date' | 'queueName'>,
     tx?: Prisma.TransactionClient,
   ): Promise<BackgroundJobMetrics> {
     const client = tx ?? this.prisma;
@@ -187,8 +201,8 @@ export class BackgroundJobsRepository {
     let totalLatency = 0;
     let peakConcurrent = 0;
     let totalQueueTime = 0;
-    let totalRetries = 0;
-    let totalJobs = 0;
+    const totalRetries = 0;
+    const totalJobs = 0;
 
     for (const m of metrics) {
       totalProcessed += m.totalProcessed;
@@ -205,10 +219,17 @@ export class BackgroundJobsRepository {
       succeeded,
       failed,
       cancelled,
-      avgProcessingTimeMs: totalProcessed > 0 ? totalLatency / totalProcessed : 0,
+      avgProcessingTimeMs:
+        totalProcessed > 0 ? totalLatency / totalProcessed : 0,
       peakConcurrent,
       avgQueueTimeMs: totalProcessed > 0 ? totalQueueTime / totalProcessed : 0,
-      retryRate: totalProcessed > 0 ? (metrics.reduce((sum, m) => sum + (m.failed / Math.max(m.totalProcessed, 1)), 0) / metrics.length) : 0,
+      retryRate:
+        totalProcessed > 0
+          ? metrics.reduce(
+              (sum, m) => sum + m.failed / Math.max(m.totalProcessed, 1),
+              0,
+            ) / metrics.length
+          : 0,
     };
   }
 }

@@ -21,7 +21,7 @@ async function bootstrap() {
   await redisIoAdapter.connectToRedis();
   app.useWebSocketAdapter(redisIoAdapter);
 
-  const expressApp = app.getHttpAdapter().getInstance() as any;
+  const expressApp = app.getHttpAdapter().getInstance();
 
   expressApp.set(
     'trust proxy',
@@ -36,9 +36,7 @@ async function bootstrap() {
 
   app.useLogger(app.get(Logger));
   // app.useGlobalPipes(createValidationPipe());
-  app.useGlobalFilters(
-    new GlobalExceptionFilter(app.get(StructuredLogger)),
-  );
+  app.useGlobalFilters(new GlobalExceptionFilter(app.get(StructuredLogger)));
 
   app.enableShutdownHooks();
 

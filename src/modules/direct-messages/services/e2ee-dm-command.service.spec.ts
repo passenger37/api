@@ -62,7 +62,10 @@ describe('E2eeDmCommandService (security: ciphertext-only transport)', () => {
     sessionRepo = { findById: jest.fn() };
     deviceRepo = { findById: jest.fn() };
     dmCommandService = { assertNotBlockedForChannel: jest.fn() };
-    e2eeAttachmentService = { createAttachment: jest.fn(), linkMessage: jest.fn() };
+    e2eeAttachmentService = {
+      createAttachment: jest.fn(),
+      linkMessage: jest.fn(),
+    };
     gateway = {
       broadcastE2eeMessageCreated: jest.fn(),
     };

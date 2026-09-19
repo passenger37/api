@@ -11,7 +11,9 @@ export interface KeyTransparencyResponse {
   createdAt: Date;
 }
 
-export function serializeKeyTransparency(entry: E2eeKeyTransparencyEntry): KeyTransparencyResponse {
+export function serializeKeyTransparency(
+  entry: E2eeKeyTransparencyEntry,
+): KeyTransparencyResponse {
   return {
     id: entry.id,
     userId: entry.userId,
@@ -24,6 +26,8 @@ export function serializeKeyTransparency(entry: E2eeKeyTransparencyEntry): KeyTr
   };
 }
 
-export function serializeKeyTransparencyList(entries: E2eeKeyTransparencyEntry[]): KeyTransparencyResponse[] {
+export function serializeKeyTransparencyList(
+  entries: E2eeKeyTransparencyEntry[],
+): KeyTransparencyResponse[] {
   return entries.map(serializeKeyTransparency);
 }

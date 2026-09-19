@@ -137,9 +137,13 @@ export class CommunityPostService {
 
     const response = serializePost(withRelations);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_CREATED, {
-      post: response,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.POST_CREATED,
+      {
+        post: response,
+      },
+    );
 
     await this.invalidateFeed(community.id);
 
@@ -191,9 +195,13 @@ export class CommunityPostService {
 
     const response = serializePost(withRelations);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_UPDATED, {
-      post: response,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.POST_UPDATED,
+      {
+        post: response,
+      },
+    );
 
     await this.invalidateFeed(community.id);
 
@@ -219,10 +227,14 @@ export class CommunityPostService {
 
     await this.invalidateFeed(community.id);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_DELETED, {
-      postId,
-      communityId: community.id,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.POST_DELETED,
+      {
+        postId,
+        communityId: community.id,
+      },
+    );
   }
 
   async listPosts(
@@ -316,10 +328,14 @@ export class CommunityPostService {
       replies: [],
     });
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.COMMENT_CREATED, {
-      postId: post.id,
-      comment: response,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.COMMENT_CREATED,
+      {
+        postId: post.id,
+        comment: response,
+      },
+    );
 
     return response;
   }
@@ -361,11 +377,15 @@ export class CommunityPostService {
       replies: [],
     });
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.COMMENT_CREATED, {
-      postId: post.id,
-      comment: response,
-      parentCommentId: parent.id,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.COMMENT_CREATED,
+      {
+        postId: post.id,
+        comment: response,
+        parentCommentId: parent.id,
+      },
+    );
 
     return response;
   }
@@ -408,10 +428,14 @@ export class CommunityPostService {
       replies: [],
     });
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.COMMENT_UPDATED, {
-      postId: post.id,
-      comment: response,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.COMMENT_UPDATED,
+      {
+        postId: post.id,
+        comment: response,
+      },
+    );
 
     return response;
   }
@@ -443,11 +467,15 @@ export class CommunityPostService {
 
     await this.commentRepository.softDelete(commentId);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.COMMENT_DELETED, {
-      postId: post.id,
-      commentId,
-      communityId: community.id,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.COMMENT_DELETED,
+      {
+        postId: post.id,
+        commentId,
+        communityId: community.id,
+      },
+    );
   }
 
   async listComments(
@@ -542,7 +570,9 @@ export class CommunityPostService {
 
     for (const sort of COMMUNITY_FEED_SORTS_ALL) {
       for (const limit of COMMUNITY_FEED_CACHE_LIMITS) {
-        keys.push(communityFeedCacheKey(communityId, sort, null, limit, 'first'));
+        keys.push(
+          communityFeedCacheKey(communityId, sort, null, limit, 'first'),
+        );
       }
     }
 

@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { E2eeDeviceRevocation, E2eeRevocationReason, Prisma } from '@prisma/client';
+import {
+  E2eeDeviceRevocation,
+  E2eeRevocationReason,
+  Prisma,
+} from '@prisma/client';
 
 @Injectable()
 export class E2eeRevocationRepository {

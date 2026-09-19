@@ -20,9 +20,7 @@ import { ListModerationQuery } from '../dto/query/list-moderation.query';
 @UseGuards(JwtAuthGuard)
 @Controller('communities')
 export class CommunityModerationController {
-  constructor(
-    private readonly moderationService: CommunityModerationService,
-  ) {}
+  constructor(private readonly moderationService: CommunityModerationService) {}
 
   @Get(':slug/moderation')
   async list(

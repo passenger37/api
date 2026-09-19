@@ -17,7 +17,10 @@ describe('DeprecationHeaderInterceptor', () => {
     };
     const context = {
       getType: () => 'http',
-      switchToHttp: () => ({ getRequest: () => ({ url }), getResponse: () => response }),
+      switchToHttp: () => ({
+        getRequest: () => ({ url }),
+        getResponse: () => response,
+      }),
     } as unknown as ExecutionContext;
     return context;
   };
@@ -26,7 +29,7 @@ describe('DeprecationHeaderInterceptor', () => {
     versions = new ApiVersionControlService();
     interceptor = new DeprecationHeaderInterceptor(versions);
     setHeader = jest.fn();
-    handler = { handle: () => of({ ok: true }) } as unknown as CallHandler;
+    handler = { handle: () => of({ ok: true }) };
   });
 
   it('adds deprecation headers for a deprecated /v1 request', (done) => {
@@ -55,7 +58,9 @@ describe('DeprecationHeaderInterceptor', () => {
     const headers: Record<string, string> = {};
     const wsContext = {
       getType: () => 'ws',
-      switchToHttp: () => { throw new Error('no http'); },
+      switchToHttp: () => {
+        throw new Error('no http');
+      },
     } as unknown as ExecutionContext;
     interceptor.intercept(wsContext, handler).subscribe(() => {
       interceptor

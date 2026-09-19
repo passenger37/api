@@ -39,7 +39,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         // never settled). After a session was ever established the strategy
         // stays unlimited so a mid-session outage auto-recovers.
         reconnectStrategy: (retries) => {
-          if (!this.hadConnection && retries >= MAX_INITIAL_RECONNECT_ATTEMPTS) {
+          if (
+            !this.hadConnection &&
+            retries >= MAX_INITIAL_RECONNECT_ATTEMPTS
+          ) {
             return false;
           }
           return Math.min(2 ** retries * 100, 2000);

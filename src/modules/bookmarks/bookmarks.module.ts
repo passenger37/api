@@ -13,6 +13,11 @@ import { BookmarkRepository } from './repositories/bookmark.repository';
     BookmarkQueryService,
     BookmarkCollectionService,
   ],
-  exports: [BookmarkRepository, BookmarkQueryService, BookmarkCommandService, BookmarkCollectionService],
+  exports: [
+    BookmarkRepository,
+    BookmarkQueryService,
+    BookmarkCommandService,
+    BookmarkCollectionService,
+  ],
 })
 export class BookmarksModule {}

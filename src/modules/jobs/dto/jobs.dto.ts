@@ -1,4 +1,17 @@
-import { IsUUID, IsString, IsOptional, IsEnum, IsNumber, Min, Max, IsArray, IsObject, IsBoolean, IsDateString, ValidateNested } from 'class-validator';
+import {
+  IsUUID,
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  Min,
+  Max,
+  IsArray,
+  IsObject,
+  IsBoolean,
+  IsDateString,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -7,8 +20,28 @@ export class EnqueueJobDto {
   @IsString()
   name!: string;
 
-  @ApiProperty({ enum: ['jobs:default', 'jobs:high', 'jobs:low', 'jobs:scheduled', 'jobs:webhooks', 'jobs:notifications', 'jobs:cleanup', 'jobs:analytics'] })
-  @IsEnum(['jobs:default', 'jobs:high', 'jobs:low', 'jobs:scheduled', 'jobs:webhooks', 'jobs:notifications', 'jobs:cleanup', 'jobs:analytics'])
+  @ApiProperty({
+    enum: [
+      'jobs:default',
+      'jobs:high',
+      'jobs:low',
+      'jobs:scheduled',
+      'jobs:webhooks',
+      'jobs:notifications',
+      'jobs:cleanup',
+      'jobs:analytics',
+    ],
+  })
+  @IsEnum([
+    'jobs:default',
+    'jobs:high',
+    'jobs:low',
+    'jobs:scheduled',
+    'jobs:webhooks',
+    'jobs:notifications',
+    'jobs:cleanup',
+    'jobs:analytics',
+  ])
   queueName!: string;
 
   @ApiProperty()
@@ -64,9 +97,30 @@ export class GetJobsQueryDto {
   @IsString()
   queueName?: string;
 
-  @ApiProperty({ required: false, enum: ['PENDING', 'QUEUED', 'SCHEDULED', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED', 'RETRYING'] })
+  @ApiProperty({
+    required: false,
+    enum: [
+      'PENDING',
+      'QUEUED',
+      'SCHEDULED',
+      'PROCESSING',
+      'COMPLETED',
+      'FAILED',
+      'CANCELLED',
+      'RETRYING',
+    ],
+  })
   @IsOptional()
-  @IsEnum(['PENDING', 'QUEUED', 'SCHEDULED', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED', 'RETRYING'])
+  @IsEnum([
+    'PENDING',
+    'QUEUED',
+    'SCHEDULED',
+    'PROCESSING',
+    'COMPLETED',
+    'FAILED',
+    'CANCELLED',
+    'RETRYING',
+  ])
   status?: string;
 
   @ApiProperty({ required: false, default: 50 })
@@ -170,7 +224,27 @@ export class GetMetricsDto {
 }
 
 export class QueueManagementDto {
-  @ApiProperty({ enum: ['jobs:default', 'jobs:high', 'jobs:low', 'jobs:scheduled', 'jobs:webhooks', 'jobs:notifications', 'jobs:cleanup', 'jobs:analytics'] })
-  @IsEnum(['jobs:default', 'jobs:high', 'jobs:low', 'jobs:scheduled', 'jobs:webhooks', 'jobs:notifications', 'jobs:cleanup', 'jobs:analytics'])
+  @ApiProperty({
+    enum: [
+      'jobs:default',
+      'jobs:high',
+      'jobs:low',
+      'jobs:scheduled',
+      'jobs:webhooks',
+      'jobs:notifications',
+      'jobs:cleanup',
+      'jobs:analytics',
+    ],
+  })
+  @IsEnum([
+    'jobs:default',
+    'jobs:high',
+    'jobs:low',
+    'jobs:scheduled',
+    'jobs:webhooks',
+    'jobs:notifications',
+    'jobs:cleanup',
+    'jobs:analytics',
+  ])
   queueName!: string;
 }

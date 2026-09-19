@@ -7,8 +7,14 @@ import {
 import { PrismaService } from '../../../core/database/prisma.service';
 import { E2eeRevocationRepository } from '../repositories/e2ee-revocation.repository';
 import { E2eeDeviceRepository } from '../../e2ee-devices/repositories/e2ee-device.repository';
-import { serializeRevocation, serializeRevocationList } from '../serializers/e2ee-revocation.serializer';
-import { RevokeDeviceRequest, AcknowledgeRevocationRequest } from '../dto/revocation.request';
+import {
+  serializeRevocation,
+  serializeRevocationList,
+} from '../serializers/e2ee-revocation.serializer';
+import {
+  RevokeDeviceRequest,
+  AcknowledgeRevocationRequest,
+} from '../dto/revocation.request';
 import { E2eeRevocationReason } from '@prisma/client';
 
 @Injectable()
@@ -19,7 +25,10 @@ export class E2eeRevocationCommandService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async revokeDevice(userId: string, dto: RevokeDeviceRequest): Promise<{ success: boolean; revocation: any }> {
+  async revokeDevice(
+    userId: string,
+    dto: RevokeDeviceRequest,
+  ): Promise<{ success: boolean; revocation: any }> {
     const device = await this.deviceRepo.findActiveById(dto.deviceId);
     if (!device) {
       throw new NotFoundException('Device not found or already revoked');
@@ -70,7 +79,10 @@ export class E2eeRevocationCommandService {
     return { success: true, revocation: serializeRevocation(revocation) };
   }
 
-  async acknowledgeRevocation(userId: string, dto: AcknowledgeRevocationRequest): Promise<{ success: boolean; revocation: any }> {
+  async acknowledgeRevocation(
+    userId: string,
+    dto: AcknowledgeRevocationRequest,
+  ): Promise<{ success: boolean; revocation: any }> {
     const revocation = await this.revocationRepo.findById(dto.revocationId);
     if (!revocation) {
       throw new NotFoundException('Revocation not found');
@@ -80,14 +92,22 @@ export class E2eeRevocationCommandService {
       where: { id: revocation.deviceId },
     });
     if (!device || device.userId !== userId) {
-      throw new ForbiddenException('Not authorized to acknowledge this revocation');
+      throw new ForbiddenException(
+        'Not authorized to acknowledge this revocation',
+      );
     }
 
-    const updated = await this.revocationRepo.updateAcknowledged(dto.revocationId);
+    const updated = await this.revocationRepo.updateAcknowledged(
+      dto.revocationId,
+    );
     return { success: true, revocation: serializeRevocation(updated) };
   }
 
-  async requestReplacement(userId: string, revokedDeviceId: string, replacementDeviceId: string): Promise<{ success: boolean; revocation: any }> {
+  async requestReplacement(
+    userId: string,
+    revokedDeviceId: string,
+    replacementDeviceId: string,
+  ): Promise<{ success: boolean; revocation: any }> {
     const revocation = await this.prisma.e2eeDeviceRevocation.findFirst({
       where: { deviceId: revokedDeviceId },
       orderBy: { revokedAt: 'desc' },

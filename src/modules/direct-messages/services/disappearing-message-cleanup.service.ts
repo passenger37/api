@@ -66,7 +66,9 @@ export class DisappearingMessageCleanupService {
     }
 
     if (totalDeleted > 0) {
-      this.logger.log(`Cleaned up ${totalDeleted} expired disappearing messages`);
+      this.logger.log(
+        `Cleaned up ${totalDeleted} expired disappearing messages`,
+      );
     }
   }
 }

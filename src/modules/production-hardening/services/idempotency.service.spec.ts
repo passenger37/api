@@ -15,16 +15,26 @@ describe('IdempotencyService', () => {
   });
 
   it('returns isFirstRequest: true for new key', async () => {
-    const result = await service.checkAndMark({ key: 'test-key', ttlSeconds: 3600 });
+    const result = await service.checkAndMark({
+      key: 'test-key',
+      ttlSeconds: 3600,
+    });
 
     expect(result.isFirstRequest).toBe(true);
-    expect(redis.set).toHaveBeenCalledWith('idempotency:test-key', 'processing', 3600);
+    expect(redis.set).toHaveBeenCalledWith(
+      'idempotency:test-key',
+      'processing',
+      3600,
+    );
   });
 
   it('returns isFirstRequest: false for existing key', async () => {
     redis.get.mockResolvedValueOnce('{"data": "existing"}');
 
-    const result = await service.checkAndMark({ key: 'test-key', ttlSeconds: 3600 });
+    const result = await service.checkAndMark({
+      key: 'test-key',
+      ttlSeconds: 3600,
+    });
 
     expect(result.isFirstRequest).toBe(false);
     expect(result.existingResult).toEqual({ data: 'existing' });
@@ -33,7 +43,11 @@ describe('IdempotencyService', () => {
   it('stores result correctly', async () => {
     await service.storeResult('test-key', { result: 'success' }, 3600);
 
-    expect(redis.set).toHaveBeenCalledWith('idempotency:test-key', JSON.stringify({ result: 'success' }), 3600);
+    expect(redis.set).toHaveBeenCalledWith(
+      'idempotency:test-key',
+      JSON.stringify({ result: 'success' }),
+      3600,
+    );
   });
 
   it('gets stored result', async () => {

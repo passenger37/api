@@ -1,4 +1,8 @@
-import { INestApplication, ValidationPipe, ValidationPipeOptions } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  ValidationPipeOptions,
+} from '@nestjs/common';
 
 /**
  * Lecture 40.85 - OpenAPI/Swagger Hardening (contract alignment).

@@ -1,4 +1,10 @@
-import { IsEnum, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum BookmarkTargetType {
@@ -25,7 +31,7 @@ export class CreateBookmarkDto {
 
   @ApiPropertyOptional({ example: 'collection-id', required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   collectionId?: string;
 }
 
@@ -46,14 +52,18 @@ export class ListBookmarksDto {
 
   @ApiPropertyOptional({ example: 'collection-id', required: false })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   collectionId?: string;
 }
 
 export class MoveBookmarkDto {
-  @ApiPropertyOptional({ example: 'collection-id', required: false, nullable: true })
+  @ApiPropertyOptional({
+    example: 'collection-id',
+    required: false,
+    nullable: true,
+  })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   collectionId?: string | null;
 }
 
@@ -64,7 +74,10 @@ export class CreateBookmarkCollectionDto {
   @MaxLength(100)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Saved posts about backend development', maxLength: 500 })
+  @ApiPropertyOptional({
+    example: 'Saved posts about backend development',
+    maxLength: 500,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -83,7 +96,10 @@ export class UpdateBookmarkCollectionDto {
   @MaxLength(100)
   name?: string;
 
-  @ApiPropertyOptional({ example: 'Saved posts about backend development', maxLength: 500 })
+  @ApiPropertyOptional({
+    example: 'Saved posts about backend development',
+    maxLength: 500,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(500)

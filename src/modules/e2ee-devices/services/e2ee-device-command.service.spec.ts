@@ -83,7 +83,7 @@ describe('E2eeDeviceCommandService', () => {
       });
       oneTimePreKeyRepository.addBatch.mockResolvedValue(2);
 
-      const result = await service.register('userA', request as any);
+      const result = await service.register('userA', request);
 
       expect(deviceRepository.create).toHaveBeenCalledWith(
         {
@@ -148,11 +148,7 @@ describe('E2eeDeviceCommandService', () => {
         isActive: true,
       });
 
-      const result = await service.rotateSignedPreKey(
-        'userA',
-        'dev1',
-        request as any,
-      );
+      const result = await service.rotateSignedPreKey('userA', 'dev1', request);
 
       expect(signedPreKeyRepository.rotate).toHaveBeenCalledWith(
         'dev1',
@@ -196,7 +192,7 @@ describe('E2eeDeviceCommandService', () => {
 
       const result = await service.refillOneTimePreKeys('userA', 'dev1', {
         keys,
-      } as any);
+      });
 
       expect(oneTimePreKeyRepository.addBatch).toHaveBeenCalledWith(
         'dev1',

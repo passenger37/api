@@ -9,8 +9,14 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
 import { BookmarkCommandService } from '../services/bookmark-command.service';
@@ -25,7 +31,10 @@ import {
   BatchBookmarkStatusDto,
 } from '../dto/create-bookmark.dto';
 import { BookmarkTargetType } from '../types/bookmark.types';
-import { mapBookmarkToResponse, mapCollectionToResponse } from '../mappers/bookmark.mapper';
+import {
+  mapBookmarkToResponse,
+  mapCollectionToResponse,
+} from '../mappers/bookmark.mapper';
 
 @ApiTags('Bookmarks')
 @ApiBearerAuth()
@@ -44,10 +53,22 @@ export class BookmarkController {
   async save(@CurrentUser() user: User, @Body() dto: CreateBookmarkDto) {
     const result = await this.commandService.save(user.id, dto);
     return {
-      success: true,
-      data: mapBookmarkToResponse(result.bookmark),
+      ...mapBookmarkToResponse(result.bookmark),
       isNew: result.isNew,
     };
+  }
+
+  @Delete('collections/:collectionId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete collection' })
+  @ApiResponse({ status: 200, description: 'Collection deleted' })
+  @ApiResponse({ status: 404, description: 'Collection not found' })
+  async deleteCollection(
+    @CurrentUser() user: User,
+    @Param('collectionId') collectionId: string,
+  ) {
+    await this.commandService.deleteCollection(user.id, collectionId);
+    return { deleted: true };
   }
 
   @Delete(':targetType/:targetId')
@@ -61,7 +82,7 @@ export class BookmarkController {
     @Param('targetId') targetId: string,
   ) {
     await this.commandService.unsave(user.id, targetType, targetId);
-    return { success: true };
+    return { removed: true };
   }
 
   @Get()
@@ -70,12 +91,9 @@ export class BookmarkController {
   async list(@CurrentUser() user: User, @Query() dto: ListBookmarksDto) {
     const result = await this.queryService.getSavedItems(user.id, dto);
     return {
-      success: true,
-      data: {
-        items: result.items.map(mapBookmarkToResponse),
-        nextCursor: result.nextCursor,
-        hasMore: result.hasMore,
-      },
+      items: result.items.map(mapBookmarkToResponse),
+      nextCursor: result.nextCursor,
+      hasMore: result.hasMore,
     };
   }
 
@@ -87,16 +105,21 @@ export class BookmarkController {
     @Query('targetType') targetType: BookmarkTargetType,
     @Query('targetId') targetId: string,
   ) {
-    const status = await this.queryService.getSingleBookmarkStatus(user.id, targetType, targetId);
-    return { success: true, data: status };
+    return this.queryService.getSingleBookmarkStatus(
+      user.id,
+      targetType,
+      targetId,
+    );
   }
 
   @Post('status/batch')
   @ApiOperation({ summary: 'Get bookmark status for multiple targets (batch)' })
   @ApiResponse({ status: 200, description: 'Batch bookmark status' })
-  async getBatchStatus(@CurrentUser() user: User, @Body() dto: BatchBookmarkStatusDto) {
-    const statuses = await this.queryService.getBookmarkStatus(user.id, dto);
-    return { success: true, data: statuses };
+  async getBatchStatus(
+    @CurrentUser() user: User,
+    @Body() dto: BatchBookmarkStatusDto,
+  ) {
+    return this.queryService.getBookmarkStatus(user.id, dto);
   }
 
   @Patch(':bookmarkId/collection')
@@ -108,31 +131,38 @@ export class BookmarkController {
     @Param('bookmarkId') bookmarkId: string,
     @Body() dto: MoveBookmarkDto,
   ) {
-    const bookmark = await this.commandService.moveToCollection(user.id, bookmarkId, dto);
-    return { success: true, data: mapBookmarkToResponse(bookmark) };
+    const bookmark = await this.commandService.moveToCollection(
+      user.id,
+      bookmarkId,
+      dto,
+    );
+    return mapBookmarkToResponse(bookmark);
   }
 
   @Post('collections')
   @ApiOperation({ summary: 'Create a new collection' })
   @ApiResponse({ status: 201, description: 'Collection created' })
   @ApiResponse({ status: 409, description: 'Collection name already exists' })
-  async createCollection(@CurrentUser() user: User, @Body() dto: CreateBookmarkCollectionDto) {
+  async createCollection(
+    @CurrentUser() user: User,
+    @Body() dto: CreateBookmarkCollectionDto,
+  ) {
     const collection = await this.commandService.createCollection(user.id, dto);
-    return { success: true, data: mapCollectionToResponse(collection) };
+    return mapCollectionToResponse(collection);
   }
 
   @Get('collections')
   @ApiOperation({ summary: 'Get paginated collections' })
   @ApiResponse({ status: 200, description: 'List of collections' })
-  async listCollections(@CurrentUser() user: User, @Query() dto: ListBookmarksDto) {
+  async listCollections(
+    @CurrentUser() user: User,
+    @Query() dto: ListBookmarksDto,
+  ) {
     const result = await this.collectionService.getCollections(user.id, dto);
     return {
-      success: true,
-      data: {
-        items: result.items.map(mapCollectionToResponse),
-        nextCursor: result.nextCursor,
-        hasMore: result.hasMore,
-      },
+      items: result.items.map(mapCollectionToResponse),
+      nextCursor: result.nextCursor,
+      hasMore: result.hasMore,
     };
   }
 
@@ -146,23 +176,24 @@ export class BookmarkController {
     @Query('limit') limit: number = 20,
     @Query('cursor') cursor?: string,
   ) {
-    const result = await this.collectionService.getCollectionWithItems(user.id, collectionId, {
-      limit: limit + 1,
-      cursor,
-    });
+    const result = await this.collectionService.getCollectionWithItems(
+      user.id,
+      collectionId,
+      {
+        limit: limit + 1,
+        cursor,
+      },
+    );
     if (!result) {
-      return { success: false, error: 'Collection not found' };
+      throw new NotFoundException('Collection not found');
     }
 
     const { items, nextCursor, hasMore, ...collection } = result;
     return {
-      success: true,
-      data: {
-        ...mapCollectionToResponse(collection),
-        items: items.map(mapBookmarkToResponse),
-        nextCursor,
-        hasMore,
-      },
+      ...mapCollectionToResponse(collection),
+      items: items.map(mapBookmarkToResponse),
+      nextCursor,
+      hasMore,
     };
   }
 
@@ -176,20 +207,11 @@ export class BookmarkController {
     @Param('collectionId') collectionId: string,
     @Body() dto: UpdateBookmarkCollectionDto,
   ) {
-    const collection = await this.commandService.updateCollection(user.id, collectionId, dto);
-    return { success: true, data: mapCollectionToResponse(collection) };
-  }
-
-  @Delete('collections/:collectionId')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete collection' })
-  @ApiResponse({ status: 200, description: 'Collection deleted' })
-  @ApiResponse({ status: 404, description: 'Collection not found' })
-  async deleteCollection(
-    @CurrentUser() user: User,
-    @Param('collectionId') collectionId: string,
-  ) {
-    await this.commandService.deleteCollection(user.id, collectionId);
-    return { success: true };
+    const collection = await this.commandService.updateCollection(
+      user.id,
+      collectionId,
+      dto,
+    );
+    return mapCollectionToResponse(collection);
   }
 }

@@ -71,7 +71,9 @@ export class E2eeScheduledTasksService {
 
       if (available < 20) {
         try {
-          await this.keyRotationService.refillOneTimePreKeysForDevice(device.id);
+          await this.keyRotationService.refillOneTimePreKeysForDevice(
+            device.id,
+          );
           this.logger.log(`Refilled one-time prekeys for device ${device.id}`);
         } catch (error) {
           this.logger.error(

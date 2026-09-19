@@ -18,8 +18,7 @@ import { ApiVersionControlService } from './api-version-control.service';
  */
 @Injectable()
 export class DeprecationHeaderInterceptor implements NestInterceptor {
-  private static readonly URI_VERSION =
-    /^\/(?:api\/)?v(\d+)(?:\/|$)/;
+  private static readonly URI_VERSION = /^\/(?:api\/)?v(\d+)(?:\/|$)/;
 
   constructor(private readonly versions: ApiVersionControlService) {}
 

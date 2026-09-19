@@ -22,7 +22,10 @@ export class AuditLogService {
 
   async log(entry: AuditLogEntry): Promise<void> {
     try {
-      const level = entry.severity === 'CRITICAL' || entry.severity === 'HIGH' ? 'warn' : 'info';
+      const level =
+        entry.severity === 'CRITICAL' || entry.severity === 'HIGH'
+          ? 'warn'
+          : 'info';
       this.structuredLogger[level]({
         module: 'audit',
         operation: entry.action,
@@ -66,7 +69,13 @@ export class AuditLogService {
   }
 
   async logAuthEvent(
-    action: 'LOGIN' | 'LOGOUT' | 'LOGIN_FAILED' | 'PASSWORD_CHANGE' | 'TOKEN_REFRESH' | 'SESSION_REVOKED',
+    action:
+      | 'LOGIN'
+      | 'LOGOUT'
+      | 'LOGIN_FAILED'
+      | 'PASSWORD_CHANGE'
+      | 'TOKEN_REFRESH'
+      | 'SESSION_REVOKED',
     userId: string,
     details: Record<string, unknown>,
     ipAddress?: string,
@@ -121,7 +130,8 @@ export class AuditLogService {
       details,
       ipAddress,
       userAgent,
-      severity: action === 'DELETE' ? 'HIGH' : action === 'EXPORT' ? 'MEDIUM' : 'LOW',
+      severity:
+        action === 'DELETE' ? 'HIGH' : action === 'EXPORT' ? 'MEDIUM' : 'LOW',
       success: true,
     });
   }

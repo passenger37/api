@@ -170,7 +170,10 @@ export class CommunityPostModerationPolicy {
       throw new Error('Cannot pin a deleted post');
     }
 
-    const updatedPost = await this.moderationService.pinPost(post.id, moderatorId);
+    const updatedPost = await this.moderationService.pinPost(
+      post.id,
+      moderatorId,
+    );
 
     await this.moderationActionRepository.create({
       community: { connect: { id: communityId } },
@@ -196,7 +199,10 @@ export class CommunityPostModerationPolicy {
       throw new Error('Post is not pinned');
     }
 
-    const updatedPost = await this.moderationService.unpinPost(post.id, moderatorId);
+    const updatedPost = await this.moderationService.unpinPost(
+      post.id,
+      moderatorId,
+    );
 
     await this.moderationActionRepository.create({
       community: { connect: { id: communityId } },
@@ -215,7 +221,10 @@ export class CommunityPostModerationPolicy {
     };
   }
 
-  async canModeratePost(post: CommunityPost, isModerator: boolean): Promise<boolean> {
+  async canModeratePost(
+    post: CommunityPost,
+    isModerator: boolean,
+  ): Promise<boolean> {
     if (!isModerator) {
       return false;
     }

@@ -87,7 +87,7 @@ export class FeedService {
     const items = pageRows
       .map((row) => messagesById.get(row.id))
       .filter((message) => !!message)
-      .map((message) => FeedMapper.toItem(message!));
+      .map((message) => FeedMapper.toItem(message));
 
     const lastItem = pageRows[pageRows.length - 1];
 

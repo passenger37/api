@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { E2eeGroup, E2eeGroupMember, E2eeGroupSession, E2eeGroupEnvelope, Prisma } from '@prisma/client';
+import {
+  E2eeGroup,
+  E2eeGroupMember,
+  E2eeGroupSession,
+  E2eeGroupEnvelope,
+  Prisma,
+} from '@prisma/client';
 
 @Injectable()
 export class E2eeGroupRepository {
@@ -52,7 +58,10 @@ export class E2eeGroupRepository {
     return client.e2eeGroupMember.create({ data });
   }
 
-  async findMember(groupId: string, deviceId: string): Promise<E2eeGroupMember | null> {
+  async findMember(
+    groupId: string,
+    deviceId: string,
+  ): Promise<E2eeGroupMember | null> {
     return this.prisma.e2eeGroupMember.findUnique({
       where: { groupId_deviceId: { groupId, deviceId } },
     });
@@ -65,7 +74,10 @@ export class E2eeGroupRepository {
     });
   }
 
-  async findMemberByUser(groupId: string, userId: string): Promise<E2eeGroupMember | null> {
+  async findMemberByUser(
+    groupId: string,
+    userId: string,
+  ): Promise<E2eeGroupMember | null> {
     return this.prisma.e2eeGroupMember.findFirst({
       where: { groupId, userId, isActive: true },
     });
@@ -84,7 +96,11 @@ export class E2eeGroupRepository {
     });
   }
 
-  async removeMember(groupId: string, deviceId: string, tx?: Prisma.TransactionClient): Promise<void> {
+  async removeMember(
+    groupId: string,
+    deviceId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
     const client = tx ?? this.prisma;
     await client.e2eeGroupMember.update({
       where: { groupId_deviceId: { groupId, deviceId } },
@@ -107,7 +123,10 @@ export class E2eeGroupRepository {
     return client.e2eeGroupSession.create({ data });
   }
 
-  async findSession(groupId: string, deviceId: string): Promise<E2eeGroupSession | null> {
+  async findSession(
+    groupId: string,
+    deviceId: string,
+  ): Promise<E2eeGroupSession | null> {
     return this.prisma.e2eeGroupSession.findUnique({
       where: { groupId_deviceId: { groupId, deviceId } },
     });
@@ -141,7 +160,10 @@ export class E2eeGroupRepository {
     return client.e2eeGroupEnvelope.create({ data });
   }
 
-  async findPendingByGroup(groupId: string, limit = 100): Promise<E2eeGroupEnvelope[]> {
+  async findPendingByGroup(
+    groupId: string,
+    limit = 100,
+  ): Promise<E2eeGroupEnvelope[]> {
     return this.prisma.e2eeGroupEnvelope.findMany({
       where: { groupId, status: 'PENDING' },
       orderBy: { createdAt: 'asc' },

@@ -1,8 +1,18 @@
-import { Injectable, ConflictException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { BookmarkRepository } from '../repositories/bookmark.repository';
 import { BookmarkTargetType } from '../types/bookmark.types';
-import { CreateBookmarkDto, MoveBookmarkDto, CreateBookmarkCollectionDto, UpdateBookmarkCollectionDto } from '../dto/create-bookmark.dto';
+import {
+  CreateBookmarkDto,
+  MoveBookmarkDto,
+  CreateBookmarkCollectionDto,
+  UpdateBookmarkCollectionDto,
+} from '../dto/create-bookmark.dto';
 
 @Injectable()
 export class BookmarkCommandService {
@@ -39,15 +49,26 @@ export class BookmarkCommandService {
       });
       return { bookmark, isNew: true };
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         throw new ConflictException('Content already saved');
       }
       throw error;
     }
   }
 
-  async unsave(userId: string, targetType: BookmarkTargetType, targetId: string): Promise<void> {
-    const bookmark = await this.bookmarkRepo.findByUserAndTarget(userId, targetType, targetId);
+  async unsave(
+    userId: string,
+    targetType: BookmarkTargetType,
+    targetId: string,
+  ): Promise<void> {
+    const bookmark = await this.bookmarkRepo.findByUserAndTarget(
+      userId,
+      targetType,
+      targetId,
+    );
     if (!bookmark) {
       throw new NotFoundException('Bookmark not found');
     }
@@ -65,17 +86,30 @@ export class BookmarkCommandService {
     }
 
     if (dto.collectionId) {
-      const collection = await this.bookmarkRepo.findCollectionById(dto.collectionId, userId);
+      const collection = await this.bookmarkRepo.findCollectionById(
+        dto.collectionId,
+        userId,
+      );
       if (!collection) {
         throw new NotFoundException('Collection not found');
       }
     }
 
-    return this.bookmarkRepo.updateBookmarkCollection(bookmarkId, userId, dto.collectionId ?? null);
+    return this.bookmarkRepo.updateBookmarkCollection(
+      bookmarkId,
+      userId,
+      dto.collectionId ?? null,
+    );
   }
 
-  async createCollection(userId: string, dto: CreateBookmarkCollectionDto): Promise<any> {
-    const existing = await this.bookmarkRepo.findCollectionByName(userId, dto.name);
+  async createCollection(
+    userId: string,
+    dto: CreateBookmarkCollectionDto,
+  ): Promise<any> {
+    const existing = await this.bookmarkRepo.findCollectionByName(
+      userId,
+      dto.name,
+    );
     if (existing) {
       throw new ConflictException('Collection with this name already exists');
     }
@@ -93,13 +127,19 @@ export class BookmarkCommandService {
     collectionId: string,
     dto: UpdateBookmarkCollectionDto,
   ): Promise<any> {
-    const collection = await this.bookmarkRepo.findCollectionById(collectionId, userId);
+    const collection = await this.bookmarkRepo.findCollectionById(
+      collectionId,
+      userId,
+    );
     if (!collection) {
       throw new NotFoundException('Collection not found');
     }
 
     if (dto.name && dto.name !== collection.name) {
-      const existing = await this.bookmarkRepo.findCollectionByName(userId, dto.name);
+      const existing = await this.bookmarkRepo.findCollectionByName(
+        userId,
+        dto.name,
+      );
       if (existing) {
         throw new ConflictException('Collection with this name already exists');
       }
@@ -113,7 +153,10 @@ export class BookmarkCommandService {
   }
 
   async deleteCollection(userId: string, collectionId: string): Promise<void> {
-    const collection = await this.bookmarkRepo.findCollectionById(collectionId, userId);
+    const collection = await this.bookmarkRepo.findCollectionById(
+      collectionId,
+      userId,
+    );
     if (!collection) {
       throw new NotFoundException('Collection not found');
     }

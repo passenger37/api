@@ -63,7 +63,9 @@ export class StructuredLogger {
       ...(trace?.parentId ? { parentId: trace.parentId } : {}),
       ...(input.userId ? { userId: input.userId } : {}),
       ...(input.entityId ? { entityId: input.entityId } : {}),
-      ...(input.durationMs !== undefined ? { durationMs: input.durationMs } : {}),
+      ...(input.durationMs !== undefined
+        ? { durationMs: input.durationMs }
+        : {}),
       ...(input.errorCode !== undefined ? { errorCode: input.errorCode } : {}),
       ...(input.details ?? {}),
     };

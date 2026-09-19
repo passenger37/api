@@ -77,7 +77,7 @@ describe('E2eeDeviceController', () => {
       oneTimePreKeys: [{ preKeyId: 1, publicKey: 'k1' }],
     };
 
-    const result = await controller.register('userA', request as any);
+    const result = await controller.register('userA', request);
 
     expect(commandService.register).toHaveBeenCalledWith('userA', request);
     expect(result).toMatchObject({
@@ -116,7 +116,7 @@ describe('E2eeDeviceController', () => {
     const result = await controller.rotateSignedPreKey(
       'userA',
       'dev1',
-      request as any,
+      request,
     );
 
     expect(commandService.rotateSignedPreKey).toHaveBeenCalledWith(
@@ -141,7 +141,7 @@ describe('E2eeDeviceController', () => {
     const result = await controller.refillOneTimePreKeys(
       'userA',
       'dev1',
-      request as any,
+      request,
     );
 
     expect(commandService.refillOneTimePreKeys).toHaveBeenCalledWith(

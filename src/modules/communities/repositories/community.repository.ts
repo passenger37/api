@@ -185,10 +185,7 @@ export class CommunityRepository {
       OR: [
         { subscribedAt: { lt: cursor.createdAt } },
         {
-          AND: [
-            { subscribedAt: cursor.createdAt },
-            { id: { lt: cursor.id } },
-          ],
+          AND: [{ subscribedAt: cursor.createdAt }, { id: { lt: cursor.id } }],
         },
       ],
     };

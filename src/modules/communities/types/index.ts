@@ -1,6 +1,6 @@
 export * from './community.types';
-export type { 
-  CommunityPostDetailViewData, 
+export type {
+  CommunityPostDetailViewData,
   CommunityPostListViewData,
   CreateCommunityPostInput,
   UpdateCommunityPostInput,

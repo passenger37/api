@@ -63,13 +63,29 @@ export interface QueryPath {
 export const QUERY_PATHS: QueryPath[] = [
   {
     name: 'outbox.pending',
-    description: 'OutboxPublisherService poll for PENDING events (partial index).',
+    description:
+      'OutboxPublisherService poll for PENDING events (partial index).',
     baseRows: 1_000_000,
     waitSetScale: 0.02,
     accessPaths: [
-      { id: 'full-scan', strategy: 'seq', selectivity: 0.5, envKey: 'QP_OUTBOX_FULL' },
-      { id: 'status-scan', strategy: 'composite', selectivity: 0.1, envKey: 'QP_OUTBOX_STATUS' },
-      { id: 'pick-100', strategy: 'partial', selectivity: 0.0002, envKey: 'QP_OUTBOX_PICK' },
+      {
+        id: 'full-scan',
+        strategy: 'seq',
+        selectivity: 0.5,
+        envKey: 'QP_OUTBOX_FULL',
+      },
+      {
+        id: 'status-scan',
+        strategy: 'composite',
+        selectivity: 0.1,
+        envKey: 'QP_OUTBOX_STATUS',
+      },
+      {
+        id: 'pick-100',
+        strategy: 'partial',
+        selectivity: 0.0002,
+        envKey: 'QP_OUTBOX_PICK',
+      },
     ],
   },
   {
@@ -78,8 +94,18 @@ export const QUERY_PATHS: QueryPath[] = [
     baseRows: 5_000_000,
     waitSetScale: 0.01,
     accessPaths: [
-      { id: 'channel-scan', strategy: 'composite', selectivity: 0.05, envKey: 'QP_CHAN_FULL' },
-      { id: 'chan-created-id', strategy: 'covering', selectivity: 0.002, envKey: 'QP_CHAN_CID' },
+      {
+        id: 'channel-scan',
+        strategy: 'composite',
+        selectivity: 0.05,
+        envKey: 'QP_CHAN_FULL',
+      },
+      {
+        id: 'chan-created-id',
+        strategy: 'covering',
+        selectivity: 0.002,
+        envKey: 'QP_CHAN_CID',
+      },
     ],
   },
   {
@@ -88,8 +114,18 @@ export const QUERY_PATHS: QueryPath[] = [
     baseRows: 5_000_000,
     waitSetScale: 0.02,
     accessPaths: [
-      { id: 'channel-seq-scan', strategy: 'composite', selectivity: 0.01, envKey: 'QP_SEQ_SCAN' },
-      { id: 'chan-seq', strategy: 'covering', selectivity: 0.0004, envKey: 'QP_SEQ_LOOKUP' },
+      {
+        id: 'channel-seq-scan',
+        strategy: 'composite',
+        selectivity: 0.01,
+        envKey: 'QP_SEQ_SCAN',
+      },
+      {
+        id: 'chan-seq',
+        strategy: 'covering',
+        selectivity: 0.0004,
+        envKey: 'QP_SEQ_LOOKUP',
+      },
     ],
   },
   {
@@ -98,8 +134,18 @@ export const QUERY_PATHS: QueryPath[] = [
     baseRows: 2_000_000,
     waitSetScale: 0.05,
     accessPaths: [
-      { id: 'all-members', strategy: 'composite', selectivity: 0.2, envKey: 'QP_MEM_ALL' },
-      { id: 'active-members', strategy: 'partial', selectivity: 0.02, envKey: 'QP_MEM_ACTIVE' },
+      {
+        id: 'all-members',
+        strategy: 'composite',
+        selectivity: 0.2,
+        envKey: 'QP_MEM_ALL',
+      },
+      {
+        id: 'active-members',
+        strategy: 'partial',
+        selectivity: 0.02,
+        envKey: 'QP_MEM_ACTIVE',
+      },
     ],
   },
   {
@@ -108,19 +154,45 @@ export const QUERY_PATHS: QueryPath[] = [
     baseRows: 500_000,
     waitSetScale: 0.1,
     accessPaths: [
-      { id: 'dm-user-scan', strategy: 'composite', selectivity: 0.1, envKey: 'QP_DM_SCAN' },
-      { id: 'dm-peer', strategy: 'covering', selectivity: 0.001, envKey: 'QP_DM_PEER' },
+      {
+        id: 'dm-user-scan',
+        strategy: 'composite',
+        selectivity: 0.1,
+        envKey: 'QP_DM_SCAN',
+      },
+      {
+        id: 'dm-peer',
+        strategy: 'covering',
+        selectivity: 0.001,
+        envKey: 'QP_DM_PEER',
+      },
     ],
   },
   {
     name: 'e2ee.delivery',
-    description: 'E2EE envelope + delivery-queue pending pickup (partial index, 40.82).',
+    description:
+      'E2EE envelope + delivery-queue pending pickup (partial index, 40.82).',
     baseRows: 3_000_000,
     waitSetScale: 0.01,
     accessPaths: [
-      { id: 'delivery-table-scan', strategy: 'seq', selectivity: 0.4, envKey: 'QP_E2EE_FULL' },
-      { id: 'delivery-status', strategy: 'composite', selectivity: 0.15, envKey: 'QP_E2EE_STATUS' },
-      { id: 'pick-batch', strategy: 'partial', selectivity: 0.0003, envKey: 'QP_E2EE_PICK' },
+      {
+        id: 'delivery-table-scan',
+        strategy: 'seq',
+        selectivity: 0.4,
+        envKey: 'QP_E2EE_FULL',
+      },
+      {
+        id: 'delivery-status',
+        strategy: 'composite',
+        selectivity: 0.15,
+        envKey: 'QP_E2EE_STATUS',
+      },
+      {
+        id: 'pick-batch',
+        strategy: 'partial',
+        selectivity: 0.0003,
+        envKey: 'QP_E2EE_PICK',
+      },
     ],
   },
   {
@@ -129,9 +201,24 @@ export const QUERY_PATHS: QueryPath[] = [
     baseRows: 1_000_000,
     waitSetScale: 0.05,
     accessPaths: [
-      { id: 'job-table-scan', strategy: 'seq', selectivity: 0.5, envKey: 'QP_JOB_FULL' },
-      { id: 'job-queue-status', strategy: 'composite', selectivity: 0.05, envKey: 'QP_JOB_STATUS' },
-      { id: 'pick-ready', strategy: 'partial', selectivity: 0.0005, envKey: 'QP_JOB_READY' },
+      {
+        id: 'job-table-scan',
+        strategy: 'seq',
+        selectivity: 0.5,
+        envKey: 'QP_JOB_FULL',
+      },
+      {
+        id: 'job-queue-status',
+        strategy: 'composite',
+        selectivity: 0.05,
+        envKey: 'QP_JOB_STATUS',
+      },
+      {
+        id: 'pick-ready',
+        strategy: 'partial',
+        selectivity: 0.0005,
+        envKey: 'QP_JOB_READY',
+      },
     ],
   },
 ];

@@ -5,12 +5,20 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationQueryDto } from '../../../../common/dto/pagination-query.dto';
 
 export class GetPostsQuery extends PaginationQueryDto {
-  @ApiPropertyOptional({ enum: PostVisibility, isArray: true, description: 'Filter by visibility' })
+  @ApiPropertyOptional({
+    enum: PostVisibility,
+    isArray: true,
+    description: 'Filter by visibility',
+  })
   @IsOptional()
   @IsEnum(PostVisibility, { each: true })
   visibility?: PostVisibility[];
 
-  @ApiPropertyOptional({ enum: PostStatus, isArray: true, description: 'Filter by status' })
+  @ApiPropertyOptional({
+    enum: PostStatus,
+    isArray: true,
+    description: 'Filter by status',
+  })
   @IsOptional()
   @IsEnum(PostStatus, { each: true })
   status?: string[];
@@ -25,17 +33,42 @@ export class GetPostsQuery extends PaginationQueryDto {
   @IsString()
   tag?: string;
 
-  @ApiPropertyOptional({ enum: ['LATEST', 'OLDEST', 'MOST_REACTIONS', 'MOST_COMMENTS', 'MOST_REPOSTS'], description: 'Sort order' })
+  @ApiPropertyOptional({
+    enum: [
+      'LATEST',
+      'OLDEST',
+      'MOST_REACTIONS',
+      'MOST_COMMENTS',
+      'MOST_REPOSTS',
+    ],
+    description: 'Sort order',
+  })
   @IsOptional()
-  @IsEnum(['LATEST', 'OLDEST', 'MOST_REACTIONS', 'MOST_COMMENTS', 'MOST_REPOSTS'])
-  sort?: 'LATEST' | 'OLDEST' | 'MOST_REACTIONS' | 'MOST_COMMENTS' | 'MOST_REPOSTS';
+  @IsEnum([
+    'LATEST',
+    'OLDEST',
+    'MOST_REACTIONS',
+    'MOST_COMMENTS',
+    'MOST_REPOSTS',
+  ])
+  sort?:
+    | 'LATEST'
+    | 'OLDEST'
+    | 'MOST_REACTIONS'
+    | 'MOST_COMMENTS'
+    | 'MOST_REPOSTS';
 
-  @ApiPropertyOptional({ description: 'Cursor for pagination (base64url encoded)' })
+  @ApiPropertyOptional({
+    description: 'Cursor for pagination (base64url encoded)',
+  })
   @IsOptional()
   @IsString()
   cursor?: string;
 
-  @ApiPropertyOptional({ description: 'Number of items per page (max 50)', maximum: 50 })
+  @ApiPropertyOptional({
+    description: 'Number of items per page (max 50)',
+    maximum: 50,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -45,17 +78,26 @@ export class GetPostsQuery extends PaginationQueryDto {
 }
 
 export class GetUserPostsQuery extends PaginationQueryDto {
-  @ApiPropertyOptional({ enum: PostVisibility, isArray: true, description: 'Filter by visibility' })
+  @ApiPropertyOptional({
+    enum: PostVisibility,
+    isArray: true,
+    description: 'Filter by visibility',
+  })
   @IsOptional()
   @IsEnum(PostVisibility, { each: true })
   visibility?: PostVisibility[];
 
-  @ApiPropertyOptional({ description: 'Cursor for pagination (base64url encoded)' })
+  @ApiPropertyOptional({
+    description: 'Cursor for pagination (base64url encoded)',
+  })
   @IsOptional()
   @IsString()
   cursor?: string;
 
-  @ApiPropertyOptional({ description: 'Number of items per page (max 50)', maximum: 50 })
+  @ApiPropertyOptional({
+    description: 'Number of items per page (max 50)',
+    maximum: 50,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -65,17 +107,25 @@ export class GetUserPostsQuery extends PaginationQueryDto {
 }
 
 export class GetReactionsQuery extends PaginationQueryDto {
-  @ApiPropertyOptional({ enum: ReactionType, description: 'Filter by reaction type' })
+  @ApiPropertyOptional({
+    enum: ReactionType,
+    description: 'Filter by reaction type',
+  })
   @IsOptional()
   @IsEnum(ReactionType)
   type?: ReactionType;
 
-  @ApiPropertyOptional({ description: 'Cursor for pagination (base64url encoded)' })
+  @ApiPropertyOptional({
+    description: 'Cursor for pagination (base64url encoded)',
+  })
   @IsOptional()
   @IsString()
   cursor?: string;
 
-  @ApiPropertyOptional({ description: 'Number of items per page (max 50)', maximum: 50 })
+  @ApiPropertyOptional({
+    description: 'Number of items per page (max 50)',
+    maximum: 50,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -85,17 +135,25 @@ export class GetReactionsQuery extends PaginationQueryDto {
 }
 
 export class GetReportsQuery extends PaginationQueryDto {
-  @ApiPropertyOptional({ enum: ['PENDING', 'REVIEWED', 'RESOLVED', 'DISMISSED'], description: 'Filter by status' })
+  @ApiPropertyOptional({
+    enum: ['PENDING', 'REVIEWED', 'RESOLVED', 'DISMISSED'],
+    description: 'Filter by status',
+  })
   @IsOptional()
   @IsEnum(['PENDING', 'REVIEWED', 'RESOLVED', 'DISMISSED'])
   status?: string;
 
-  @ApiPropertyOptional({ description: 'Cursor for pagination (base64url encoded)' })
+  @ApiPropertyOptional({
+    description: 'Cursor for pagination (base64url encoded)',
+  })
   @IsOptional()
   @IsString()
   cursor?: string;
 
-  @ApiPropertyOptional({ description: 'Number of items per page (max 50)', maximum: 50 })
+  @ApiPropertyOptional({
+    description: 'Number of items per page (max 50)',
+    maximum: 50,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

@@ -1,13 +1,24 @@
 export interface MediaJobInput {
   attachmentId: string;
-  type: 'THUMBNAIL' | 'TRANSCODE' | 'AV_SCAN' | 'WATERMARK' | 'METADATA_EXTRACTION';
+  type:
+    | 'THUMBNAIL'
+    | 'TRANSCODE'
+    | 'AV_SCAN'
+    | 'WATERMARK'
+    | 'METADATA_EXTRACTION';
   input?: Record<string, any>;
   priority?: number;
 }
 
 export interface MediaJobOutput {
   jobId: string;
-  status: 'PENDING' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  status:
+    | 'PENDING'
+    | 'QUEUED'
+    | 'PROCESSING'
+    | 'COMPLETED'
+    | 'FAILED'
+    | 'CANCELLED';
   progress: number;
 }
 

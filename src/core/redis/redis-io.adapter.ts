@@ -10,7 +10,10 @@ import { resolveNodeId } from './redis-node-registry';
 export type RedisIoClientRole = 'pub' | 'sub';
 
 /** Deterministic, per-instance client name for CLIENT LIST visibility during scale-out. */
-export function redisIoClientName(role: RedisIoClientRole, nodeId: string): string {
+export function redisIoClientName(
+  role: RedisIoClientRole,
+  nodeId: string,
+): string {
   return `socket.io:${role}:${nodeId}`;
 }
 

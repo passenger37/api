@@ -28,6 +28,8 @@ export function serializeBackup(backup: E2eeEncryptedBackup): BackupResponse {
   };
 }
 
-export function serializeBackupList(backups: E2eeEncryptedBackup[]): BackupResponse[] {
+export function serializeBackupList(
+  backups: E2eeEncryptedBackup[],
+): BackupResponse[] {
   return backups.map(serializeBackup);
 }

@@ -1,4 +1,12 @@
-import { PostVisibility, PostStatus, PostContentType, ReactionType, PostReportReason, ReportStatus, PostType } from '@prisma/client';
+import {
+  PostVisibility,
+  PostStatus,
+  PostContentType,
+  ReactionType,
+  PostReportReason,
+  ReportStatus,
+  PostType,
+} from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationResponseDto } from '../../../../common/dto/pagination-response.dto';
 

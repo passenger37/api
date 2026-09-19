@@ -1,11 +1,5 @@
 import { ValidationPipe, ArgumentMetadata } from '@nestjs/common';
-import {
-  IsOptional,
-  IsPositive,
-  IsString,
-  Length,
-  Min,
-} from 'class-validator';
+import { IsOptional, IsPositive, IsString, Length, Min } from 'class-validator';
 import { VALIDATION_PIPE_OPTIONS } from './validation.config';
 
 class TestContractDto {
@@ -28,7 +22,10 @@ describe('validation.config (OpenAPI-aligned request contract)', () => {
   };
 
   it('whitelists & transforms known fields, converting implicit types', async () => {
-    const value = await pipe.transform({ username: 'alice', pageSize: '20' }, metadata);
+    const value = await pipe.transform(
+      { username: 'alice', pageSize: '20' },
+      metadata,
+    );
     expect(value.username).toBe('alice');
     expect(typeof value.pageSize).toBe('number');
     expect(value.pageSize).toBe(20);
@@ -41,14 +38,10 @@ describe('validation.config (OpenAPI-aligned request contract)', () => {
   });
 
   it('rejects request payloads of an unknown/undocumented value type', async () => {
-    await expect(
-      pipe.transform(42 as unknown as TestContractDto, metadata),
-    ).rejects.toThrow();
+    await expect(pipe.transform(42, metadata)).rejects.toThrow();
   });
 
   it('rejects values that violate DTO constraints', async () => {
-    await expect(
-      pipe.transform({ username: 'x' }, metadata),
-    ).rejects.toThrow();
+    await expect(pipe.transform({ username: 'x' }, metadata)).rejects.toThrow();
   });
 });

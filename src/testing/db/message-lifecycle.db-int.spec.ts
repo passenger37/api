@@ -1,9 +1,6 @@
 import { ChannelMessageRepository } from '../../modules/messages/repositories/channel-message.repository';
 import { PrismaService } from '../../core/database/prisma.service';
-import {
-  createDbTestHarness,
-  DbTestContext,
-} from './db-test.harness';
+import { createDbTestHarness, DbTestContext } from './db-test.harness';
 import { seedDbFixture, DbFixture } from './db-test.fixtures';
 
 describe('Database Integration: message lifecycle (40.87)', () => {
@@ -59,7 +56,9 @@ describe('Database Integration: message lifecycle (40.87)', () => {
     // gone from normal channel queries but row still exists for audit
     const listed = await repo.findManyByChannel(fixture.channelId);
     expect(listed.some((m) => m.id === created.id)).toBe(false);
-    const raw = await prisma.channelMessage.findUnique({ where: { id: created.id } });
+    const raw = await prisma.channelMessage.findUnique({
+      where: { id: created.id },
+    });
     expect(raw?.isDeleted).toBe(true);
   });
 });

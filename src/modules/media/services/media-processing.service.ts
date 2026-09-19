@@ -2,7 +2,13 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { MediaQueueService } from '../queues/media-queue.service';
-import { MediaJobInput, MediaJobOutput, ThumbnailVariant, TranscodeVariant, AvScanResult } from '../interfaces/media.interface';
+import {
+  MediaJobInput,
+  MediaJobOutput,
+  ThumbnailVariant,
+  TranscodeVariant,
+  AvScanResult,
+} from '../interfaces/media.interface';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -31,21 +37,35 @@ export class MediaProcessingService {
 
   // ============ Job Enqueueing ============
 
-  async enqueueThumbnailJob(attachmentId: string, input?: Record<string, any>): Promise<string> {
-    const job = await this.mediaQueue.addJob('media-thumbnail', 'generate-thumbnail', {
-      attachmentId,
-      type: 'THUMBNAIL',
-      input: { sizes: this.thumbnailSizes, ...input },
-    });
+  async enqueueThumbnailJob(
+    attachmentId: string,
+    input?: Record<string, any>,
+  ): Promise<string> {
+    const job = await this.mediaQueue.addJob(
+      'media-thumbnail',
+      'generate-thumbnail',
+      {
+        attachmentId,
+        type: 'THUMBNAIL',
+        input: { sizes: this.thumbnailSizes, ...input },
+      },
+    );
     return job.id || '';
   }
 
-  async enqueueTranscodeJob(attachmentId: string, input?: Record<string, any>): Promise<string> {
-    const job = await this.mediaQueue.addJob('media-transcode', 'transcode-video', {
-      attachmentId,
-      type: 'TRANSCODE',
-      input: { resolutions: this.transcodeResolutions, ...input },
-    });
+  async enqueueTranscodeJob(
+    attachmentId: string,
+    input?: Record<string, any>,
+  ): Promise<string> {
+    const job = await this.mediaQueue.addJob(
+      'media-transcode',
+      'transcode-video',
+      {
+        attachmentId,
+        type: 'TRANSCODE',
+        input: { resolutions: this.transcodeResolutions, ...input },
+      },
+    );
     return job.id || '';
   }
 
@@ -58,39 +78,43 @@ export class MediaProcessingService {
   }
 
   async enqueueMetadataExtractionJob(attachmentId: string): Promise<string> {
-    const job = await this.mediaQueue.addJob('media-metadata', 'extract-metadata', {
-      attachmentId,
-      type: 'METADATA_EXTRACTION',
-    });
+    const job = await this.mediaQueue.addJob(
+      'media-metadata',
+      'extract-metadata',
+      {
+        attachmentId,
+        type: 'METADATA_EXTRACTION',
+      },
+    );
     return job.id || '';
   }
 
   async enqueueFullPipeline(attachmentId: string): Promise<string[]> {
     const jobIds: string[] = [];
-    
+
     // Always scan for viruses first
     jobIds.push(await this.enqueueAvScanJob(attachmentId));
-    
+
     // Get attachment info to determine what processing is needed
     const attachment = await this.prisma.messageAttachment.findUnique({
       where: { id: attachmentId },
     });
-    
+
     if (!attachment) throw new Error('Attachment not found');
-    
+
     // Thumbnails for images
     if (attachment.mimeType.startsWith('image/')) {
       jobIds.push(await this.enqueueThumbnailJob(attachmentId));
     }
-    
+
     // Transcode for videos
     if (attachment.mimeType.startsWith('video/')) {
       jobIds.push(await this.enqueueTranscodeJob(attachmentId));
     }
-    
+
     // Always extract metadata
     jobIds.push(await this.enqueueMetadataExtractionJob(attachmentId));
-    
+
     return jobIds;
   }
 
@@ -111,16 +135,20 @@ export class MediaProcessingService {
 
   // Thumbnail generation would use sharp or similar
   // This is a placeholder - actual implementation would use sharp
-  async generateThumbnails(attachmentId: string, storageKey: string, mimeType: string): Promise<ThumbnailVariant[]> {
+  async generateThumbnails(
+    attachmentId: string,
+    storageKey: string,
+    mimeType: string,
+  ): Promise<ThumbnailVariant[]> {
     // In production, this would:
     // 1. Download the file from object storage
     // 2. Use sharp to generate thumbnails at configured sizes
     // 3. Upload thumbnails to object storage
     // 4. Save thumbnail records to database
     // 5. Return variant info
-    
+
     // Placeholder implementation
-    const variants = this.thumbnailSizes.map(size => ({
+    const variants = this.thumbnailSizes.map((size) => ({
       label: size.label,
       width: size.width,
       height: size.height,
@@ -134,7 +162,7 @@ export class MediaProcessingService {
       where: { attachmentId },
       create: {
         attachmentId,
-        variants: variants.map(v => ({
+        variants: variants.map((v) => ({
           label: v.label,
           key: v.key,
           width: v.width,
@@ -144,7 +172,7 @@ export class MediaProcessingService {
         })),
       },
       update: {
-        variants: variants.map(v => ({
+        variants: variants.map((v) => ({
           label: v.label,
           key: v.key,
           width: v.width,
@@ -158,14 +186,18 @@ export class MediaProcessingService {
     return variants;
   }
 
-  async transcodeVideo(attachmentId: string, storageKey: string, mimeType: string): Promise<TranscodeVariant[]> {
+  async transcodeVideo(
+    attachmentId: string,
+    storageKey: string,
+    mimeType: string,
+  ): Promise<TranscodeVariant[]> {
     // In production, this would:
     // 1. Download the video from object storage
     // 2. Use ffmpeg to transcode to multiple resolutions
     // 3. Upload transcoded versions
     // 4. Save transcode records
-    
-    const variants = this.transcodeResolutions.map(res => ({
+
+    const variants = this.transcodeResolutions.map((res) => ({
       resolution: res.label,
       codec: 'h264',
       bitrate: res.bitrate,
@@ -177,7 +209,12 @@ export class MediaProcessingService {
     // Save transcode records
     for (const variant of variants) {
       await this.prisma.mediaTranscode.upsert({
-        where: { attachmentId_resolution: { attachmentId, resolution: variant.resolution } },
+        where: {
+          attachmentId_resolution: {
+            attachmentId,
+            resolution: variant.resolution,
+          },
+        },
         create: {
           attachmentId,
           resolution: variant.resolution,
@@ -200,12 +237,15 @@ export class MediaProcessingService {
     return variants;
   }
 
-  async scanForViruses(attachmentId: string, storageKey: string): Promise<AvScanResult> {
+  async scanForViruses(
+    attachmentId: string,
+    storageKey: string,
+  ): Promise<AvScanResult> {
     // In production, this would:
     // 1. Download file from object storage
     // 2. Scan with ClamAV or cloud AV API
     // 3. Record result
-    
+
     // For now, return a clean result
     const result: AvScanResult = {
       result: 'clean',
@@ -245,13 +285,17 @@ export class MediaProcessingService {
     return result;
   }
 
-  async extractMetadata(attachmentId: string, storageKey: string, mimeType: string): Promise<Record<string, any>> {
+  async extractMetadata(
+    attachmentId: string,
+    storageKey: string,
+    mimeType: string,
+  ): Promise<Record<string, any>> {
     // In production, this would extract metadata using:
     // - exiftool for images
     // - ffprobe for videos
     // - PDF libraries for PDFs
     // etc.
-    
+
     const metadata = {
       mimeType,
       extractedAt: new Date().toISOString(),
@@ -265,11 +309,17 @@ export class MediaProcessingService {
   // ============ Configuration ============
 
   async getConfig(key: string): Promise<any> {
-    const config = await this.prisma.mediaProcessingConfig.findUnique({ where: { key } });
+    const config = await this.prisma.mediaProcessingConfig.findUnique({
+      where: { key },
+    });
     return config?.value;
   }
 
-  async setConfig(key: string, value: any, description?: string): Promise<void> {
+  async setConfig(
+    key: string,
+    value: any,
+    description?: string,
+  ): Promise<void> {
     await this.prisma.mediaProcessingConfig.upsert({
       where: { key },
       create: { key, value, description },
@@ -297,8 +347,14 @@ export class MediaProcessingService {
       }),
     ]);
 
-    const statusCounts = counts.reduce((acc, c) => ({ ...acc, [c.status]: c._count.status }), {} as Record<string, number>);
-    const typeCounts = byType.reduce((acc, c) => ({ ...acc, [c.type]: c._count.type }), {} as Record<string, number>);
+    const statusCounts = counts.reduce(
+      (acc, c) => ({ ...acc, [c.status]: c._count.status }),
+      {} as Record<string, number>,
+    );
+    const typeCounts = byType.reduce(
+      (acc, c) => ({ ...acc, [c.type]: c._count.type }),
+      {} as Record<string, number>,
+    );
 
     return {
       pending: statusCounts.PENDING || 0,

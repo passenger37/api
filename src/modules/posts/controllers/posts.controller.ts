@@ -11,7 +11,14 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
@@ -19,10 +26,27 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { PostQueryService } from '../services/post-query.service';
 import { PostCommandService } from '../services/post-command.service';
 
-import { CreatePostDto, UpdatePostDto, ReactToPostDto, ReportPostDto, CreateRepostDto, CreateQuotePostDto } from '../dto/request/create-post.request';
-import { GetPostsQuery, GetUserPostsQuery, GetReactionsQuery, GetReportsQuery } from '../dto/request/post-query.dto';
+import {
+  CreatePostDto,
+  UpdatePostDto,
+  ReactToPostDto,
+  ReportPostDto,
+  CreateRepostDto,
+  CreateQuotePostDto,
+} from '../dto/request/create-post.request';
+import {
+  GetPostsQuery,
+  GetUserPostsQuery,
+  GetReactionsQuery,
+  GetReportsQuery,
+} from '../dto/request/post-query.dto';
 
-import { PostDetailResponse, PostListResponse, ReactionDto, PostReportDto } from '../dto/response/post.response';
+import {
+  PostDetailResponse,
+  PostListResponse,
+  ReactionDto,
+  PostReportDto,
+} from '../dto/response/post.response';
 import { CursorPaginatedResponseDto } from '../dto/response/cursor-pagination.response';
 
 @ApiTags('Posts')
@@ -47,7 +71,7 @@ export class PostsController {
       authorId: userId,
       content: dto.content,
       visibility: dto.visibility,
-      mediaIds: dto.media?.map(m => m.id),
+      mediaIds: dto.media?.map((m) => m.id),
       contentWarning: dto.contentWarning,
       isSensitive: dto.isSensitive,
       language: dto.language,
@@ -118,9 +142,22 @@ export class PostsController {
   @Get('user/:userId')
   @ApiOperation({ summary: 'Get posts by a user' })
   @ApiParam({ name: 'userId', description: 'User ID' })
-  @ApiQuery({ name: 'cursor', required: false, description: 'Pagination cursor' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Number of posts per page (max 50)' })
-  @ApiQuery({ name: 'visibility', required: false, isArray: true, enum: ['PUBLIC', 'FOLLOWERS', 'FRIENDS', 'PRIVATE'] })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'Pagination cursor',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of posts per page (max 50)',
+  })
+  @ApiQuery({
+    name: 'visibility',
+    required: false,
+    isArray: true,
+    enum: ['PUBLIC', 'FOLLOWERS', 'FRIENDS', 'PRIVATE'],
+  })
   @ApiResponse({ status: 200, type: CursorPaginatedResponseDto })
   async getUserPosts(
     @Param('userId') userId: string,
@@ -138,9 +175,21 @@ export class PostsController {
 
   @Get()
   @ApiOperation({ summary: 'Get public posts (explore)' })
-  @ApiQuery({ name: 'cursor', required: false, description: 'Pagination cursor' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Number of posts per page (max 50)' })
-  @ApiQuery({ name: 'authorId', required: false, description: 'Filter by author' })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'Pagination cursor',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of posts per page (max 50)',
+  })
+  @ApiQuery({
+    name: 'authorId',
+    required: false,
+    description: 'Filter by author',
+  })
   @ApiQuery({ name: 'tag', required: false, description: 'Filter by hashtag' })
   @ApiResponse({ status: 200, type: CursorPaginatedResponseDto })
   async getPublicPosts(
@@ -161,13 +210,21 @@ export class PostsController {
   @ApiParam({ name: 'postId', description: 'Original post ID' })
   @ApiQuery({ name: 'cursor', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  @ApiResponse({ status: 200, type: CursorPaginatedResponseDto<PostListResponse> })
+  @ApiResponse({
+    status: 200,
+    type: CursorPaginatedResponseDto<PostListResponse>,
+  })
   async getReposts(
     @Param('postId') postId: string,
     @CurrentUser('id') viewerId: string,
     @Query() query: GetPostsQuery,
   ): Promise<CursorPaginatedResponseDto<PostListResponse>> {
-    return this.queryService.getReposts(postId, viewerId, query.cursor, query.limit);
+    return this.queryService.getReposts(
+      postId,
+      viewerId,
+      query.cursor,
+      query.limit,
+    );
   }
 
   @Get(':postId/quotes')
@@ -175,25 +232,40 @@ export class PostsController {
   @ApiParam({ name: 'postId', description: 'Quoted post ID' })
   @ApiQuery({ name: 'cursor', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  @ApiResponse({ status: 200, type: CursorPaginatedResponseDto<PostListResponse> })
+  @ApiResponse({
+    status: 200,
+    type: CursorPaginatedResponseDto<PostListResponse>,
+  })
   async getQuotes(
     @Param('postId') postId: string,
     @CurrentUser('id') viewerId: string,
     @Query() query: GetPostsQuery,
   ): Promise<CursorPaginatedResponseDto<PostListResponse>> {
-    return this.queryService.getQuotes(postId, viewerId, query.cursor, query.limit);
+    return this.queryService.getQuotes(
+      postId,
+      viewerId,
+      query.cursor,
+      query.limit,
+    );
   }
 
   @Get('bookmarks/me')
-  @ApiOperation({ summary: 'Get current user\'s bookmarked posts' })
+  @ApiOperation({ summary: "Get current user's bookmarked posts" })
   @ApiQuery({ name: 'cursor', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  @ApiResponse({ status: 200, type: CursorPaginatedResponseDto<PostListResponse> })
+  @ApiResponse({
+    status: 200,
+    type: CursorPaginatedResponseDto<PostListResponse>,
+  })
   async getBookmarks(
     @CurrentUser('id') viewerId: string,
     @Query() query: GetPostsQuery,
   ): Promise<CursorPaginatedResponseDto<PostListResponse>> {
-    return this.queryService.getBookmarkedPosts(viewerId, query.cursor, query.limit);
+    return this.queryService.getBookmarkedPosts(
+      viewerId,
+      query.cursor,
+      query.limit,
+    );
   }
 
   // Reactions
@@ -226,14 +298,24 @@ export class PostsController {
   @ApiParam({ name: 'postId', description: 'Post ID' })
   @ApiQuery({ name: 'cursor', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  @ApiQuery({ name: 'type', required: false, enum: ['LIKE', 'LOVE', 'HAHA', 'WOW', 'SAD', 'ANGRY', 'FIRE', 'CELEBRATE'] })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    enum: ['LIKE', 'LOVE', 'HAHA', 'WOW', 'SAD', 'ANGRY', 'FIRE', 'CELEBRATE'],
+  })
   @ApiResponse({ status: 200, description: 'Reactions retrieved' })
   async getReactions(
     @Param('postId') postId: string,
     @CurrentUser('id') viewerId: string,
     @Query() query: GetReactionsQuery,
   ): Promise<CursorPaginatedResponseDto<ReactionDto>> {
-    return this.queryService.getPostReactions(postId, viewerId, query.cursor, query.limit, query.type);
+    return this.queryService.getPostReactions(
+      postId,
+      viewerId,
+      query.cursor,
+      query.limit,
+      query.type,
+    );
   }
 
   // Bookmarks
@@ -270,7 +352,12 @@ export class PostsController {
     @CurrentUser('id') userId: string,
     @Body() dto: ReportPostDto,
   ): Promise<void> {
-    return this.commandService.reportPost(postId, userId, dto.reason, dto.detailText);
+    return this.commandService.reportPost(
+      postId,
+      userId,
+      dto.reason,
+      dto.detailText,
+    );
   }
 
   @Get(':postId/reports')
@@ -278,14 +365,23 @@ export class PostsController {
   @ApiParam({ name: 'postId', description: 'Post ID' })
   @ApiQuery({ name: 'cursor', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  @ApiQuery({ name: 'status', required: false, enum: ['PENDING', 'REVIEWED', 'RESOLVED', 'DISMISSED'] })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['PENDING', 'REVIEWED', 'RESOLVED', 'DISMISSED'],
+  })
   @ApiResponse({ status: 200, description: 'Reports retrieved' })
   async getReports(
     @Param('postId') postId: string,
     @CurrentUser('id') viewerId: string,
     @Query() query: GetReportsQuery,
   ): Promise<CursorPaginatedResponseDto<PostReportDto>> {
-    return this.queryService.getPostReportReports(postId, viewerId, query.cursor, query.limit);
+    return this.queryService.getPostReportReports(
+      postId,
+      viewerId,
+      query.cursor,
+      query.limit,
+    );
   }
 
   // Reposts
@@ -323,6 +419,11 @@ export class PostsController {
     @CurrentUser('id') userId: string,
     @Body() dto: CreateQuotePostDto,
   ): Promise<PostDetailResponse> {
-    return this.commandService.createQuotePost(postId, userId, dto.content, dto.visibility);
+    return this.commandService.createQuotePost(
+      postId,
+      userId,
+      dto.content,
+      dto.visibility,
+    );
   }
 }

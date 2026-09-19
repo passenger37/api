@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { E2eeDeviceRepository } from '../repositories/e2ee-device.repository';
 import { VerifySafetyNumberRequest } from '../dto/request/safety-number.request';
@@ -11,13 +15,8 @@ export class E2eeSafetyNumberService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async verifySafetyNumber(
-    userId: string,
-    dto: VerifySafetyNumberRequest,
-  ) {
-    const localDevice = await this.deviceRepo.findActiveById(
-      dto.localDeviceId,
-    );
+  async verifySafetyNumber(userId: string, dto: VerifySafetyNumberRequest) {
+    const localDevice = await this.deviceRepo.findActiveById(dto.localDeviceId);
     if (!localDevice || localDevice.userId !== userId) {
       throw new NotFoundException('Local device not found');
     }
@@ -76,19 +75,15 @@ export class E2eeSafetyNumberService {
     };
   }
 
-  async getVerificationStatus(
-    localDeviceId: string,
-    remoteDeviceId: string,
-  ) {
-    const verification =
-      await this.prisma.e2eeDeviceVerification.findUnique({
-        where: {
-          localDeviceId_remoteDeviceId: {
-            localDeviceId,
-            remoteDeviceId,
-          },
+  async getVerificationStatus(localDeviceId: string, remoteDeviceId: string) {
+    const verification = await this.prisma.e2eeDeviceVerification.findUnique({
+      where: {
+        localDeviceId_remoteDeviceId: {
+          localDeviceId,
+          remoteDeviceId,
         },
-      });
+      },
+    });
 
     return {
       success: true,

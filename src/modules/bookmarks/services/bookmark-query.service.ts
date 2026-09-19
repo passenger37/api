@@ -1,14 +1,24 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BookmarkRepository } from '../repositories/bookmark.repository';
 import { BookmarkTargetType } from '../types/bookmark.types';
-import { ListBookmarksDto, BatchBookmarkStatusDto } from '../dto/create-bookmark.dto';
-import { PaginatedBookmarks, PaginatedCollections, BookmarkStatus } from '../types/bookmark.types';
+import {
+  ListBookmarksDto,
+  BatchBookmarkStatusDto,
+} from '../dto/create-bookmark.dto';
+import {
+  PaginatedBookmarks,
+  PaginatedCollections,
+  BookmarkStatus,
+} from '../types/bookmark.types';
 
 @Injectable()
 export class BookmarkQueryService {
   constructor(private readonly bookmarkRepo: BookmarkRepository) {}
 
-  async getSavedItems(userId: string, dto: ListBookmarksDto): Promise<PaginatedBookmarks> {
+  async getSavedItems(
+    userId: string,
+    dto: ListBookmarksDto,
+  ): Promise<PaginatedBookmarks> {
     return this.bookmarkRepo.findManyByUser(userId, {
       limit: dto.limit ?? 20,
       cursor: dto.cursor,
@@ -17,7 +27,10 @@ export class BookmarkQueryService {
     });
   }
 
-  async getCollections(userId: string, dto: ListBookmarksDto): Promise<PaginatedCollections> {
+  async getCollections(
+    userId: string,
+    dto: ListBookmarksDto,
+  ): Promise<PaginatedCollections> {
     return this.bookmarkRepo.findCollectionsByUser(userId, {
       limit: dto.limit ?? 20,
       cursor: dto.cursor,
@@ -25,7 +38,10 @@ export class BookmarkQueryService {
   }
 
   async getCollectionById(userId: string, collectionId: string) {
-    const collection = await this.bookmarkRepo.findCollectionById(collectionId, userId);
+    const collection = await this.bookmarkRepo.findCollectionById(
+      collectionId,
+      userId,
+    );
     if (!collection) {
       throw new NotFoundException('Collection not found');
     }
@@ -44,7 +60,10 @@ export class BookmarkQueryService {
 
     const result: Record<string, BookmarkStatus> = {};
     for (const targetId of dto.targetIds) {
-      const status = statusMap.get(targetId) ?? { saved: false, collectionId: null };
+      const status = statusMap.get(targetId) ?? {
+        saved: false,
+        collectionId: null,
+      };
       result[targetId] = {
         targetType: dto.targetType,
         targetId,
@@ -61,8 +80,15 @@ export class BookmarkQueryService {
     targetType: BookmarkTargetType,
     targetId: string,
   ): Promise<BookmarkStatus> {
-    const statusMap = await this.bookmarkRepo.getBookmarkStatus(userId, targetType, [targetId]);
-    const status = statusMap.get(targetId) ?? { saved: false, collectionId: null };
+    const statusMap = await this.bookmarkRepo.getBookmarkStatus(
+      userId,
+      targetType,
+      [targetId],
+    );
+    const status = statusMap.get(targetId) ?? {
+      saved: false,
+      collectionId: null,
+    };
 
     return {
       targetType,

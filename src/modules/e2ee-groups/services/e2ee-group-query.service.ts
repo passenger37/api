@@ -1,7 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { E2eeGroupRepository } from '../repositories/e2ee-group.repository';
-import { serializeGroup, serializeGroupMember, serializeGroupEnvelope, serializeGroupEnvelopeList } from '../serializers/e2ee-group.serializer';
-import { GetGroupEnvelopesRequest, GetGroupMembersRequest } from '../dto/group.request';
+import {
+  serializeGroup,
+  serializeGroupMember,
+  serializeGroupEnvelope,
+  serializeGroupEnvelopeList,
+} from '../serializers/e2ee-group.serializer';
+import {
+  GetGroupEnvelopesRequest,
+  GetGroupMembersRequest,
+} from '../dto/group.request';
 
 @Injectable()
 export class E2eeGroupQueryService {
@@ -30,7 +38,10 @@ export class E2eeGroupQueryService {
     if (!group) {
       throw new NotFoundException('Group not found');
     }
-    const membership = await this.groupRepo.findMemberByUser(dto.groupId, userId);
+    const membership = await this.groupRepo.findMemberByUser(
+      dto.groupId,
+      userId,
+    );
     if (!membership) {
       throw new NotFoundException('Group not found');
     }

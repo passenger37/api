@@ -18,11 +18,7 @@
 import { Injectable } from '@nestjs/common';
 import { LoadModelService } from '../../load-model/load-model.service';
 import { loadModel } from '../../load-model/load-model.config';
-import {
-  AccessPath,
-  QueryPath,
-  loadQueryPaths,
-} from './db-query-path';
+import { AccessPath, QueryPath, loadQueryPaths } from './db-query-path';
 
 export interface OptimisedPathPlan {
   name: string;
@@ -82,7 +78,10 @@ export class DbQueryOptimizerService {
     const reduction =
       baselineRowsPerSec > 0
         ? Number(
-            ((baselineRowsPerSec - optimisedRowsPerSec) / baselineRowsPerSec).toFixed(4),
+            (
+              (baselineRowsPerSec - optimisedRowsPerSec) /
+              baselineRowsPerSec
+            ).toFixed(4),
           )
         : 0;
     const allWithinSlo = plans.every((p) => p.chosen.withinSlo);
@@ -133,8 +132,9 @@ export class DbQueryOptimizerService {
     const baseline = path.accessPaths[0];
     const baselineRowsPerRequest = rowsFor(baseline);
 
-    const chosen = [...path.accessPaths]
-      .sort((a, b) => rowsFor(a) - rowsFor(b))[0];
+    const chosen = [...path.accessPaths].sort(
+      (a, b) => rowsFor(a) - rowsFor(b),
+    )[0];
 
     const chosenRowsPerRequest = rowsFor(chosen);
     const chosenRowsPerSec = Math.round(chosenRowsPerRequest * rps);
@@ -188,7 +188,10 @@ export class DbQueryOptimizerService {
  *  wait sets proportionally under env-driven loads. */
 const DEFAULT_PEAK_OPS_PER_SEC = 13_333;
 
-function sum(items: OptimisedPathPlan[], f: (p: OptimisedPathPlan) => number): number {
+function sum(
+  items: OptimisedPathPlan[],
+  f: (p: OptimisedPathPlan) => number,
+): number {
   return items.reduce((acc, p) => acc + f(p), 0);
 }
 

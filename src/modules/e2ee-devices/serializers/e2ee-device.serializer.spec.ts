@@ -45,7 +45,7 @@ describe('e2ee-device.serializer', () => {
         },
       ],
       _count: { oneTimePreKeys: 2 },
-    } as any);
+    });
 
     expect(result).toEqual({
       id: 'dev1',
@@ -81,7 +81,7 @@ describe('e2ee-device.serializer', () => {
       updatedAt: created,
       signedPreKeys: [],
       _count: { oneTimePreKeys: 0 },
-    } as any);
+    });
 
     expect(result.signedPreKey).toBeNull();
     expect(result.lastSeenAt).toBe('2026-01-05T00:00:00.000Z');

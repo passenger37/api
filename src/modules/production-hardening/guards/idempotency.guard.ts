@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { IdempotencyService } from '../services/idempotency.service';
 import { Reflector } from '@nestjs/core';
 
@@ -12,10 +18,10 @@ export class IdempotencyGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requireIdempotency = this.reflector.getAllAndOverride<boolean>(IDEMPOTENCY_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requireIdempotency = this.reflector.getAllAndOverride<boolean>(
+      IDEMPOTENCY_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     if (!requireIdempotency) {
       return true;
@@ -57,7 +63,11 @@ export class IdempotencyGuard implements CanActivate {
 }
 
 export function RequireIdempotency() {
-  return (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) => {
+  return (
+    target: any,
+    propertyKey?: string,
+    descriptor?: PropertyDescriptor,
+  ) => {
     if (descriptor) {
       Reflect.defineMetadata(IDEMPOTENCY_KEY, true, descriptor.value);
     } else {

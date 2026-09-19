@@ -39,7 +39,7 @@ describe('CommunityEventPublisher', () => {
     const publish = jest.fn().mockResolvedValue(1);
     redis.getClient.mockReturnValue({ publish });
 
-    await publisher.publish('c1', 'community:post:created' as any, {
+    await publisher.publish('c1', 'community:post:created', {
       post: { id: 'p1' },
     });
 
@@ -63,7 +63,7 @@ describe('CommunityEventPublisher', () => {
     const circular: Record<string, unknown> = {};
     circular.self = circular;
 
-    await publisher.publish('c1', 'community:post:created' as any, circular);
+    await publisher.publish('c1', 'community:post:created', circular);
 
     expect(logger.error).toHaveBeenCalledTimes(1);
     expect(publish).not.toHaveBeenCalled();
@@ -75,7 +75,7 @@ describe('CommunityEventPublisher', () => {
 
     const huge = 'x'.repeat(CommunityEventPublisher.MAX_ENVELOPE_BYTES + 1);
 
-    await publisher.publish('c1', 'community:post:created' as any, {
+    await publisher.publish('c1', 'community:post:created', {
       body: huge,
     });
 
@@ -85,16 +85,12 @@ describe('CommunityEventPublisher', () => {
   });
 
   it('should catch a Redis publish error and log a transport error', async () => {
-    const publish = jest
-      .fn()
-      .mockRejectedValue(new Error('Redis offline'));
+    const publish = jest.fn().mockRejectedValue(new Error('Redis offline'));
     redis.getClient.mockReturnValue({ publish });
 
-    await publisher.publish(
-      'c1',
-      'community:post:created' as any,
-      { post: { id: 'p1' } },
-    );
+    await publisher.publish('c1', 'community:post:created', {
+      post: { id: 'p1' },
+    });
 
     expect(publish).toHaveBeenCalledTimes(1);
     expect(logger.error).toHaveBeenCalledTimes(1);
@@ -116,7 +112,7 @@ describe('CommunityEventPublisher', () => {
       };
     });
 
-    await publisher.publish('c1', 'community:post:created' as any, {
+    await publisher.publish('c1', 'community:post:created', {
       post: { id: 'p1' },
     });
 

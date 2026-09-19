@@ -82,10 +82,7 @@ describe('CommunityMembershipService', () => {
 
       const result = await service.subscribe('nexus', 'u1');
 
-      expect(subscriptionRepository.subscribe).toHaveBeenCalledWith(
-        'c1',
-        'u1',
-      );
+      expect(subscriptionRepository.subscribe).toHaveBeenCalledWith('c1', 'u1');
       expect(result).toEqual(
         expect.objectContaining({
           id: 'sub1',

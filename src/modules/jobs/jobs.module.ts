@@ -35,11 +35,7 @@ import { JobsController } from './controllers/jobs.controller';
     ),
   ],
   controllers: [JobsController],
-  providers: [
-    BackgroundJobsRepository,
-    JobsQueueService,
-    JobsService,
-  ],
+  providers: [BackgroundJobsRepository, JobsQueueService, JobsService],
   exports: [BackgroundJobsRepository, JobsQueueService, JobsService],
 })
 export class JobsModule {}

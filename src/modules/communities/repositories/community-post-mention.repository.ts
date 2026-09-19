@@ -47,9 +47,18 @@ export class CommunityPostMentionRepository {
     return this.prisma.$transaction(creates);
   }
 
-  async listByPost(
-    postId: string,
-  ): Promise<Array<CommunityPostMention & { mentionedUser?: { id: string; username: string; displayName: string; avatarUrl: string | null } }>> {
+  async listByPost(postId: string): Promise<
+    Array<
+      CommunityPostMention & {
+        mentionedUser?: {
+          id: string;
+          username: string;
+          displayName: string;
+          avatarUrl: string | null;
+        };
+      }
+    >
+  > {
     return this.prisma.communityPostMention.findMany({
       where: { postId },
       include: {

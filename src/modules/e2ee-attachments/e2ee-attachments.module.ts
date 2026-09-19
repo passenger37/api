@@ -10,7 +10,12 @@ import { E2eeAttachmentQueryService } from './services/e2ee-attachment-query.ser
 import { E2eeAttachmentController } from './controllers/e2ee-attachment.controller';
 
 @Module({
-  imports: [PrismaModule, E2eeSessionsModule, E2eeGroupsModule, E2eeDevicesModule],
+  imports: [
+    PrismaModule,
+    E2eeSessionsModule,
+    E2eeGroupsModule,
+    E2eeDevicesModule,
+  ],
   controllers: [E2eeAttachmentController],
   providers: [
     AttachmentStorageService,

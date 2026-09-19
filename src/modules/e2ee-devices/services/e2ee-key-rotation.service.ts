@@ -30,7 +30,10 @@ export class E2eeKeyRotationService {
 
     const lastRotation = activePreKey.rotatedAt ?? activePreKey.createdAt;
     const now = new Date();
-    if (now.getTime() - lastRotation.getTime() < E2eeKeyRotationService.SIGNED_PREKEY_ROTATION_INTERVAL_MS) {
+    if (
+      now.getTime() - lastRotation.getTime() <
+      E2eeKeyRotationService.SIGNED_PREKEY_ROTATION_INTERVAL_MS
+    ) {
       return { rotated: false, reason: 'Too early for rotation' };
     }
 
@@ -57,10 +60,15 @@ export class E2eeKeyRotationService {
     const available = await this.oneTimePreKeyRepo.countUnconsumed(deviceId);
 
     if (available >= E2eeKeyRotationService.ONETIME_PREKEY_THRESHOLD) {
-      return { refilled: false, available, reason: 'Sufficient prekeys available' };
+      return {
+        refilled: false,
+        available,
+        reason: 'Sufficient prekeys available',
+      };
     }
 
-    const toGenerate = E2eeKeyRotationService.ONETIME_PREKEY_BATCH_SIZE - available;
+    const toGenerate =
+      E2eeKeyRotationService.ONETIME_PREKEY_BATCH_SIZE - available;
 
     // In a real implementation, the client would generate the new prekeys
     // and send them via the refill-one-time-prekeys endpoint

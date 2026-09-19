@@ -104,10 +104,7 @@ export class CommunityPostBookmarkRepository {
    * Remove a bookmark and decrement the post's `bookmarkCount` atomically.
    * Returns false when no bookmark exists.
    */
-  async removeWithCount(
-    postId: string,
-    userId: string,
-  ): Promise<boolean> {
+  async removeWithCount(postId: string, userId: string): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       const result = await tx.communityPostBookmark.deleteMany({
         where: { postId, userId },
@@ -126,7 +123,9 @@ export class CommunityPostBookmarkRepository {
     });
   }
 
-  private cursorWhere(cursor?: TwoFieldCursor): Prisma.CommunityPostBookmarkWhereInput {
+  private cursorWhere(
+    cursor?: TwoFieldCursor,
+  ): Prisma.CommunityPostBookmarkWhereInput {
     if (!cursor) {
       return {};
     }

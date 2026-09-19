@@ -1,4 +1,13 @@
-import { IsString, IsUUID, IsOptional, IsNumber, Min, Max, MaxLength, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  MaxLength,
+  IsEnum,
+} from 'class-validator';
 import { E2eeAttachmentStatus } from '@prisma/client';
 
 export class CreateAttachmentRequest {

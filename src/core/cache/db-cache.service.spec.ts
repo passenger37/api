@@ -20,19 +20,25 @@ describe('DbCacheService', () => {
     it('returns parsed JSON on a hit and records a hit', async () => {
       redis.get.mockResolvedValue(JSON.stringify({ n: 5 }));
       await expect(cache.get('serverMembers', 'k')).resolves.toEqual({ n: 5 });
-      expect(metrics.getCount('cache_hits_total', { cache: 'serverMembers' })).toBe(1);
+      expect(
+        metrics.getCount('cache_hits_total', { cache: 'serverMembers' }),
+      ).toBe(1);
     });
 
     it('returns null on a miss and records a miss', async () => {
       redis.get.mockResolvedValue(null);
       await expect(cache.get('serverMembers', 'k')).resolves.toBeNull();
-      expect(metrics.getCount('cache_misses_total', { cache: 'serverMembers' })).toBe(1);
+      expect(
+        metrics.getCount('cache_misses_total', { cache: 'serverMembers' }),
+      ).toBe(1);
     });
 
     it('treats a corrupt payload as a miss', async () => {
       redis.get.mockResolvedValue('not-json');
       await expect(cache.get('serverMembers', 'k')).resolves.toBeNull();
-      expect(metrics.getCount('cache_misses_total', { cache: 'serverMembers' })).toBe(1);
+      expect(
+        metrics.getCount('cache_misses_total', { cache: 'serverMembers' }),
+      ).toBe(1);
     });
   });
 
@@ -52,13 +58,19 @@ describe('DbCacheService', () => {
       const loader = jest.fn().mockResolvedValue({ count: 7 });
       await cache.remember('serverMembers', 'k', 60, loader);
       expect(loader).toHaveBeenCalledTimes(1);
-      expect(redis.set).toHaveBeenCalledWith('k', JSON.stringify({ count: 7 }), 60);
+      expect(redis.set).toHaveBeenCalledWith(
+        'k',
+        JSON.stringify({ count: 7 }),
+        60,
+      );
     });
 
     it('does not cache a null loader result', async () => {
       redis.get.mockResolvedValue(null);
       const loader = jest.fn().mockResolvedValue(null);
-      await expect(cache.remember('serverMembers', 'k', 60, loader)).resolves.toBeNull();
+      await expect(
+        cache.remember('serverMembers', 'k', 60, loader),
+      ).resolves.toBeNull();
       expect(redis.set).not.toHaveBeenCalled();
     });
   });

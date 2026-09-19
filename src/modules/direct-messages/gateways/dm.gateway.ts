@@ -49,7 +49,7 @@ import { DmSyncRequest } from '../dto/request/dm-sync.request';
 import { DmReadRequest } from '../dto/request/dm-read.request';
 import { DmEditRequest } from '../dto/request/dm-edit.request';
 import { DmDeleteRequest } from '../dto/request/dm-delete.request';
-import { DmReactionRequest } from '../dto/request/dm-reaction.request';
+import { DmReactionWsRequest } from '../dto/request/dm-reaction-ws.request';
 import { DmTypingStartRequest } from '../dto/request/dm-typing-start.request';
 import { DmTypingStopRequest } from '../dto/request/dm-typing-stop.request';
 import { TypingService } from '../../messages/services/typing.service';
@@ -297,7 +297,10 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
         windowSeconds: 10,
       });
 
-      const result = await this.e2eeCommandService.deleteMessage(userId, request);
+      const result = await this.e2eeCommandService.deleteMessage(
+        userId,
+        request,
+      );
 
       return {
         event,
@@ -350,7 +353,10 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
         windowSeconds: 10,
       });
 
-      const result = await this.e2eeCommandService.removeReaction(userId, request);
+      const result = await this.e2eeCommandService.removeReaction(
+        userId,
+        request,
+      );
 
       return {
         success: true,
@@ -456,7 +462,10 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
         windowSeconds: 10,
       });
 
-      const result = await this.e2eeCommandService.setDisappearingSettings(userId, request);
+      const result = await this.e2eeCommandService.setDisappearingSettings(
+        userId,
+        request,
+      );
 
       return {
         success: true,
@@ -580,7 +589,9 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   broadcastE2eeMessageWithAttachment(channelId: string, payload: unknown) {
-    this.server.to(dmRoom(channelId)).emit('dm-e2ee-message-with-attachment', payload);
+    this.server
+      .to(dmRoom(channelId))
+      .emit('dm-e2ee-message-with-attachment', payload);
   }
 
   @SubscribeMessage('dm:typing-start')
@@ -723,7 +734,7 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('dm-reaction-add')
   async reactionAdd(
     @ConnectedSocket() client: Socket,
-    @MessageBody() request: DmReactionRequest,
+    @MessageBody() request: DmReactionWsRequest,
   ) {
     const event = 'dm-reaction-add';
     try {
@@ -736,7 +747,7 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       const result = await this.reactionCommandService.addReaction(
-        request.messageId,
+        request.messageId!,
         userId,
         request.emoji,
       );
@@ -754,7 +765,7 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('dm-reaction-remove')
   async reactionRemove(
     @ConnectedSocket() client: Socket,
-    @MessageBody() request: DmReactionRequest,
+    @MessageBody() request: DmReactionWsRequest,
   ) {
     const event = 'dm-reaction-remove';
     try {
@@ -767,7 +778,7 @@ export class DmGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       const result = await this.reactionCommandService.removeReaction(
-        request.messageId,
+        request.messageId!,
         userId,
         request.emoji,
       );

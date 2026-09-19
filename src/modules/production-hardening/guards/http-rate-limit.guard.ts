@@ -1,5 +1,14 @@
-import { Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
-import { HttpRateLimitService, RateLimitInfo } from '../services/http-rate-limit.service';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  HttpRateLimitService,
+  RateLimitInfo,
+} from '../services/http-rate-limit.service';
 
 @Injectable()
 export class HttpRateLimitGuard implements CanActivate {
@@ -31,15 +40,28 @@ export class HttpRateLimitGuard implements CanActivate {
       return true;
     } catch (error) {
       if (error instanceof HttpException) {
-        const errorResponse = error.getResponse() as { limit?: number; resetAt?: number } | string;
+        const errorResponse = error.getResponse() as
+          | { limit?: number; resetAt?: number }
+          | string;
         const response = context.switchToHttp().getResponse();
-        const errLimit = typeof errorResponse === 'object' && errorResponse !== null ? errorResponse.limit : limit;
-        const errResetAt = (typeof errorResponse === 'object' && errorResponse !== null && errorResponse.resetAt) ? errorResponse.resetAt : Math.floor(Date.now() / 1000) + 60;
-        
+        const errLimit =
+          typeof errorResponse === 'object' && errorResponse !== null
+            ? errorResponse.limit
+            : limit;
+        const errResetAt =
+          typeof errorResponse === 'object' &&
+          errorResponse !== null &&
+          errorResponse.resetAt
+            ? errorResponse.resetAt
+            : Math.floor(Date.now() / 1000) + 60;
+
         response.setHeader('X-RateLimit-Limit', errLimit);
         response.setHeader('X-RateLimit-Remaining', 0);
         response.setHeader('X-RateLimit-Reset', errResetAt);
-        response.setHeader('Retry-After', Math.ceil(errResetAt - Date.now() / 1000));
+        response.setHeader(
+          'Retry-After',
+          Math.ceil(errResetAt - Date.now() / 1000),
+        );
       }
       throw error;
     }
@@ -58,11 +80,17 @@ export class HttpRateLimitGuard implements CanActivate {
       return 100;
     }
 
-    if (path.startsWith('/posts/') && (path.includes('/comments') || path.includes('/replies'))) {
+    if (
+      path.startsWith('/posts/') &&
+      (path.includes('/comments') || path.includes('/replies'))
+    ) {
       return 30;
     }
 
-    if (path.startsWith('/comments/') && (method === 'POST' || method === 'PATCH' || method === 'DELETE')) {
+    if (
+      path.startsWith('/comments/') &&
+      (method === 'POST' || method === 'PATCH' || method === 'DELETE')
+    ) {
       return 30;
     }
 

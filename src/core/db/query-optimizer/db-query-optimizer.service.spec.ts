@@ -21,12 +21,16 @@ describe('DbQueryOptimizerService', () => {
     it('carries the load model version and peak ops/sec into the report', () => {
       const report = optimizer.optimise();
       expect(report.modelVersion).toBe(loadModel.getModel().version);
-      expect(report.peakOpsPerSec).toBe(loadModel.derivedTargets().peakOpsPerSec);
+      expect(report.peakOpsPerSec).toBe(
+        loadModel.derivedTargets().peakOpsPerSec,
+      );
     });
 
     it('tags the improvement verdict by comparing pre/post rows scanned', () => {
       const report = optimizer.optimise();
-      expect(report.totals.baselineRowsPerSec).toBeGreaterThan(report.totals.optimisedRowsPerSec);
+      expect(report.totals.baselineRowsPerSec).toBeGreaterThan(
+        report.totals.optimisedRowsPerSec,
+      );
       expect(report.totals.reduction).toBeGreaterThan(0);
       expect(report.improved).toBe(true);
     });
@@ -37,9 +41,13 @@ describe('DbQueryOptimizerService', () => {
       const report = optimizer.optimise();
       for (const plan of report.paths) {
         const path = QUERY_PATHS.find((p) => p.name === plan.name)!;
-        const best = [...path.accessPaths].sort((a, b) => a.selectivity - b.selectivity)[0];
+        const best = [...path.accessPaths].sort(
+          (a, b) => a.selectivity - b.selectivity,
+        )[0];
         expect(plan.chosen.strategy).toBe(best.strategy);
-        expect(plan.chosen.rowsPerRequest).toBeLessThanOrEqual(plan.baseline.rowsPerRequest);
+        expect(plan.chosen.rowsPerRequest).toBeLessThanOrEqual(
+          plan.baseline.rowsPerRequest,
+        );
       }
     });
 
@@ -64,7 +72,7 @@ describe('DbQueryOptimizerService', () => {
       const atPeak = optimizer.optimise();
       const atQuarter = optimizer.optimise({
         LOAD_USERS: '250000',
-      } as NodeJS.ProcessEnv);
+      });
       const peakRows = atPeak.totals.baselineRowsPerSec;
       const quarterRows = atQuarter.totals.baselineRowsPerSec;
       // Fewer modelled users => lower ops/sec => fewer projected rows/sec.

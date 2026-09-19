@@ -19,7 +19,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const response = ctx.getResponse<Response>();
 
-    const request = ctx.getRequest<Request & { user?: { id?: string }; id?: string }>();
+    const request = ctx.getRequest<
+      Request & { user?: { id?: string }; id?: string }
+    >();
 
     const status =
       exception instanceof HttpException

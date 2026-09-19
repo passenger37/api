@@ -220,7 +220,7 @@ export class UsersController {
     return this.userProfileDomainService.updateProfile(user.id, dto);
   }
 
-    @Patch('me')
+  @Patch('me')
   updateMyProfile(
     @CurrentUser('id') userId: string,
 
@@ -320,6 +320,15 @@ export class UsersController {
     @Param('userId') userId: string,
   ) {
     return this.usersService.getRelationshipStats(user.sub, userId);
+  }
+
+  @Get(':userId/follow-state')
+  getFollowState(
+    @CurrentUser() user: JwtPayload,
+
+    @Param('userId') userId: string,
+  ) {
+    return this.usersService.getFollowState(user.sub, userId);
   }
 
   // =====================================================

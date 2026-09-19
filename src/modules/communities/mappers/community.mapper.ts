@@ -50,7 +50,9 @@ export function serializeCategory(
   };
 }
 
-function serializeCommentMap(comment: CommunityCommentWithRelations): CommentResponse {
+function serializeCommentMap(
+  comment: CommunityCommentWithRelations,
+): CommentResponse {
   return {
     id: comment.id,
     postId: comment.postId,
@@ -65,7 +67,9 @@ function serializeCommentMap(comment: CommunityCommentWithRelations): CommentRes
   };
 }
 
-export function serializeComment(comment: CommunityCommentWithRelations): CommentResponse {
+export function serializeComment(
+  comment: CommunityCommentWithRelations,
+): CommentResponse {
   return serializeCommentMap(comment);
 }
 

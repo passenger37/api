@@ -33,10 +33,7 @@ export class CommunitySubscriptionRepository {
     });
   }
 
-  async isSubscribed(
-    communityId: string,
-    userId: string,
-  ): Promise<boolean> {
+  async isSubscribed(communityId: string, userId: string): Promise<boolean> {
     const subscription = await this.prisma.communitySubscription.findUnique({
       where: { communityId_userId: { communityId, userId } },
       select: { id: true },

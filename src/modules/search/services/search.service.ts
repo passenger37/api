@@ -515,8 +515,7 @@ export class SearchService {
 
   private async incrementUserHitCounts(results: SearchResults): Promise<void> {
     const userHits = results.hits.filter(
-      (hit) =>
-        hit.document?.contentType === 'user' && hit.document?.contentId,
+      (hit) => hit.document?.contentType === 'user' && hit.document?.contentId,
     );
     if (userHits.length === 0) return;
 
@@ -683,7 +682,12 @@ export class SearchService {
         ...(engine ? { engine } : {}),
         createdAt: { gte: from, lte: to },
       },
-      select: { userId: true, queryText: true, latencyMs: true, createdAt: true },
+      select: {
+        userId: true,
+        queryText: true,
+        latencyMs: true,
+        createdAt: true,
+      },
     });
     const uniqueQueryUsers = new Set(queryLog.map((q) => q.userId));
 

@@ -39,7 +39,11 @@ export class IdempotencyService {
     return { isFirstRequest: true };
   }
 
-  async storeResult(key: string, result: unknown, ttlSeconds: number): Promise<void> {
+  async storeResult(
+    key: string,
+    result: unknown,
+    ttlSeconds: number,
+  ): Promise<void> {
     const fullKey = `${this.keyPrefix}${key}`;
     await this.redis.set(fullKey, JSON.stringify(result), ttlSeconds);
   }

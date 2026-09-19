@@ -1,6 +1,22 @@
-import { IsString, IsOptional, IsEnum, IsArray, ValidateNested, IsUrl, IsInt, Min, Max, Length } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsArray,
+  ValidateNested,
+  IsUrl,
+  IsInt,
+  Min,
+  Max,
+  Length,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { PostVisibility, PostContentType, ReactionType, PostReportReason } from '@prisma/client';
+import {
+  PostVisibility,
+  PostContentType,
+  ReactionType,
+  PostReportReason,
+} from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreatePostMediaDto {
@@ -25,7 +41,10 @@ export class CreatePostDto {
   @IsEnum(PostVisibility)
   visibility: PostVisibility;
 
-  @ApiPropertyOptional({ type: [CreatePostMediaDto], description: 'Media attachments' })
+  @ApiPropertyOptional({
+    type: [CreatePostMediaDto],
+    description: 'Media attachments',
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -101,7 +120,10 @@ export class ReportPostDto {
 }
 
 export class CreateRepostDto {
-  @ApiPropertyOptional({ description: 'Optional comment on repost', maxLength: 10000 })
+  @ApiPropertyOptional({
+    description: 'Optional comment on repost',
+    maxLength: 10000,
+  })
   @IsOptional()
   @IsString()
   @Length(1, 10000)

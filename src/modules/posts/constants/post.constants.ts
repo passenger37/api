@@ -7,11 +7,28 @@ export const POST_DEFAULTS = {
   MAX_MENTIONS: 20,
 } as const;
 
-export const POST_VISIBILITY_OPTIONS = ['PUBLIC', 'FOLLOWERS', 'FRIENDS', 'COMMUNITY', 'SERVER', 'PRIVATE', 'CUSTOM'] as const;
+export const POST_VISIBILITY_OPTIONS = [
+  'PUBLIC',
+  'FOLLOWERS',
+  'FRIENDS',
+  'COMMUNITY',
+  'SERVER',
+  'PRIVATE',
+  'CUSTOM',
+] as const;
 
 export const POST_CONTENT_TYPE_OPTIONS = ['TEXT', 'MEDIA', 'MIXED'] as const;
 
-export const REACTION_TYPES = ['LIKE', 'LOVE', 'HAHA', 'WOW', 'SAD', 'ANGRY', 'FIRE', 'CELEBRATE'] as const;
+export const REACTION_TYPES = [
+  'LIKE',
+  'LOVE',
+  'HAHA',
+  'WOW',
+  'SAD',
+  'ANGRY',
+  'FIRE',
+  'CELEBRATE',
+] as const;
 
 export const POST_REPORT_REASONS = [
   'HARASSMENT',
@@ -25,7 +42,13 @@ export const POST_REPORT_REASONS = [
   'OTHER',
 ] as const;
 
-export const POST_SORT_OPTIONS = ['LATEST', 'OLDEST', 'MOST_REACTIONS', 'MOST_COMMENTS', 'MOST_REPOSTS'] as const;
+export const POST_SORT_OPTIONS = [
+  'LATEST',
+  'OLDEST',
+  'MOST_REACTIONS',
+  'MOST_COMMENTS',
+  'MOST_REPOSTS',
+] as const;
 
 export const POST_CURSOR_VERSION = 'v1';
 
@@ -34,7 +57,9 @@ export function encodePostCursor(createdAt: Date, id: string): string {
   return Buffer.from(payload).toString('base64url');
 }
 
-export function decodePostCursor(cursor: string): { createdAt: Date; id: string } | null {
+export function decodePostCursor(
+  cursor: string,
+): { createdAt: Date; id: string } | null {
   try {
     const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
     const parts = decoded.split('|');

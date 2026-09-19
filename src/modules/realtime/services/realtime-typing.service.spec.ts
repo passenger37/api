@@ -17,7 +17,11 @@ describe('RealtimeTypingService', () => {
   it('startTyping sets Redis key with TTL', async () => {
     const result = await service.startTyping('c1', 'u1');
 
-    expect(redis.set).toHaveBeenCalledWith('typing:c1:u1', expect.any(String), 10);
+    expect(redis.set).toHaveBeenCalledWith(
+      'typing:c1:u1',
+      expect.any(String),
+      10,
+    );
     expect(result).toEqual({ channelId: 'c1', userId: 'u1' });
   });
 

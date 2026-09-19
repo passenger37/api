@@ -58,7 +58,10 @@ import {
   encodeReportCursor,
   encodeVoteCursor,
 } from '../constants/community-post.constants';
-import { TwoFieldCursor, decodeTwoFieldCursor } from '../pagination/community-cursor';
+import {
+  TwoFieldCursor,
+  decodeTwoFieldCursor,
+} from '../pagination/community-cursor';
 import { CommunityPostMapper } from '../mappers/community-post.mapper';
 import { CommunityEventPublisher } from '../events/community-event-publisher';
 import { COMMUNITY_REALTIME_EVENTS } from '../realtime/community-realtime.constants';
@@ -136,7 +139,13 @@ export class CommunityPostInteractionService {
 
     return CommunityPostMapper.toDetailResponse(
       detail!,
-      this.viewerState(post, viewerId, isModerator, vote?.vote ?? null, Boolean(bookmark)),
+      this.viewerState(
+        post,
+        viewerId,
+        isModerator,
+        vote?.vote ?? null,
+        Boolean(bookmark),
+      ),
     );
   }
 
@@ -146,13 +155,19 @@ export class CommunityPostInteractionService {
     return community.id;
   }
 
-  async listFeed(query: CommunityPostFeedQuery): Promise<PaginatedCommunityPostsResponse> {
+  async listFeed(
+    query: CommunityPostFeedQuery,
+  ): Promise<PaginatedCommunityPostsResponse> {
     const community = await this.communityById(query.communityId);
 
     await this.requireMember(community.id, query.viewerId);
 
     const sort: FeedSort = query.sort ?? 'LATEST';
-    const limit = this.clamp(query.limit ?? FEED_DEFAULT_LIMIT, 1, FEED_MAX_LIMIT);
+    const limit = this.clamp(
+      query.limit ?? FEED_DEFAULT_LIMIT,
+      1,
+      FEED_MAX_LIMIT,
+    );
     const decoded = query.cursor
       ? this.decodeFeedCursorSafe(query.cursor)
       : undefined;
@@ -183,7 +198,11 @@ export class CommunityPostInteractionService {
         const posts = hasMore ? rows.slice(0, limit) : rows;
         const last = posts[posts.length - 1];
 
-        const items = await this.withListViewerState(posts, community.id, query.viewerId);
+        const items = await this.withListViewerState(
+          posts,
+          community.id,
+          query.viewerId,
+        );
 
         return {
           items,
@@ -192,14 +211,16 @@ export class CommunityPostInteractionService {
               ? encodeFeedCursor({
                   isPinned: last.isPinned,
                   sortKey: String(
-                    sort === 'CONTROVERSIAL' ? last.downvoteCount : last.upvoteCount,
+                    sort === 'CONTROVERSIAL'
+                      ? last.downvoteCount
+                      : last.upvoteCount,
                   ),
                   createdAt: last.createdAt.toISOString(),
                   id: last.id,
                 })
               : null,
           hasMore,
-        } as PaginatedCommunityPostsResponse;
+        };
       },
     ))!;
   }
@@ -232,12 +253,16 @@ export class CommunityPostInteractionService {
 
     await this.invalidateFeed(community.id, true);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_VOTED, {
-      postId: post.id,
-      userId,
-      vote,
-      counts,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.POST_VOTED,
+      {
+        postId: post.id,
+        userId,
+        vote,
+        counts,
+      },
+    );
 
     return counts;
   }
@@ -259,12 +284,16 @@ export class CommunityPostInteractionService {
 
     await this.invalidateFeed(community.id, true);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_VOTED, {
-      postId: post.id,
-      userId,
-      vote: null,
-      counts,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.POST_VOTED,
+      {
+        postId: post.id,
+        userId,
+        vote: null,
+        counts,
+      },
+    );
 
     return counts;
   }
@@ -290,9 +319,7 @@ export class CommunityPostInteractionService {
     return {
       items: votes.map((row) => CommunityPostMapper.toVoteResponse(row)),
       nextCursor:
-        hasMore && last
-          ? encodeVoteCursor(last.createdAt, last.id)
-          : null,
+        hasMore && last ? encodeVoteCursor(last.createdAt, last.id) : null,
       hasMore,
     };
   }
@@ -328,10 +355,14 @@ export class CommunityPostInteractionService {
       canDelete: post.authorUserId === userId,
     };
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_BOOKMARKED, {
-      postId: post.id,
-      userId,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.POST_BOOKMARKED,
+      {
+        postId: post.id,
+        userId,
+      },
+    );
 
     return {
       id: row.id,
@@ -357,11 +388,15 @@ export class CommunityPostInteractionService {
 
     await this.invalidateFeed(community.id);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_BOOKMARKED, {
-      postId: post.id,
-      userId,
-      bookmarked: false,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.POST_BOOKMARKED,
+      {
+        postId: post.id,
+        userId,
+        bookmarked: false,
+      },
+    );
 
     return { bookmarked: false };
   }
@@ -374,7 +409,11 @@ export class CommunityPostInteractionService {
     const bounded = this.clamp(limit, 1, RESULT_MAX_LIMIT);
     const decoded = cursor ? this.decodeTwoFieldCursorSafe(cursor) : undefined;
 
-    const rows = await this.bookmarkRepository.listByUser(userId, bounded, decoded);
+    const rows = await this.bookmarkRepository.listByUser(
+      userId,
+      bounded,
+      decoded,
+    );
 
     const hasMore = rows.length > bounded;
     const bookmarks = hasMore ? rows.slice(0, bounded) : rows;
@@ -420,9 +459,7 @@ export class CommunityPostInteractionService {
     return {
       items,
       nextCursor:
-        hasMore && last
-          ? encodeBookmarkCursor(last.createdAt, last.id)
-          : null,
+        hasMore && last ? encodeBookmarkCursor(last.createdAt, last.id) : null,
       hasMore,
     };
   }
@@ -467,11 +504,15 @@ export class CommunityPostInteractionService {
 
     const response = CommunityPostMapper.toReportResponse(report);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_REPORTED, {
-      reportId: report.id,
-      postId: post.id,
-      reporterUserId: userId,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.POST_REPORTED,
+      {
+        reportId: report.id,
+        postId: post.id,
+        reporterUserId: userId,
+      },
+    );
 
     return response;
   }
@@ -492,7 +533,11 @@ export class CommunityPostInteractionService {
     const bounded = this.clamp(limit, 1, RESULT_MAX_LIMIT);
     const decoded = cursor ? this.decodeTwoFieldCursorSafe(cursor) : undefined;
 
-    const rows = await this.reportRepository.listByPost(postId, bounded, decoded);
+    const rows = await this.reportRepository.listByPost(
+      postId,
+      bounded,
+      decoded,
+    );
 
     const hasMore = rows.length > bounded;
     const reports = hasMore ? rows.slice(0, bounded) : rows;
@@ -501,9 +546,7 @@ export class CommunityPostInteractionService {
     return {
       items: reports.map((row) => CommunityPostMapper.toReportResponse(row)),
       nextCursor:
-        hasMore && last
-          ? encodeReportCursor(last.createdAt, last.id)
-          : null,
+        hasMore && last ? encodeReportCursor(last.createdAt, last.id) : null,
       hasMore,
     };
   }
@@ -528,18 +571,22 @@ export class CommunityPostInteractionService {
 
     const updated = await this.reportRepository.updateStatus(
       reportId,
-      input.status as ReportStatus,
+      input.status,
       moderatorId,
     );
 
     const response = CommunityPostMapper.toReportResponse(updated);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_REPORT_RESOLVED, {
-      reportId,
-      postId: report.postId,
-      status: input.status,
-      handledByUserId: moderatorId,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.POST_REPORT_RESOLVED,
+      {
+        reportId,
+        postId: report.postId,
+        status: input.status,
+        handledByUserId: moderatorId,
+      },
+    );
 
     return response;
   }
@@ -582,7 +629,8 @@ export class CommunityPostInteractionService {
     if (input.title !== undefined) data.title = input.title;
     if (input.content !== undefined) data.content = input.content;
     if (input.visibility !== undefined) data.visibility = input.visibility;
-    if (input.contentWarning !== undefined) data.contentWarning = input.contentWarning;
+    if (input.contentWarning !== undefined)
+      data.contentWarning = input.contentWarning;
     if (input.isSensitive !== undefined) data.isSensitive = input.isSensitive;
     if (input.language !== undefined) data.language = input.language;
     if (input.categoryId !== undefined) {
@@ -649,14 +697,24 @@ export class CommunityPostInteractionService {
 
     await this.invalidateFeed(community.id);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_EDITED, {
-      postId: post.id,
-      editedByUserId: userId,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.POST_EDITED,
+      {
+        postId: post.id,
+        editedByUserId: userId,
+      },
+    );
 
     return CommunityPostMapper.toDetailResponse(
       detail!,
-      this.viewerState(post, userId, isModerator, vote?.vote ?? null, Boolean(bookmark)),
+      this.viewerState(
+        post,
+        userId,
+        isModerator,
+        vote?.vote ?? null,
+        Boolean(bookmark),
+      ),
     );
   }
 
@@ -751,13 +809,17 @@ export class CommunityPostInteractionService {
 
     await this.invalidateFeed(community.id);
 
-    await this.eventPublisher.publish(community.id, COMMUNITY_REALTIME_EVENTS.POST_MODERATED, {
-      postId: post.id,
-      action: input.action,
-      reason: input.reason,
-      postStatus: result.post.status,
-      isPinned: result.post.isPinned,
-    });
+    await this.eventPublisher.publish(
+      community.id,
+      COMMUNITY_REALTIME_EVENTS.POST_MODERATED,
+      {
+        postId: post.id,
+        action: input.action,
+        reason: input.reason,
+        postStatus: result.post.status,
+        isPinned: result.post.isPinned,
+      },
+    );
 
     return {
       postId: post.id,
@@ -824,7 +886,10 @@ export class CommunityPostInteractionService {
     };
   }
 
-  private async invalidateFeed(communityId: string, keyedOnly = false): Promise<void> {
+  private async invalidateFeed(
+    communityId: string,
+    keyedOnly = false,
+  ): Promise<void> {
     const sorts = keyedOnly
       ? COMMUNITY_FEED_SORTS_KEYED
       : COMMUNITY_FEED_SORTS_ALL;
@@ -833,7 +898,9 @@ export class CommunityPostInteractionService {
 
     for (const sort of sorts) {
       for (const limit of COMMUNITY_FEED_CACHE_LIMITS) {
-        keys.push(communityFeedCacheKey(communityId, sort, null, limit, 'first'));
+        keys.push(
+          communityFeedCacheKey(communityId, sort, null, limit, 'first'),
+        );
       }
     }
 
@@ -886,9 +953,12 @@ export class CommunityPostInteractionService {
     return Math.min(Math.max(Math.floor(value), min), max);
   }
 
-  private decodeFeedCursorSafe(
-    cursor: string,
-  ): { isPinned: boolean; sortKey: string; createdAt: string; id: string } {
+  private decodeFeedCursorSafe(cursor: string): {
+    isPinned: boolean;
+    sortKey: string;
+    createdAt: string;
+    id: string;
+  } {
     const decoded = decodeFeedCursor(cursor);
 
     if (!decoded) {

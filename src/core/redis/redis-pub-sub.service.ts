@@ -43,7 +43,7 @@ export class RedisPubSubService implements OnModuleInit, OnModuleDestroy {
       this.handlers.set(channel, new Set<Handler>());
     }
 
-    this.handlers.get(channel)!.add(handler as Handler);
+    this.handlers.get(channel)!.add(handler);
 
     if (!prev) {
       await this.subscriber?.subscribe(channel, (message) => {
@@ -52,7 +52,7 @@ export class RedisPubSubService implements OnModuleInit, OnModuleDestroy {
     }
 
     return () => {
-      this.handlers.get(channel)?.delete(handler as Handler);
+      this.handlers.get(channel)?.delete(handler);
 
       if (this.handlers.get(channel)?.size === 0) {
         this.handlers.delete(channel);

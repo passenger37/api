@@ -48,9 +48,8 @@ export class CommunityRoomResolverService {
 
     // Subscriptions are loaded "as is" — the muted filter is applied here
     // so the repository stays a thin wrapper.
-    const subscriptions = await this.subscriptionRepository.listForCommunity(
-      communityId,
-    );
+    const subscriptions =
+      await this.subscriptionRepository.listForCommunity(communityId);
 
     for (const subscription of subscriptions) {
       if (subscription.isMuted) {

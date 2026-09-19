@@ -76,7 +76,13 @@ export class PreKeyRecord {
 }
 
 export class SignedPreKeyRecord {
-  static new(id: number, timestamp: number, pubKey: PublicKey, privKey: PrivateKey, signature: Uint8Array): SignedPreKeyRecord {
+  static new(
+    id: number,
+    timestamp: number,
+    pubKey: PublicKey,
+    privKey: PrivateKey,
+    signature: Uint8Array,
+  ): SignedPreKeyRecord {
     return new SignedPreKeyRecord();
   }
   static deserialize(buf: Uint8Array): SignedPreKeyRecord {
@@ -103,7 +109,12 @@ export class SignedPreKeyRecord {
 }
 
 export class KyberPreKeyRecord {
-  static new(id: number, timestamp: number, keyPair: any, signature: Uint8Array): KyberPreKeyRecord {
+  static new(
+    id: number,
+    timestamp: number,
+    keyPair: any,
+    signature: Uint8Array,
+  ): KyberPreKeyRecord {
     return new KyberPreKeyRecord();
   }
   static deserialize(buf: Uint8Array): KyberPreKeyRecord {
@@ -371,10 +382,18 @@ export class Aes256GcmSiv {
   static new(key: Uint8Array): Aes256GcmSiv {
     return new Aes256GcmSiv();
   }
-  encrypt(message: Uint8Array, nonce: Uint8Array, associatedData: Uint8Array): Uint8Array {
+  encrypt(
+    message: Uint8Array,
+    nonce: Uint8Array,
+    associatedData: Uint8Array,
+  ): Uint8Array {
     return new Uint8Array();
   }
-  decrypt(message: Uint8Array, nonce: Uint8Array, associatedData: Uint8Array): Uint8Array {
+  decrypt(
+    message: Uint8Array,
+    nonce: Uint8Array,
+    associatedData: Uint8Array,
+  ): Uint8Array {
     return new Uint8Array();
   }
 }
@@ -407,9 +426,14 @@ export class SessionRecord {
 }
 
 export abstract class SessionStore {
-  abstract saveSession(name: ProtocolAddress, record: SessionRecord): Promise<void>;
+  abstract saveSession(
+    name: ProtocolAddress,
+    record: SessionRecord,
+  ): Promise<void>;
   abstract getSession(name: ProtocolAddress): Promise<SessionRecord | null>;
-  abstract getExistingSessions(addresses: ProtocolAddress[]): Promise<SessionRecord[]>;
+  abstract getExistingSessions(
+    addresses: ProtocolAddress[],
+  ): Promise<SessionRecord[]>;
 }
 
 export enum IdentityChange {
@@ -420,11 +444,20 @@ export enum IdentityChange {
 export abstract class IdentityKeyStore {
   abstract getIdentityKey(): Promise<PrivateKey>;
   getIdentityKeyPair(): Promise<IdentityKeyPair> {
-    return Promise.resolve(new IdentityKeyPair(new PublicKey(), new PrivateKey()));
+    return Promise.resolve(
+      new IdentityKeyPair(new PublicKey(), new PrivateKey()),
+    );
   }
   abstract getLocalRegistrationId(): Promise<number>;
-  abstract saveIdentity(name: ProtocolAddress, key: PublicKey): Promise<IdentityChange>;
-  abstract isTrustedIdentity(name: ProtocolAddress, key: PublicKey, direction: Direction): Promise<boolean>;
+  abstract saveIdentity(
+    name: ProtocolAddress,
+    key: PublicKey,
+  ): Promise<IdentityChange>;
+  abstract isTrustedIdentity(
+    name: ProtocolAddress,
+    key: PublicKey,
+    direction: Direction,
+  ): Promise<boolean>;
   abstract getIdentity(name: ProtocolAddress): Promise<PublicKey | null>;
 }
 
@@ -435,26 +468,49 @@ export abstract class PreKeyStore {
 }
 
 export abstract class SignedPreKeyStore {
-  abstract saveSignedPreKey(id: number, record: SignedPreKeyRecord): Promise<void>;
+  abstract saveSignedPreKey(
+    id: number,
+    record: SignedPreKeyRecord,
+  ): Promise<void>;
   abstract getSignedPreKey(id: number): Promise<SignedPreKeyRecord>;
 }
 
 export abstract class KyberPreKeyStore {
   abstract saveKyberPreKey(kyberPreKeyId: number, record: any): Promise<void>;
   abstract getKyberPreKey(kyberPreKeyId: number): Promise<any>;
-  abstract markKyberPreKeyUsed(kyberPreKeyId: number, signedPreKeyId: number, baseKey: PublicKey): Promise<void>;
+  abstract markKyberPreKeyUsed(
+    kyberPreKeyId: number,
+    signedPreKeyId: number,
+    baseKey: PublicKey,
+  ): Promise<void>;
 }
 
 export abstract class SenderKeyStore {
-  abstract saveSenderKey(sender: ProtocolAddress, distributionId: any, record: any): Promise<void>;
-  abstract getSenderKey(sender: ProtocolAddress, distributionId: any): Promise<any | null>;
+  abstract saveSenderKey(
+    sender: ProtocolAddress,
+    distributionId: any,
+    record: any,
+  ): Promise<void>;
+  abstract getSenderKey(
+    sender: ProtocolAddress,
+    distributionId: any,
+  ): Promise<any | null>;
 }
 
-export function groupEncrypt(sender: ProtocolAddress, distributionId: any, store: SenderKeyStore, message: Uint8Array): Promise<any> {
+export function groupEncrypt(
+  sender: ProtocolAddress,
+  distributionId: any,
+  store: SenderKeyStore,
+  message: Uint8Array,
+): Promise<any> {
   return Promise.resolve(new Uint8Array());
 }
 
-export function groupDecrypt(sender: ProtocolAddress, store: SenderKeyStore, message: Uint8Array): Promise<Uint8Array> {
+export function groupDecrypt(
+  sender: ProtocolAddress,
+  store: SenderKeyStore,
+  message: Uint8Array,
+): Promise<Uint8Array> {
   return Promise.resolve(new Uint8Array());
 }
 
@@ -507,7 +563,12 @@ export class DecryptionErrorMessage {
   static _fromNativeHandle(nativeHandle: any): DecryptionErrorMessage {
     return new DecryptionErrorMessage();
   }
-  static forOriginal(bytes: Uint8Array, type: CiphertextMessageType, timestamp: number, originalSenderDeviceId: number): DecryptionErrorMessage {
+  static forOriginal(
+    bytes: Uint8Array,
+    type: CiphertextMessageType,
+    timestamp: number,
+    originalSenderDeviceId: number,
+  ): DecryptionErrorMessage {
     return new DecryptionErrorMessage();
   }
   static deserialize(buf: Uint8Array): DecryptionErrorMessage {
@@ -601,18 +662,24 @@ export type SealedSenderMultiRecipientEncryptOptions = {
   sessionStore: SessionStore;
 };
 
-export function sealedSenderMultiRecipientEncrypt(options: SealedSenderMultiRecipientEncryptOptions): Promise<Uint8Array>;
+export function sealedSenderMultiRecipientEncrypt(
+  options: SealedSenderMultiRecipientEncryptOptions,
+): Promise<Uint8Array>;
 export function sealedSenderMultiRecipientEncrypt(
   content: any,
   recipients: ProtocolAddress[],
   identityStore: IdentityKeyStore,
   sessionStore: SessionStore,
 ): Promise<Uint8Array>;
-export function sealedSenderMultiRecipientEncrypt(...args: any[]): Promise<Uint8Array> {
+export function sealedSenderMultiRecipientEncrypt(
+  ...args: any[]
+): Promise<Uint8Array> {
   return Promise.resolve(new Uint8Array());
 }
 
-export function sealedSenderMultiRecipientMessageForSingleRecipient(message: Uint8Array): Uint8Array {
+export function sealedSenderMultiRecipientMessageForSingleRecipient(
+  message: Uint8Array,
+): Uint8Array {
   return new Uint8Array();
 }
 
@@ -642,7 +709,11 @@ export function sealedSenderDecryptToUsmc(
 export class Cds2Client {
   readonly _nativeHandle: any;
   private constructor() {}
-  static new(mrenclave: Uint8Array, attestationMsg: Uint8Array, currentTimestamp: Date): Cds2Client {
+  static new(
+    mrenclave: Uint8Array,
+    attestationMsg: Uint8Array,
+    currentTimestamp: Date,
+  ): Cds2Client {
     return new Cds2Client();
   }
   initialRequest(): Uint8Array {
@@ -660,7 +731,10 @@ export class Cds2Client {
 export class HsmEnclaveClient {
   readonly _nativeHandle: any;
   private constructor() {}
-  static new(public_key: Uint8Array, code_hashes: Uint8Array[]): HsmEnclaveClient {
+  static new(
+    public_key: Uint8Array,
+    code_hashes: Uint8Array[],
+  ): HsmEnclaveClient {
     return new HsmEnclaveClient();
   }
   initialRequest(): Uint8Array {
@@ -678,7 +752,11 @@ export class HsmEnclaveClient {
 export class Svr2Client {
   readonly _nativeHandle: any;
   private constructor() {}
-  static new(mrenclave: Uint8Array, attestationMsg: Uint8Array, currentTimestamp: Date): Svr2Client {
+  static new(
+    mrenclave: Uint8Array,
+    attestationMsg: Uint8Array,
+    currentTimestamp: Date,
+  ): Svr2Client {
     return new Svr2Client();
   }
   initialRequest(): Uint8Array {
@@ -701,12 +779,25 @@ export enum LogLevel {
   Trace = 5,
 }
 
-export function initLogger(maxLevel: LogLevel, callback: (level: LogLevel, target: string, file: string | null, line: number | null, message: string) => void): void {}
+export function initLogger(
+  maxLevel: LogLevel,
+  callback: (
+    level: LogLevel,
+    target: string,
+    file: string | null,
+    line: number | null,
+    message: string,
+  ) => void,
+): void {}
 
 export class SenderKeyDistributionMessage {
   readonly _nativeHandle: any;
   private constructor() {}
-  static create(sender: ProtocolAddress, distributionId: any, store: SenderKeyStore): Promise<SenderKeyDistributionMessage> {
+  static create(
+    sender: ProtocolAddress,
+    distributionId: any,
+    store: SenderKeyStore,
+  ): Promise<SenderKeyDistributionMessage> {
     return Promise.resolve(new SenderKeyDistributionMessage());
   }
   static _new(...args: any[]): SenderKeyDistributionMessage {
@@ -732,7 +823,11 @@ export class SenderKeyDistributionMessage {
   }
 }
 
-export function processSenderKeyDistributionMessage(sender: ProtocolAddress, message: SenderKeyDistributionMessage, store: SenderKeyStore): Promise<void> {
+export function processSenderKeyDistributionMessage(
+  sender: ProtocolAddress,
+  message: SenderKeyDistributionMessage,
+  store: SenderKeyStore,
+): Promise<void> {
   return Promise.resolve();
 }
 
@@ -768,10 +863,17 @@ export class SenderKeyMessage {
 export class UnidentifiedSenderMessageContent {
   readonly _nativeHandle: any;
   private constructor() {}
-  static _fromNativeHandle(nativeHandle: any): UnidentifiedSenderMessageContent {
+  static _fromNativeHandle(
+    nativeHandle: any,
+  ): UnidentifiedSenderMessageContent {
     return new UnidentifiedSenderMessageContent();
   }
-  static new(message: any, senderCert: any, contentHint: number, groupId: Uint8Array | null): UnidentifiedSenderMessageContent {
+  static new(
+    message: any,
+    senderCert: any,
+    contentHint: number,
+    groupId: Uint8Array | null,
+  ): UnidentifiedSenderMessageContent {
     return new UnidentifiedSenderMessageContent();
   }
   static deserialize(buf: Uint8Array): UnidentifiedSenderMessageContent {
@@ -853,7 +955,11 @@ export class ServerCertificate {
     return new ServerCertificate();
   }
   private constructor() {}
-  static new(keyId: number, serverKey: PublicKey, trustRoot: PrivateKey): ServerCertificate {
+  static new(
+    keyId: number,
+    serverKey: PublicKey,
+    trustRoot: PrivateKey,
+  ): ServerCertificate {
     return new ServerCertificate();
   }
   static deserialize(buf: Uint8Array): ServerCertificate {

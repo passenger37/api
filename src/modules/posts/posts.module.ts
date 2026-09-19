@@ -35,9 +35,7 @@ import { PostShareController } from './controllers/post-share.controller';
     forwardRef(() => MessagesModule),
     forwardRef(() => DirectMessagesModule),
     forwardRef(() => ServersModule),
-    BullModule.registerQueue(
-      { name: 'post-processing' },
-    ),
+    BullModule.registerQueue({ name: 'post-processing' }),
   ],
   controllers: [PostsController, PostShareController],
   providers: [

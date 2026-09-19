@@ -1,4 +1,14 @@
-import { IsUUID, IsEnum, IsOptional, IsNumber, Min, Max, IsArray, ValidateNested, IsString } from 'class-validator';
+import {
+  IsUUID,
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsArray,
+  ValidateNested,
+  IsString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -7,9 +17,28 @@ export class MediaJobDto {
   @IsUUID()
   attachmentId!: string;
 
-  @ApiProperty({ enum: ['THUMBNAIL', 'TRANSCODE', 'AV_SCAN', 'WATERMARK', 'METADATA_EXTRACTION'] })
-  @IsEnum(['THUMBNAIL', 'TRANSCODE', 'AV_SCAN', 'WATERMARK', 'METADATA_EXTRACTION'])
-  type!: 'THUMBNAIL' | 'TRANSCODE' | 'AV_SCAN' | 'WATERMARK' | 'METADATA_EXTRACTION';
+  @ApiProperty({
+    enum: [
+      'THUMBNAIL',
+      'TRANSCODE',
+      'AV_SCAN',
+      'WATERMARK',
+      'METADATA_EXTRACTION',
+    ],
+  })
+  @IsEnum([
+    'THUMBNAIL',
+    'TRANSCODE',
+    'AV_SCAN',
+    'WATERMARK',
+    'METADATA_EXTRACTION',
+  ])
+  type!:
+    | 'THUMBNAIL'
+    | 'TRANSCODE'
+    | 'AV_SCAN'
+    | 'WATERMARK'
+    | 'METADATA_EXTRACTION';
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -33,8 +62,13 @@ export class ProcessAttachmentDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsArray()
-  @IsEnum(['THUMBNAIL', 'TRANSCODE', 'AV_SCAN', 'WATERMARK', 'METADATA_EXTRACTION'], { each: true })
-  jobTypes?: Array<'THUMBNAIL' | 'TRANSCODE' | 'AV_SCAN' | 'WATERMARK' | 'METADATA_EXTRACTION'>;
+  @IsEnum(
+    ['THUMBNAIL', 'TRANSCODE', 'AV_SCAN', 'WATERMARK', 'METADATA_EXTRACTION'],
+    { each: true },
+  )
+  jobTypes?: Array<
+    'THUMBNAIL' | 'TRANSCODE' | 'AV_SCAN' | 'WATERMARK' | 'METADATA_EXTRACTION'
+  >;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -48,9 +82,28 @@ export class MediaJobStatusDto {
   @IsUUID()
   jobId!: string;
 
-  @ApiProperty({ enum: ['media-thumbnail', 'media-transcode', 'media-av-scan', 'media-watermark', 'media-metadata'] })
-  @IsEnum(['media-thumbnail', 'media-transcode', 'media-av-scan', 'media-watermark', 'media-metadata'])
-  queueName!: 'media-thumbnail' | 'media-transcode' | 'media-av-scan' | 'media-watermark' | 'media-metadata';
+  @ApiProperty({
+    enum: [
+      'media-thumbnail',
+      'media-transcode',
+      'media-av-scan',
+      'media-watermark',
+      'media-metadata',
+    ],
+  })
+  @IsEnum([
+    'media-thumbnail',
+    'media-transcode',
+    'media-av-scan',
+    'media-watermark',
+    'media-metadata',
+  ])
+  queueName!:
+    | 'media-thumbnail'
+    | 'media-transcode'
+    | 'media-av-scan'
+    | 'media-watermark'
+    | 'media-metadata';
 }
 
 export class MediaConfigDto {

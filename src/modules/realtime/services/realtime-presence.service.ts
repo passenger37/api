@@ -161,7 +161,9 @@ export class RealtimePresenceService {
   async listActiveSessionIds(userId: string): Promise<string[]> {
     const client = this.redis.getClient();
 
-    const members = await client.sMembers(redisKeys.presenceUserSessions(userId));
+    const members = await client.sMembers(
+      redisKeys.presenceUserSessions(userId),
+    );
 
     return members ?? [];
   }
@@ -200,7 +202,8 @@ export class RealtimePresenceService {
     const presence: RealtimeUserPresence = {
       userId,
       status:
-        status ?? (sessionCount > 0
+        status ??
+        (sessionCount > 0
           ? RealtimePresenceStatus.ONLINE
           : RealtimePresenceStatus.OFFLINE),
       lastSeen: Date.now(),

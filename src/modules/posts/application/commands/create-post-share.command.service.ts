@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { ShareDestinationType } from '@prisma/client';
 
 import { PrismaService } from '../../../../core/database/prisma.service';
@@ -161,11 +166,7 @@ export class CreatePostShareCommandService {
     if (input.destinationType === DM) {
       await this.deliverToDm(input.actorId, input.destinationId!, post);
     } else if (input.destinationType === SERVER_CHANNEL) {
-      await this.deliverToChannel(
-        input.actorId,
-        input.destinationId!,
-        post,
-      );
+      await this.deliverToChannel(input.actorId, input.destinationId!, post);
     }
 
     return PostShareMapper.toCreateResponse(share);
@@ -178,10 +179,7 @@ export class CreatePostShareCommandService {
       throw new NotFoundException('Post not found');
     }
 
-    await this.postSharePolicy.canCopyLink(
-      actorId,
-      this.toPostForShare(post),
-    );
+    await this.postSharePolicy.canCopyLink(actorId, this.toPostForShare(post));
 
     return `${POST_SHARE_LINK_BASE}/${post.id}`;
   }

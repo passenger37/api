@@ -1,10 +1,21 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { RegisterDeviceRequest } from '../dto/request/register-device.request';
 import { RefillOneTimePreKeysRequest } from '../dto/request/refill-one-time-prekeys.request';
 import { RotateSignedPreKeyRequest } from '../dto/request/rotate-signed-prekey.request';
-import { VerifySafetyNumberRequest, DeviceVerificationStatusRequest } from '../dto/request/safety-number.request';
+import {
+  VerifySafetyNumberRequest,
+  DeviceVerificationStatusRequest,
+} from '../dto/request/safety-number.request';
 import {
   serializeE2eeDevice,
   serializeSignedPreKey,

@@ -1,4 +1,8 @@
-import { RedisNodeRegistry, resolveNodeId, nodeHeartbeatTtlSec } from './redis-node-registry';
+import {
+  RedisNodeRegistry,
+  resolveNodeId,
+  nodeHeartbeatTtlSec,
+} from './redis-node-registry';
 import { RedisService } from './redis.service';
 import { redisKeys } from './redis-keys';
 
@@ -43,7 +47,7 @@ describe('RedisNodeRegistry', () => {
   });
 
   it('registers this node with an EX heartbeat', async () => {
-    (client.set as jest.Mock).mockResolvedValue('OK');
+    client.set.mockResolvedValue('OK');
     const registry = new RedisNodeRegistry(redis);
     await registry.register();
 
@@ -54,15 +58,17 @@ describe('RedisNodeRegistry', () => {
   });
 
   it('deregisters this node', async () => {
-    (client.del as jest.Mock).mockResolvedValue(1);
+    client.del.mockResolvedValue(1);
     const registry = new RedisNodeRegistry(redis);
     await registry.deregister();
-    expect(client.del).toHaveBeenCalledWith(redisKeys.node(registry.instanceId()));
+    expect(client.del).toHaveBeenCalledWith(
+      redisKeys.node(registry.instanceId()),
+    );
   });
 
   it('lists live instances sorted by node id', async () => {
-    (client.keys as jest.Mock).mockResolvedValue(['node:b', 'node:a']);
-    (client.get as jest.Mock)
+    client.keys.mockResolvedValue(['node:b', 'node:a']);
+    client.get
       .mockResolvedValueOnce(JSON.stringify({ nodeId: 'b' }))
       .mockResolvedValueOnce(JSON.stringify({ nodeId: 'a' }));
 
@@ -72,8 +78,8 @@ describe('RedisNodeRegistry', () => {
   });
 
   it('counts live instances', async () => {
-    (client.keys as jest.Mock).mockResolvedValue(['node:a', 'node:b', 'node:c']);
-    (client.get as jest.Mock).mockResolvedValue(JSON.stringify({ nodeId: 'x' }));
+    client.keys.mockResolvedValue(['node:a', 'node:b', 'node:c']);
+    client.get.mockResolvedValue(JSON.stringify({ nodeId: 'x' }));
 
     const registry = new RedisNodeRegistry(redis);
     await expect(registry.countInstances()).resolves.toBe(3);
@@ -81,8 +87,8 @@ describe('RedisNodeRegistry', () => {
   });
 
   it('skips malformed node records during listing', async () => {
-    (client.keys as jest.Mock).mockResolvedValue(['node:bad']);
-    (client.get as jest.Mock).mockResolvedValue('not-json');
+    client.keys.mockResolvedValue(['node:bad']);
+    client.get.mockResolvedValue('not-json');
 
     const registry = new RedisNodeRegistry(redis);
     await expect(registry.listInstances()).resolves.toEqual([]);

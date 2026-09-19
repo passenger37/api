@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { CommunityPost, CommunityPostStatus, CommunityPostVisibility } from '@prisma/client';
+import {
+  CommunityPost,
+  CommunityPostStatus,
+  CommunityPostVisibility,
+} from '@prisma/client';
 
 import { CommunityAccessService } from '../../services/community-access.service';
 import { CommunitySubscriptionRepository } from '../../repositories/community-subscription.repository';
@@ -35,25 +39,42 @@ export class CommunityPostAuthorizationPolicy {
       return { allowed: false, reason: 'User is banned from this community' };
     }
 
-    const isMember = await this.subscriptionRepository.isSubscribed(communityId, userId);
+    const isMember = await this.subscriptionRepository.isSubscribed(
+      communityId,
+      userId,
+    );
     if (!isMember) {
-      return { allowed: false, reason: 'User is not a member of this community' };
+      return {
+        allowed: false,
+        reason: 'User is not a member of this community',
+      };
     }
 
-    const isMuted = await this.subscriptionRepository.isMuted(communityId, userId);
+    const isMuted = await this.subscriptionRepository.isMuted(
+      communityId,
+      userId,
+    );
     if (isMuted) {
       return { allowed: false, reason: 'User is muted in this community' };
     }
 
-    const isBannedFromPosting = await this.accessService.isBannedFromPosting(communityId, userId);
+    const isBannedFromPosting = await this.accessService.isBannedFromPosting(
+      communityId,
+      userId,
+    );
     if (isBannedFromPosting) {
-      return { allowed: false, reason: 'User is banned from posting in this community' };
+      return {
+        allowed: false,
+        reason: 'User is banned from posting in this community',
+      };
     }
 
     return { allowed: true };
   }
 
-  async canEditPost(context: PostAuthorizationContext): Promise<PostActionResult> {
+  async canEditPost(
+    context: PostAuthorizationContext,
+  ): Promise<PostActionResult> {
     const { userId, post, isModerator } = context;
 
     if (post.isDeleted || post.status === 'DELETED') {
@@ -76,10 +97,15 @@ export class CommunityPostAuthorizationPolicy {
       return { allowed: true };
     }
 
-    return { allowed: false, reason: 'Only the author or a moderator can edit this post' };
+    return {
+      allowed: false,
+      reason: 'Only the author or a moderator can edit this post',
+    };
   }
 
-  async canDeletePost(context: PostAuthorizationContext): Promise<PostActionResult> {
+  async canDeletePost(
+    context: PostAuthorizationContext,
+  ): Promise<PostActionResult> {
     const { userId, post, isModerator } = context;
 
     if (post.isDeleted) {
@@ -94,10 +120,15 @@ export class CommunityPostAuthorizationPolicy {
       return { allowed: true };
     }
 
-    return { allowed: false, reason: 'Only the author or a moderator can delete this post' };
+    return {
+      allowed: false,
+      reason: 'Only the author or a moderator can delete this post',
+    };
   }
 
-  async canRestorePost(context: PostAuthorizationContext): Promise<PostActionResult> {
+  async canRestorePost(
+    context: PostAuthorizationContext,
+  ): Promise<PostActionResult> {
     const { post, isModerator } = context;
 
     if (!post.isDeleted) {
@@ -108,25 +139,42 @@ export class CommunityPostAuthorizationPolicy {
       return { allowed: true };
     }
 
-    return { allowed: false, reason: 'Only a moderator can restore a deleted post' };
+    return {
+      allowed: false,
+      reason: 'Only a moderator can restore a deleted post',
+    };
   }
 
   async canVotePost(
     communityId: string,
     userId: string,
-    post: { authorUserId: string; status: string; visibility: string; isDeleted: boolean },
+    post: {
+      authorUserId: string;
+      status: string;
+      visibility: string;
+      isDeleted: boolean;
+    },
   ): Promise<PostActionResult> {
     if (post.isDeleted || post.status === 'DELETED') {
       return { allowed: false, reason: 'Cannot vote on a deleted post' };
     }
 
     if (post.status === 'HIDDEN' || post.status === 'LOCKED') {
-      return { allowed: false, reason: 'Cannot vote on a hidden or locked post' };
+      return {
+        allowed: false,
+        reason: 'Cannot vote on a hidden or locked post',
+      };
     }
 
-    const isBanned = await this.accessService.isBannedFromVoting(communityId, userId);
+    const isBanned = await this.accessService.isBannedFromVoting(
+      communityId,
+      userId,
+    );
     if (isBanned) {
-      return { allowed: false, reason: 'User is banned from voting in this community' };
+      return {
+        allowed: false,
+        reason: 'User is banned from voting in this community',
+      };
     }
 
     return { allowed: true };
@@ -162,11 +210,16 @@ export class CommunityPostAuthorizationPolicy {
     return { allowed: true };
   }
 
-  async canModeratePost(context: PostAuthorizationContext): Promise<PostActionResult> {
+  async canModeratePost(
+    context: PostAuthorizationContext,
+  ): Promise<PostActionResult> {
     const { post, isModerator } = context;
 
     if (!context.isModerator) {
-      return { allowed: false, reason: 'Only moderators can perform this action' };
+      return {
+        allowed: false,
+        reason: 'Only moderators can perform this action',
+      };
     }
 
     if (post.isDeleted) {
@@ -176,15 +229,21 @@ export class CommunityPostAuthorizationPolicy {
     return { allowed: true };
   }
 
-  async canPinPost(context: PostAuthorizationContext): Promise<PostActionResult> {
+  async canPinPost(
+    context: PostAuthorizationContext,
+  ): Promise<PostActionResult> {
     return this.canModeratePost(context);
   }
 
-  async canLockPost(context: PostAuthorizationContext): Promise<PostActionResult> {
+  async canLockPost(
+    context: PostAuthorizationContext,
+  ): Promise<PostActionResult> {
     return this.canModeratePost(context);
   }
 
-  async canHidePost(context: PostAuthorizationContext): Promise<PostActionResult> {
+  async canHidePost(
+    context: PostAuthorizationContext,
+  ): Promise<PostActionResult> {
     return this.canModeratePost(context);
   }
 
@@ -192,7 +251,10 @@ export class CommunityPostAuthorizationPolicy {
     communityId: string,
     userId: string,
   ): Promise<PostActionResult> {
-    const isModerator = await this.accessService.isModerator(communityId, userId);
+    const isModerator = await this.accessService.isModerator(
+      communityId,
+      userId,
+    );
     if (!isModerator) {
       return { allowed: false, reason: 'Only moderators can moderate reports' };
     }

@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { E2eeSealedSenderKey, E2eePirRequest, E2eeMetadataPolicy, Prisma } from '@prisma/client';
+import {
+  E2eeSealedSenderKey,
+  E2eePirRequest,
+  E2eeMetadataPolicy,
+  Prisma,
+} from '@prisma/client';
 
 @Injectable()
 export class E2eeMetadataRepository {
@@ -15,14 +20,18 @@ export class E2eeMetadataRepository {
     return client.e2eeSealedSenderKey.create({ data });
   }
 
-  async findActiveSealedSenderKey(deviceId: string): Promise<E2eeSealedSenderKey | null> {
+  async findActiveSealedSenderKey(
+    deviceId: string,
+  ): Promise<E2eeSealedSenderKey | null> {
     return this.prisma.e2eeSealedSenderKey.findFirst({
       where: { deviceId, isActive: true, expiresAt: { gt: new Date() } },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findSealedSenderKeysByUser(userId: string): Promise<E2eeSealedSenderKey[]> {
+  async findSealedSenderKeysByUser(
+    userId: string,
+  ): Promise<E2eeSealedSenderKey[]> {
     return this.prisma.e2eeSealedSenderKey.findMany({
       where: { userId, isActive: true, expiresAt: { gt: new Date() } },
     });

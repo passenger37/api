@@ -77,9 +77,13 @@ export class CacheArchitectureService {
     };
   }
 
-  private decide(p: { path: string; readRatio: number; writeRatio: number; stabilitySec: number }): CacheDecision {
-    const cacheable =
-      p.readRatio >= CACHEABLE_READ_RATIO && p.stabilitySec > 0;
+  private decide(p: {
+    path: string;
+    readRatio: number;
+    writeRatio: number;
+    stabilitySec: number;
+  }): CacheDecision {
+    const cacheable = p.readRatio >= CACHEABLE_READ_RATIO && p.stabilitySec > 0;
     const ttlSeconds = cacheable
       ? Math.min(
           p.stabilitySec > 0 ? p.stabilitySec : DEFAULT_TTL_SEC,
@@ -94,7 +98,9 @@ export class CacheArchitectureService {
       stabilitySec: p.stabilitySec,
       cacheable,
       ttlSeconds,
-      consistency: cacheable ? 'cache-aside + write-through invalidation' : 'none',
+      consistency: cacheable
+        ? 'cache-aside + write-through invalidation'
+        : 'none',
       invalidation: cacheable ? 'evict on write (del CACHE keys)' : 'n/a',
       why: cacheable
         ? `read-heavy (${Math.round(p.readRatio * 100)}%) with ${p.stabilitySec}s expected stability`

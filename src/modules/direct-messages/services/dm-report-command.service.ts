@@ -26,24 +26,17 @@ export class DmReportCommandService {
    * `reportPackage`; the server stores it verbatim and never proactively reads
    * DM plaintext. Deduplicated per (message, reporter).
    */
-  async submit(
-    request: CreateDmReportRequest,
-    reporterUserId: string,
-  ) {
+  async submit(request: CreateDmReportRequest, reporterUserId: string) {
     const message = await this.prisma.directMessage.findUnique({
       where: { id: request.messageId },
     });
 
     if (!message || message.channelId !== request.channelId) {
-      throw new BadRequestException(
-        'Message does not exist in this channel.',
-      );
+      throw new BadRequestException('Message does not exist in this channel.');
     }
 
     if (message.authorUserId === reporterUserId) {
-      throw new BadRequestException(
-        'You cannot report your own message.',
-      );
+      throw new BadRequestException('You cannot report your own message.');
     }
 
     const existing = await this.reportRepository.findByMessageAndReporter(
@@ -52,9 +45,7 @@ export class DmReportCommandService {
     );
 
     if (existing) {
-      throw new BadRequestException(
-        'You have already reported this message.',
-      );
+      throw new BadRequestException('You have already reported this message.');
     }
 
     const report = await this.reportRepository.create({

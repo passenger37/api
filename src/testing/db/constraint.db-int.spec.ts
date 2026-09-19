@@ -1,9 +1,11 @@
 import { PrismaService } from '../../core/database/prisma.service';
+import { createDbTestHarness, DbTestContext } from './db-test.harness';
 import {
-  createDbTestHarness,
-  DbTestContext,
-} from './db-test.harness';
-import { createChannelMessage, createServer, seedDbFixture, DbFixture } from './db-test.fixtures';
+  createChannelMessage,
+  createServer,
+  seedDbFixture,
+  DbFixture,
+} from './db-test.fixtures';
 
 describe('Database Integration: constraints (40.87)', () => {
   let ctx: DbTestContext;
@@ -55,15 +57,29 @@ describe('Database Integration: constraints (40.87)', () => {
   });
 
   it('enforces the unique (messageId, memberId, emoji) reaction key', async () => {
-    const message = await createChannelMessage(prisma, fixture, fixture.ownerMemberId, 'react-target', 33);
+    const message = await createChannelMessage(
+      prisma,
+      fixture,
+      fixture.ownerMemberId,
+      'react-target',
+      33,
+    );
 
     await prisma.channelMessageReaction.create({
-      data: { messageId: message.id, memberId: fixture.ownerMemberId, emoji: '👍' },
+      data: {
+        messageId: message.id,
+        memberId: fixture.ownerMemberId,
+        emoji: '👍',
+      },
     });
 
     await expect(
       prisma.channelMessageReaction.create({
-        data: { messageId: message.id, memberId: fixture.ownerMemberId, emoji: '👍' },
+        data: {
+          messageId: message.id,
+          memberId: fixture.ownerMemberId,
+          emoji: '👍',
+        },
       }),
     ).rejects.toMatchObject({ code: 'P2002' });
   });
@@ -71,7 +87,11 @@ describe('Database Integration: constraints (40.87)', () => {
   it('rejects a reaction on a message that does not exist (FK)', async () => {
     await expect(
       prisma.channelMessageReaction.create({
-        data: { messageId: 'missing-message-id', memberId: fixture.ownerMemberId, emoji: '🎉' },
+        data: {
+          messageId: 'missing-message-id',
+          memberId: fixture.ownerMemberId,
+          emoji: '🎉',
+        },
       }),
     ).rejects.toMatchObject({ code: 'P2003' });
   });
@@ -89,21 +109,41 @@ describe('Database Integration: constraints (40.87)', () => {
 
   it('cascades deletion of a server to its messages', async () => {
     const server = await prisma.server.create({
-      data: { name: 'Cascade Server', slug: `cascade-${crypto.randomUUID().slice(0, 8)}`, ownerId: fixture.ownerUserId },
+      data: {
+        name: 'Cascade Server',
+        slug: `cascade-${crypto.randomUUID().slice(0, 8)}`,
+        ownerId: fixture.ownerUserId,
+      },
     });
     const member = await prisma.serverMember.create({
       data: { serverId: server.id, userId: fixture.memberUserId },
     });
     const channel = await prisma.serverChannel.create({
-      data: { serverId: server.id, createdById: fixture.ownerUserId, name: `ch-${crypto.randomUUID().slice(0, 6)}`, type: 'TEXT', position: 0 },
+      data: {
+        serverId: server.id,
+        createdById: fixture.ownerUserId,
+        name: `ch-${crypto.randomUUID().slice(0, 6)}`,
+        type: 'TEXT',
+        position: 0,
+      },
     });
     const message = await prisma.channelMessage.create({
-      data: { content: 'cascade-me', serverId: server.id, channelId: channel.id, authorMemberId: member.id, messageSeq: 1 },
+      data: {
+        content: 'cascade-me',
+        serverId: server.id,
+        channelId: channel.id,
+        authorMemberId: member.id,
+        messageSeq: 1,
+      },
     });
 
     await prisma.server.delete({ where: { id: server.id } });
 
-    expect(await prisma.channelMessage.findUnique({ where: { id: message.id } })).toBeNull();
-    expect(await prisma.serverMember.count({ where: { serverId: server.id } })).toBe(0);
+    expect(
+      await prisma.channelMessage.findUnique({ where: { id: message.id } }),
+    ).toBeNull();
+    expect(
+      await prisma.serverMember.count({ where: { serverId: server.id } }),
+    ).toBe(0);
   });
 });

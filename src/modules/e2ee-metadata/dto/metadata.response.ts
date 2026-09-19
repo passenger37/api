@@ -1,4 +1,8 @@
-import { E2eeSealedSenderKey, E2eePirRequest, E2eeMetadataPolicy } from '@prisma/client';
+import {
+  E2eeSealedSenderKey,
+  E2eePirRequest,
+  E2eeMetadataPolicy,
+} from '@prisma/client';
 
 export class SealedSenderKeyResponseDto {
   id!: string;

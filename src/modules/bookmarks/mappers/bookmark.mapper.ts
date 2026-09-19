@@ -1,7 +1,18 @@
 import { Bookmark, BookmarkCollection } from '@prisma/client';
-import { BookmarkWithCollection, BookmarkCollectionWithItems } from '../types/bookmark.types';
+import {
+  BookmarkWithCollection,
+  BookmarkCollectionWithItems,
+} from '../types/bookmark.types';
 
-export function mapBookmarkToResponse(bookmark: Bookmark & { collection?: { id: string; name: string; description: string | null } | null }): BookmarkWithCollection {
+export function mapBookmarkToResponse(
+  bookmark: Bookmark & {
+    collection?: {
+      id: string;
+      name: string;
+      description: string | null;
+    } | null;
+  },
+): BookmarkWithCollection {
   return {
     id: bookmark.id,
     userId: bookmark.userId,

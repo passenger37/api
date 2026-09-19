@@ -7,8 +7,14 @@ import {
 import { PrismaService } from '../../../core/database/prisma.service';
 import { E2eeKeyTransparencyRepository } from '../repositories/e2ee-key-transparency.repository';
 import { E2eeDeviceRepository } from '../../e2ee-devices/repositories/e2ee-device.repository';
-import { CreateKeyTransparencyEntryRequest, VerifyKeyTransparencyRequest } from '../dto/key-transparency.request';
-import { serializeKeyTransparency, serializeKeyTransparencyList } from '../serializers/e2ee-key-transparency.serializer';
+import {
+  CreateKeyTransparencyEntryRequest,
+  VerifyKeyTransparencyRequest,
+} from '../dto/key-transparency.request';
+import {
+  serializeKeyTransparency,
+  serializeKeyTransparencyList,
+} from '../serializers/e2ee-key-transparency.serializer';
 
 @Injectable()
 export class E2eeKeyTransparencyCommandService {
@@ -24,13 +30,17 @@ export class E2eeKeyTransparencyCommandService {
       throw new NotFoundException('Device not found or revoked');
     }
     if (device.userId !== userId) {
-      throw new ForbiddenException('Not authorized to create key transparency entry for this device');
+      throw new ForbiddenException(
+        'Not authorized to create key transparency entry for this device',
+      );
     }
 
     const latestEpoch = await this.ktRepo.getLatestEpoch(userId);
     const expectedEpoch = (latestEpoch ?? 0n) + 1n;
     if (dto.epoch !== Number(expectedEpoch)) {
-      throw new BadRequestException(`Expected epoch ${expectedEpoch}, got ${dto.epoch}`);
+      throw new BadRequestException(
+        `Expected epoch ${expectedEpoch}, got ${dto.epoch}`,
+      );
     }
 
     const entry = await this.ktRepo.create({

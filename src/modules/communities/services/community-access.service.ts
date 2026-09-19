@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { CommunityModerationActionType, CommunityModeratorRole } from '@prisma/client';
+import {
+  CommunityModerationActionType,
+  CommunityModeratorRole,
+} from '@prisma/client';
 
 import { CommunityAccessDeniedException } from '../exceptions/community.exceptions';
 import { CommunityRepository } from '../repositories/community.repository';
@@ -60,10 +63,7 @@ export class CommunityAccessService {
     }
   }
 
-  async isModerator(
-    communityId: string,
-    userId: string,
-  ): Promise<boolean> {
+  async isModerator(communityId: string, userId: string): Promise<boolean> {
     const ownerId = await this.communityRepository.findOwnerId(communityId);
 
     if (ownerId === userId) {
@@ -102,11 +102,17 @@ export class CommunityAccessService {
     return Boolean(latest);
   }
 
-  async isBannedFromPosting(communityId: string, userId: string): Promise<boolean> {
+  async isBannedFromPosting(
+    communityId: string,
+    userId: string,
+  ): Promise<boolean> {
     return this.isBanned(communityId, userId);
   }
 
-  async isBannedFromVoting(communityId: string, userId: string): Promise<boolean> {
+  async isBannedFromVoting(
+    communityId: string,
+    userId: string,
+  ): Promise<boolean> {
     return this.isBanned(communityId, userId);
   }
 }

@@ -1,10 +1,11 @@
 import { ChannelMessageReactionRepository } from '../../modules/messages/repositories/channel-message-reaction.repository';
 import { PrismaService } from '../../core/database/prisma.service';
+import { createDbTestHarness, DbTestContext } from './db-test.harness';
 import {
-  createDbTestHarness,
-  DbTestContext,
-} from './db-test.harness';
-import { createChannelMessage, seedDbFixture, DbFixture } from './db-test.fixtures';
+  createChannelMessage,
+  seedDbFixture,
+  DbFixture,
+} from './db-test.fixtures';
 
 describe('Database Integration: reaction lifecycle (40.87)', () => {
   let ctx: DbTestContext;
@@ -33,10 +34,18 @@ describe('Database Integration: reaction lifecycle (40.87)', () => {
   });
 
   it('adds a reaction and reads it back', async () => {
-    const reaction = await repo.addReaction(messageId, fixture.ownerMemberId, '❤️');
+    const reaction = await repo.addReaction(
+      messageId,
+      fixture.ownerMemberId,
+      '❤️',
+    );
     expect(reaction.messageId).toBe(messageId);
 
-    const found = await repo.findReaction(messageId, fixture.ownerMemberId, '❤️');
+    const found = await repo.findReaction(
+      messageId,
+      fixture.ownerMemberId,
+      '❤️',
+    );
     expect(found?.id).toBe(reaction.id);
   });
 
@@ -66,7 +75,13 @@ describe('Database Integration: reaction lifecycle (40.87)', () => {
   });
 
   it('groups reaction counts by message and emoji in a single query', async () => {
-    const m2 = await createChannelMessage(prisma, fixture, fixture.ownerMemberId, 'count target', 2);
+    const m2 = await createChannelMessage(
+      prisma,
+      fixture,
+      fixture.ownerMemberId,
+      'count target',
+      2,
+    );
 
     await repo.addReaction(messageId, fixture.ownerMemberId, '🔥');
     await repo.addReaction(messageId, fixture.memberMemberId, '🔥');

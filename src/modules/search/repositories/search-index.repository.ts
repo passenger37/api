@@ -114,10 +114,13 @@ export class SearchIndexRepository {
     return next;
   }
 
-  async getTopSearchedUsers(
-    limit = 10,
-  ): Promise<
-    { contentId: string; username: string; displayName: string; searchCount: number }[]
+  async getTopSearchedUsers(limit = 10): Promise<
+    {
+      contentId: string;
+      username: string;
+      displayName: string;
+      searchCount: number;
+    }[]
   > {
     const rows = await this.prisma.searchIndex.findMany({
       where: { contentType: 'user' },

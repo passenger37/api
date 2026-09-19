@@ -79,7 +79,9 @@ export function serializeGroup(group: E2eeGroup): GroupResponse {
   };
 }
 
-export function serializeGroupMember(member: E2eeGroupMember): GroupMemberResponse {
+export function serializeGroupMember(
+  member: E2eeGroupMember,
+): GroupMemberResponse {
   return {
     id: member.id,
     groupId: member.groupId,
@@ -94,7 +96,9 @@ export function serializeGroupMember(member: E2eeGroupMember): GroupMemberRespon
   };
 }
 
-export function serializeGroupSession(session: E2eeGroupSession): GroupSessionResponse {
+export function serializeGroupSession(
+  session: E2eeGroupSession,
+): GroupSessionResponse {
   return {
     id: session.id,
     groupId: session.groupId,
@@ -112,7 +116,9 @@ export function serializeGroupSession(session: E2eeGroupSession): GroupSessionRe
   };
 }
 
-export function serializeGroupEnvelope(envelope: E2eeGroupEnvelope): GroupEnvelopeResponse {
+export function serializeGroupEnvelope(
+  envelope: E2eeGroupEnvelope,
+): GroupEnvelopeResponse {
   return {
     id: envelope.id,
     groupId: envelope.groupId,
@@ -129,6 +135,8 @@ export function serializeGroupEnvelope(envelope: E2eeGroupEnvelope): GroupEnvelo
   };
 }
 
-export function serializeGroupEnvelopeList(envelopes: E2eeGroupEnvelope[]): GroupEnvelopeResponse[] {
+export function serializeGroupEnvelopeList(
+  envelopes: E2eeGroupEnvelope[],
+): GroupEnvelopeResponse[] {
   return envelopes.map(serializeGroupEnvelope);
 }

@@ -15,6 +15,14 @@ export class WebSocketValidationPipe implements PipeTransform {
       return value;
     }
 
+    // Only @MessageBody() payloads are DTOs. @ConnectedSocket() hands us the
+    // live socket.io Socket instance; transforming it into a class-transformer
+    // instance would re-construct `new Socket()` (which reads `server` off
+    // undefined). Mirror the built-in ValidationPipe and skip custom params.
+    if (metadata.type !== 'body') {
+      return value;
+    }
+
     const object = plainToInstance(metadata.metatype, value);
 
     const errors = await validate(object, {

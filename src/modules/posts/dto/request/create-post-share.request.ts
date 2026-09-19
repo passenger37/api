@@ -7,7 +7,9 @@ export class CreatePostShareDto {
   @IsEnum(ShareDestinationType)
   destinationType: ShareDestinationType;
 
-  @ApiPropertyOptional({ description: 'Required for DM and SERVER_CHANNEL destinations' })
+  @ApiPropertyOptional({
+    description: 'Required for DM and SERVER_CHANNEL destinations',
+  })
   @IsOptional()
   @IsString()
   @IsUUID()

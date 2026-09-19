@@ -4,9 +4,7 @@ import { Request } from 'express';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-const logLevel =
-  process.env.LOG_LEVEL ||
-  (isProduction ? 'info' : 'debug');
+const logLevel = process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug');
 
 /**
  * Redaction paths covering the "never log" list:
@@ -92,7 +90,10 @@ export const loggerConfig: Params = {
     // Attach request metadata (including authenticated userId) to every
     // request-log line, while keeping sensitive bearer material out.
     customProps: (req) => {
-      const reqWithTrace = req as Request & { traceId?: string; user?: { id?: string } };
+      const reqWithTrace = req as Request & {
+        traceId?: string;
+        user?: { id?: string };
+      };
       return {
         userId: reqWithTrace.user?.id,
         traceId: reqWithTrace.traceId ?? randomUUID(),

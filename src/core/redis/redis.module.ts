@@ -9,7 +9,17 @@ import { RedisNodeController } from './redis-node.controller';
 @Global()
 @Module({
   controllers: [RedisNodeController],
-  providers: [RedisService, RedisLockService, RedisPubSubService, RedisNodeRegistry],
-  exports: [RedisService, RedisLockService, RedisPubSubService, RedisNodeRegistry],
+  providers: [
+    RedisService,
+    RedisLockService,
+    RedisPubSubService,
+    RedisNodeRegistry,
+  ],
+  exports: [
+    RedisService,
+    RedisLockService,
+    RedisPubSubService,
+    RedisNodeRegistry,
+  ],
 })
 export class RedisModule {}

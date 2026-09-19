@@ -1,4 +1,13 @@
-import { IsString, IsUUID, IsOptional, IsNumber, Min, Max, IsBoolean, IsInt } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsBoolean,
+  IsInt,
+} from 'class-validator';
 
 export class CreateSealedSenderKeyDto {
   @IsUUID()

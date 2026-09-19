@@ -1,7 +1,4 @@
-import {
-  buildSwaggerConfig,
-  NEXUS_DOCUMENTATION_TAGS,
-} from './swagger.config';
+import { buildSwaggerConfig, NEXUS_DOCUMENTATION_TAGS } from './swagger.config';
 
 describe('swagger.config (OpenAPI hardening)', () => {
   it('syncs the OpenAPI info.version with the current API version', () => {
@@ -22,8 +19,7 @@ describe('swagger.config (OpenAPI hardening)', () => {
   });
 
   it('registers the JWT bearer security scheme used by protected routes', () => {
-    const securitySchemes =
-      config().components?.securitySchemes ?? {};
+    const securitySchemes = config().components?.securitySchemes ?? {};
     expect(securitySchemes['JWT']).toMatchObject({
       type: 'http',
       scheme: 'bearer',

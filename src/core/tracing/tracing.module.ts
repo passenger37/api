@@ -1,9 +1,4 @@
-import {
-  Global,
-  MiddlewareConsumer,
-  Module,
-  NestModule,
-} from '@nestjs/common';
+import { Global, MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { TraceService } from './trace.service';
 import { TraceMiddleware } from './trace.middleware';
 

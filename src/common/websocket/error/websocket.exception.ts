@@ -1,8 +1,6 @@
-import { WebSocketErrorCode } from './websocket-error-code.enum';
-
 export class WebSocketException extends Error {
   constructor(
-    public readonly code: WebSocketErrorCode,
+    public readonly code: string,
     message: string,
   ) {
     super(message);

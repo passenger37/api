@@ -11,12 +11,27 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { JobsService } from '../services/jobs.service';
 import { JobsQueueService } from '../queues/jobs-queue.service';
-import { EnqueueJobDto, BatchEnqueueDto, GetJobsQueryDto, CreateScheduleDto, UpdateScheduleDto, GetDeadLettersDto, ResolveDeadLetterDto, GetMetricsDto, QueueManagementDto } from '../dto/jobs.dto';
+import {
+  EnqueueJobDto,
+  BatchEnqueueDto,
+  GetJobsQueryDto,
+  CreateScheduleDto,
+  UpdateScheduleDto,
+  GetDeadLettersDto,
+  ResolveDeadLetterDto,
+  GetMetricsDto,
+  QueueManagementDto,
+} from '../dto/jobs.dto';
 
 @ApiTags('Background Jobs')
 @ApiBearerAuth()
@@ -85,7 +100,8 @@ export class JobsController {
     @Query('cursor') cursor?: string,
   ) {
     return this.jobsService.getSchedules(userId, {
-      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      isActive:
+        isActive === 'true' ? true : isActive === 'false' ? false : undefined,
       limit: limit ? parseInt(limit) : undefined,
       cursor,
     });
@@ -128,7 +144,11 @@ export class JobsController {
     @Param('deadLetterId') deadLetterId: string,
     @Body() dto: ResolveDeadLetterDto,
   ) {
-    return this.jobsService.resolveDeadLetter(userId, deadLetterId, dto.resolutionNotes);
+    return this.jobsService.resolveDeadLetter(
+      userId,
+      deadLetterId,
+      dto.resolutionNotes,
+    );
   }
 
   @Post('dead-letters/:deadLetterId/retry')

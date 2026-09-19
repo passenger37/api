@@ -1,7 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { Prisma, Bookmark, BookmarkCollection, BookmarkTargetType } from '@prisma/client';
-import { PaginatedBookmarks, PaginatedCollections, BookmarkWithCollection, BookmarkCollectionWithItems } from '../types/bookmark.types';
+import {
+  Prisma,
+  Bookmark,
+  BookmarkCollection,
+  BookmarkTargetType,
+} from '@prisma/client';
+import {
+  PaginatedBookmarks,
+  PaginatedCollections,
+  BookmarkWithCollection,
+  BookmarkCollectionWithItems,
+} from '../types/bookmark.types';
 
 @Injectable()
 export class BookmarkRepository {
@@ -34,7 +44,11 @@ export class BookmarkRepository {
     });
   }
 
-  async findByUserAndTarget(userId: string, targetType: BookmarkTargetType, targetId: string): Promise<Bookmark | null> {
+  async findByUserAndTarget(
+    userId: string,
+    targetType: BookmarkTargetType,
+    targetId: string,
+  ): Promise<Bookmark | null> {
     return this.prisma.bookmark.findUnique({
       where: {
         userId_targetType_targetId: {
@@ -123,7 +137,10 @@ export class BookmarkRepository {
     };
   }
 
-  async findCollectionById(id: string, userId: string): Promise<BookmarkCollectionWithItems | null> {
+  async findCollectionById(
+    id: string,
+    userId: string,
+  ): Promise<BookmarkCollectionWithItems | null> {
     return this.prisma.bookmarkCollection.findFirst({
       where: { id, userId },
       include: {
@@ -132,7 +149,10 @@ export class BookmarkRepository {
     });
   }
 
-  async findCollectionByName(userId: string, name: string): Promise<BookmarkCollection | null> {
+  async findCollectionByName(
+    userId: string,
+    name: string,
+  ): Promise<BookmarkCollection | null> {
     return this.prisma.bookmarkCollection.findFirst({
       where: { userId, name },
     });
@@ -202,13 +222,19 @@ export class BookmarkRepository {
       select: { targetId: true, collectionId: true },
     });
 
-    const statusMap = new Map<string, { saved: boolean; collectionId: string | null }>();
+    const statusMap = new Map<
+      string,
+      { saved: boolean; collectionId: string | null }
+    >();
     for (const targetId of targetIds) {
       statusMap.set(targetId, { saved: false, collectionId: null });
     }
 
     for (const bookmark of bookmarks) {
-      statusMap.set(bookmark.targetId, { saved: true, collectionId: bookmark.collectionId });
+      statusMap.set(bookmark.targetId, {
+        saved: true,
+        collectionId: bookmark.collectionId,
+      });
     }
 
     return statusMap;

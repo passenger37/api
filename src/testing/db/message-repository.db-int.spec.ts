@@ -1,9 +1,6 @@
 import { ChannelMessageRepository } from '../../modules/messages/repositories/channel-message.repository';
 import { PrismaService } from '../../core/database/prisma.service';
-import {
-  createDbTestHarness,
-  DbTestContext,
-} from './db-test.harness';
+import { createDbTestHarness, DbTestContext } from './db-test.harness';
 import {
   createChannel,
   createChannelMessage,
@@ -61,14 +58,22 @@ describe('Database Integration: message repository (40.87)', () => {
       ids.push(entry.id);
     }
 
-    const firstPage = await repo.findManyByChannelPaginated(channelId, undefined, 3);
+    const firstPage = await repo.findManyByChannelPaginated(
+      channelId,
+      undefined,
+      3,
+    );
     expect(firstPage).toHaveLength(3);
     // newest first -> 14 appears before 11
     expect(firstPage[0].messageSeq).toBe(14);
     expect(firstPage[1].messageSeq).toBe(13);
 
     const cursor = firstPage[2].id;
-    const secondPage = await repo.findManyByChannelPaginated(channelId, cursor, 3);
+    const secondPage = await repo.findManyByChannelPaginated(
+      channelId,
+      cursor,
+      3,
+    );
     expect(secondPage).toHaveLength(1);
     expect(secondPage[0].messageSeq).toBe(11);
   });
@@ -89,7 +94,9 @@ describe('Database Integration: message repository (40.87)', () => {
     expect(deleted.isDeleted).toBe(true);
 
     // excluded from channel listings but still physically present
-    const viaGh = await prisma.channelMessage.findUnique({ where: { id: entry.id } });
+    const viaGh = await prisma.channelMessage.findUnique({
+      where: { id: entry.id },
+    });
     expect(viaGh?.isDeleted).toBe(true);
   });
 

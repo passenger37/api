@@ -62,9 +62,7 @@ export class LoadModelService {
     const total = model.operations.reduce((s, o) => s + o.weightPct, 0);
     const operations: OperationTarget[] = model.operations.map((op) => ({
       name: op.name,
-      rps: Number(
-        ((op.weightPct / total) * model.peakOpsPerSec).toFixed(1),
-      ),
+      rps: Number(((op.weightPct / total) * model.peakOpsPerSec).toFixed(1)),
       p50SloMs: op.p50Ms,
       p99SloMs: op.p99Ms,
       errorRateMax: op.errorRateMax,
@@ -86,9 +84,10 @@ export class LoadModelService {
 
   /** Capture the live aggregate baseline from the in-process metrics store. */
   observed(): BaselineObserved {
-    const agg = this.metrics.aggregatePercentiles('http_request_duration_ms', [
-      50, 95, 99,
-    ]);
+    const agg = this.metrics.aggregatePercentiles(
+      'http_request_duration_ms',
+      [50, 95, 99],
+    );
     const latency = agg
       ? {
           sampleCount: agg.count,
@@ -135,7 +134,8 @@ export class LoadModelService {
     const observed = this.observed();
     const model = loadModel();
 
-    const throughputAchieved = observed.httpRequestsTotal >= targets.peakOpsPerSec;
+    const throughputAchieved =
+      observed.httpRequestsTotal >= targets.peakOpsPerSec;
     // Representative p99 SLO: median of per-operation p99 SLOs.
     const slos = model.operations.map((o) => o.p99Ms).sort((a, b) => a - b);
     const medianSlo = slos[Math.floor(slos.length / 2)];
@@ -144,7 +144,8 @@ export class LoadModelService {
     const strictestError = Math.min(
       ...model.operations.map((o) => o.errorRateMax),
     );
-    const errorsWithinSlo = observed.httpRequestsTotal === 0 || observed.errorRate <= strictestError;
+    const errorsWithinSlo =
+      observed.httpRequestsTotal === 0 || observed.errorRate <= strictestError;
 
     return {
       modelVersion: model.version,

@@ -7,8 +7,18 @@ import {
 import { PrismaService } from '../../../core/database/prisma.service';
 import { E2eeGroupRepository } from '../repositories/e2ee-group.repository';
 import { E2eeDeviceRepository } from '../../e2ee-devices/repositories/e2ee-device.repository';
-import { serializeGroup, serializeGroupMember, serializeGroupEnvelope } from '../serializers/e2ee-group.serializer';
-import { CreateGroupRequest, AddMemberRequest, RemoveMemberRequest, UpdateMemberRoleRequest, SendGroupEnvelopeRequest } from '../dto/group.request';
+import {
+  serializeGroup,
+  serializeGroupMember,
+  serializeGroupEnvelope,
+} from '../serializers/e2ee-group.serializer';
+import {
+  CreateGroupRequest,
+  AddMemberRequest,
+  RemoveMemberRequest,
+  UpdateMemberRoleRequest,
+  SendGroupEnvelopeRequest,
+} from '../dto/group.request';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -20,9 +30,13 @@ export class E2eeGroupCommandService {
   ) {}
 
   async createGroup(userId: string, dto: CreateGroupRequest) {
-    const creatorDevice = await this.deviceRepo.findActiveById(dto.creatorDeviceId);
+    const creatorDevice = await this.deviceRepo.findActiveById(
+      dto.creatorDeviceId,
+    );
     if (!creatorDevice || creatorDevice.userId !== userId) {
-      throw new NotFoundException('Creator device not found or not owned by user');
+      throw new NotFoundException(
+        'Creator device not found or not owned by user',
+      );
     }
 
     const group = await this.groupRepo.create({
@@ -66,11 +80,15 @@ export class E2eeGroupCommandService {
     if (existing) {
       if (!existing.isActive) {
         // Reactivate member
-        const updated = await this.groupRepo.updateMember(dto.groupId, dto.deviceId, {
-          isActive: true,
-          role: dto.role ?? 'MEMBER',
-          leftAt: null,
-        });
+        const updated = await this.groupRepo.updateMember(
+          dto.groupId,
+          dto.deviceId,
+          {
+            isActive: true,
+            role: dto.role ?? 'MEMBER',
+            leftAt: null,
+          },
+        );
         return { success: true, member: serializeGroupMember(updated) };
       }
       throw new BadRequestException('Member already in group');
@@ -92,21 +110,29 @@ export class E2eeGroupCommandService {
       throw new NotFoundException('Group not found');
     }
 
-    const requester = await this.groupRepo.findMemberByUser(dto.groupId, userId);
+    const requester = await this.groupRepo.findMemberByUser(
+      dto.groupId,
+      userId,
+    );
     const target = await this.groupRepo.findMember(dto.groupId, dto.deviceId);
     if (!target) {
       throw new NotFoundException('Member not found in group');
     }
 
     // Check permissions: admins can remove anyone, users can remove themselves
-    if (!requester || (requester.role !== 'ADMIN' && requester.deviceId !== dto.deviceId)) {
+    if (
+      !requester ||
+      (requester.role !== 'ADMIN' && requester.deviceId !== dto.deviceId)
+    ) {
       throw new ForbiddenException('Insufficient permissions to remove member');
     }
 
     // Don't allow removing the last admin
     if (target.role === 'ADMIN') {
       const admins = await this.groupRepo.findMembers(dto.groupId);
-      const adminCount = admins.filter(m => m.role === 'ADMIN' && m.isActive).length;
+      const adminCount = admins.filter(
+        (m) => m.role === 'ADMIN' && m.isActive,
+      ).length;
       if (adminCount <= 1) {
         throw new BadRequestException('Cannot remove the last admin');
       }
@@ -122,7 +148,10 @@ export class E2eeGroupCommandService {
       throw new NotFoundException('Group not found');
     }
 
-    const requester = await this.groupRepo.findMemberByUser(dto.groupId, userId);
+    const requester = await this.groupRepo.findMemberByUser(
+      dto.groupId,
+      userId,
+    );
     if (!requester || requester.role !== 'ADMIN') {
       throw new ForbiddenException('Only group admins can change member roles');
     }
@@ -135,15 +164,21 @@ export class E2eeGroupCommandService {
     // Don't demote the last admin
     if (target.role === 'ADMIN' && dto.role === 'MEMBER') {
       const admins = await this.groupRepo.findMembers(dto.groupId);
-      const adminCount = admins.filter(m => m.role === 'ADMIN' && m.isActive).length;
+      const adminCount = admins.filter(
+        (m) => m.role === 'ADMIN' && m.isActive,
+      ).length;
       if (adminCount <= 1) {
         throw new BadRequestException('Cannot demote the last admin');
       }
     }
 
-    const updated = await this.groupRepo.updateMember(dto.groupId, dto.deviceId, {
-      role: dto.role,
-    });
+    const updated = await this.groupRepo.updateMember(
+      dto.groupId,
+      dto.deviceId,
+      {
+        role: dto.role,
+      },
+    );
 
     return { success: true, member: serializeGroupMember(updated) };
   }
@@ -157,20 +192,32 @@ export class E2eeGroupCommandService {
       throw new BadRequestException('Group is archived');
     }
 
-    const senderMember = await this.groupRepo.findMember(dto.groupId, dto.senderDeviceId);
+    const senderMember = await this.groupRepo.findMember(
+      dto.groupId,
+      dto.senderDeviceId,
+    );
     if (!senderMember || !senderMember.isActive) {
       throw new ForbiddenException('Sender is not a member of this group');
     }
 
-    const senderDevice = await this.deviceRepo.findActiveById(dto.senderDeviceId);
+    const senderDevice = await this.deviceRepo.findActiveById(
+      dto.senderDeviceId,
+    );
     if (!senderDevice || senderDevice.userId !== userId) {
-      throw new BadRequestException('Sender device not found or not owned by user');
+      throw new BadRequestException(
+        'Sender device not found or not owned by user',
+      );
     }
 
     // Verify sender has a group session
-    const senderSession = await this.groupRepo.findSession(dto.groupId, dto.senderDeviceId);
+    const senderSession = await this.groupRepo.findSession(
+      dto.groupId,
+      dto.senderDeviceId,
+    );
     if (!senderSession) {
-      throw new BadRequestException('Sender does not have a group session established');
+      throw new BadRequestException(
+        'Sender does not have a group session established',
+      );
     }
 
     const envelope = await this.groupRepo.createEnvelope({

@@ -1,5 +1,10 @@
 import { Queue, Worker, Job, QueueEvents } from 'bullmq';
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export interface MediaQueueOptions {
@@ -36,8 +41,11 @@ export class MediaQueueService implements OnModuleInit, OnModuleDestroy {
 
     for (const name of queueNames) {
       this.queues.set(name, new Queue(name, { connection: redisOptions }));
-      this.queueEvents.set(name, new QueueEvents(name, { connection: this.getRedisOptions() }));
-      
+      this.queueEvents.set(
+        name,
+        new QueueEvents(name, { connection: this.getRedisOptions() }),
+      );
+
       // Setup queue events
       const events = this.queueEvents.get(name)!;
       events.on('completed', ({ jobId, returnvalue }) => {
@@ -81,7 +89,7 @@ export class MediaQueueService implements OnModuleInit, OnModuleDestroy {
   registerWorker<T>(
     queueName: string,
     processor: (job: Job) => Promise<any>,
-    options?: { concurrency?: number; limiter?: any }
+    options?: { concurrency?: number; limiter?: any },
   ): Worker {
     const worker = new Worker(queueName, processor, {
       connection: this.getRedisOptions(),
@@ -93,7 +101,9 @@ export class MediaQueueService implements OnModuleInit, OnModuleDestroy {
       this.logger.debug(`Worker completed job ${job.id} in ${queueName}`);
     });
     worker.on('failed', (job, err) => {
-      this.logger.error(`Worker failed job ${job?.id} in ${queueName}: ${err.message}`);
+      this.logger.error(
+        `Worker failed job ${job?.id} in ${queueName}: ${err.message}`,
+      );
     });
     worker.on('error', (err) => {
       this.logger.error(`Worker error in ${queueName}: ${err.message}`);

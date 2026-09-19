@@ -1,4 +1,11 @@
-import { IsString, IsUUID, IsOptional, IsNumber, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator';
 
 export class VerifySafetyNumberRequest {
   @IsUUID()

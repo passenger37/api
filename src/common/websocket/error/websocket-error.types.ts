@@ -1,7 +1,5 @@
-import { WebSocketErrorCode } from './websocket-error-code.enum';
-
 export interface WebSocketErrorPayload {
-  code: WebSocketErrorCode;
+  code: string;
   message: string;
 }
 

@@ -1,6 +1,26 @@
-import { Post, PostReaction, PostSave, PostReport, User, PostMedia, PostHashtag, PostMention } from '@prisma/client';
+import {
+  Post,
+  PostReaction,
+  PostSave,
+  PostReport,
+  User,
+  PostMedia,
+  PostHashtag,
+  PostMention,
+} from '@prisma/client';
 import { ReactionType } from '@prisma/client';
-import { PostDetailResponse, PostListResponse, ViewerStateDto, ReactionCountsDto, PostAuthorDto, PostMediaDto, PostHashtagDto, PostMentionDto, ReactionDto, BookmarkDto } from '../dto/response/post.response';
+import {
+  PostDetailResponse,
+  PostListResponse,
+  ViewerStateDto,
+  ReactionCountsDto,
+  PostAuthorDto,
+  PostMediaDto,
+  PostHashtagDto,
+  PostMentionDto,
+  ReactionDto,
+  BookmarkDto,
+} from '../dto/response/post.response';
 
 export interface PostDetailViewData {
   viewerReaction?: ReactionType | null;

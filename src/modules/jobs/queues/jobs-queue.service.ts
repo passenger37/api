@@ -205,22 +205,30 @@ export class JobsQueueService implements OnModuleInit, OnModuleDestroy {
       await this.jobsRepo.updateJob(job.id as string, {
         status: 'COMPLETED',
         completedAt: new Date(),
-        result: (result as any) ?? {},
+        result: result ?? {},
         progress: 100,
       });
 
       this.log.info({
         module: 'jobs',
         operation: 'worker.processed',
-        entityId: job.id as string,
+        entityId: job.id,
         durationMs,
         details: { queueName, jobName: job.name },
         message: 'Job processed',
       });
 
-      const successLabels = { queue: queueName, job: job.name, status: 'success' };
+      const successLabels = {
+        queue: queueName,
+        job: job.name,
+        status: 'success',
+      };
       this.metrics.increment('jobs_processed_total', successLabels);
-      this.metrics.observeDuration('jobs_worker_duration_ms', durationMs, successLabels);
+      this.metrics.observeDuration(
+        'jobs_worker_duration_ms',
+        durationMs,
+        successLabels,
+      );
 
       return result;
     } catch (error) {
@@ -236,17 +244,28 @@ export class JobsQueueService implements OnModuleInit, OnModuleDestroy {
       this.log.error({
         module: 'jobs',
         operation: 'worker.process_failed',
-        entityId: job.id as string,
+        entityId: job.id,
         errorCode: 500,
         durationMs,
         details: { queueName, jobName: job.name, error: String(error) },
         message: 'Job processing failed',
       });
 
-      const failureLabels = { queue: queueName, job: job.name, status: 'failed' };
+      const failureLabels = {
+        queue: queueName,
+        job: job.name,
+        status: 'failed',
+      };
       this.metrics.increment('jobs_processed_total', failureLabels);
-      this.metrics.observeDuration('jobs_worker_duration_ms', durationMs, failureLabels);
-      this.metrics.increment('jobs_failed_total', { queue: queueName, job: job.name });
+      this.metrics.observeDuration(
+        'jobs_worker_duration_ms',
+        durationMs,
+        failureLabels,
+      );
+      this.metrics.increment('jobs_failed_total', {
+        queue: queueName,
+        job: job.name,
+      });
 
       throw error;
     }
@@ -256,7 +275,7 @@ export class JobsQueueService implements OnModuleInit, OnModuleDestroy {
     this.log.debug({
       module: 'jobs',
       operation: 'processor.executing',
-      entityId: job.id as string,
+      entityId: job.id,
       details: { queueName: '', jobName: job.name },
       message: 'Processing default job',
     });
@@ -319,12 +338,17 @@ export class JobsQueueService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  private async getJobTraceId(queueName: string, jobId: string): Promise<string> {
+  private async getJobTraceId(
+    queueName: string,
+    jobId: string,
+  ): Promise<string> {
     try {
       const queue = this.queues.get(queueName);
       if (queue) {
         const job = await queue.getJob(jobId);
-        const trace = (job?.data as Record<string, any> | undefined)?.[JOB_TRACE_KEY];
+        const trace = (job?.data as Record<string, any> | undefined)?.[
+          JOB_TRACE_KEY
+        ];
         if (trace?.traceId) {
           return trace.traceId as string;
         }

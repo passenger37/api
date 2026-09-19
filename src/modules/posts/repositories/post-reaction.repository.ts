@@ -14,7 +14,11 @@ export class PostReactionRepository {
     userId: string,
     type: ReactionType,
     tx?: Prisma.TransactionClient,
-  ): Promise<{ reaction: PostReaction; isNew: boolean; previousType?: ReactionType }> {
+  ): Promise<{
+    reaction: PostReaction;
+    isNew: boolean;
+    previousType?: ReactionType;
+  }> {
     const client = tx ?? this.prisma;
 
     const existing = await client.postReaction.findUnique({
@@ -90,7 +94,10 @@ export class PostReactionRepository {
       limit: number;
       type?: ReactionType;
     },
-  ): Promise<{ items: PostReaction[]; nextCursor: { createdAt: Date; id: string } | null }> {
+  ): Promise<{
+    items: PostReaction[];
+    nextCursor: { createdAt: Date; id: string } | null;
+  }> {
     const where: Prisma.PostReactionWhereInput = { postId };
 
     if (options.type) {
@@ -110,9 +117,13 @@ export class PostReactionRepository {
 
     const hasMore = reactions.length > options.limit;
     const items = hasMore ? reactions.slice(0, options.limit) : reactions;
-    const nextCursor = hasMore && items.length > 0
-      ? { createdAt: items[items.length - 1].createdAt, id: items[items.length - 1].id }
-      : null;
+    const nextCursor =
+      hasMore && items.length > 0
+        ? {
+            createdAt: items[items.length - 1].createdAt,
+            id: items[items.length - 1].id,
+          }
+        : null;
 
     return { items, nextCursor };
   }
@@ -154,7 +165,10 @@ export class PostReactionRepository {
     return result;
   }
 
-  async getViewerReaction(postId: string, userId: string): Promise<ReactionType | null> {
+  async getViewerReaction(
+    postId: string,
+    userId: string,
+  ): Promise<ReactionType | null> {
     const reaction = await this.prisma.postReaction.findUnique({
       where: { postId_userId: { postId, userId } },
       select: { type: true },

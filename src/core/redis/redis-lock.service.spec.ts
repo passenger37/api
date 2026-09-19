@@ -18,7 +18,7 @@ describe('RedisLockService', () => {
   });
 
   it('acquires a lock using SET NX PX', async () => {
-    (evalClient.set as jest.Mock).mockResolvedValue('OK');
+    evalClient.set.mockResolvedValue('OK');
 
     await expect(service.acquire('job-1', 'token-1', 30_000)).resolves.toBe(
       true,
@@ -30,7 +30,7 @@ describe('RedisLockService', () => {
   });
 
   it('fails to acquire a lock already held elsewhere', async () => {
-    (evalClient.set as jest.Mock).mockResolvedValue(null);
+    evalClient.set.mockResolvedValue(null);
 
     await expect(service.acquire('job-1', 'token-2', 30_000)).resolves.toBe(
       false,
@@ -38,7 +38,7 @@ describe('RedisLockService', () => {
   });
 
   it('releases a lock with a compare-and-delete script', async () => {
-    (evalClient.eval as jest.Mock).mockResolvedValue(1);
+    evalClient.eval.mockResolvedValue(1);
 
     await service.release('job-1', 'token-1');
 
@@ -49,8 +49,8 @@ describe('RedisLockService', () => {
   });
 
   it('executes the exclusive job only when the lock is acquired', async () => {
-    (evalClient.set as jest.Mock).mockResolvedValue('OK');
-    (evalClient.eval as jest.Mock).mockResolvedValue(1);
+    evalClient.set.mockResolvedValue('OK');
+    evalClient.eval.mockResolvedValue(1);
 
     const job = jest.fn().mockResolvedValue(42);
 
@@ -66,7 +66,7 @@ describe('RedisLockService', () => {
   });
 
   it('skips the job when another instance holds the lock', async () => {
-    (evalClient.set as jest.Mock).mockResolvedValue(null);
+    evalClient.set.mockResolvedValue(null);
 
     const job = jest.fn().mockResolvedValue(42);
 
@@ -78,8 +78,8 @@ describe('RedisLockService', () => {
   });
 
   it('releases the lock even when the job throws', async () => {
-    (evalClient.set as jest.Mock).mockResolvedValue('OK');
-    (evalClient.eval as jest.Mock).mockResolvedValue(1);
+    evalClient.set.mockResolvedValue('OK');
+    evalClient.eval.mockResolvedValue(1);
 
     const job = jest.fn().mockRejectedValue(new Error('boom'));
 

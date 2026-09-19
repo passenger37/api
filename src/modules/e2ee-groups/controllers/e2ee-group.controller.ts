@@ -1,10 +1,28 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { E2eeGroupCommandService } from '../services/e2ee-group-command.service';
 import { E2eeGroupQueryService } from '../services/e2ee-group-query.service';
-import { CreateGroupRequest, AddMemberRequest, RemoveMemberRequest, UpdateMemberRoleRequest, SendGroupEnvelopeRequest, GetGroupEnvelopesRequest, GetGroupMembersRequest } from '../dto/group.request';
+import {
+  CreateGroupRequest,
+  AddMemberRequest,
+  RemoveMemberRequest,
+  UpdateMemberRoleRequest,
+  SendGroupEnvelopeRequest,
+  GetGroupEnvelopesRequest,
+  GetGroupMembersRequest,
+} from '../dto/group.request';
 
 @ApiTags('E2EE Groups')
 @ApiBearerAuth()
@@ -67,7 +85,11 @@ export class E2eeGroupController {
     @Param('deviceId') deviceId: string,
     @Body('role') role: 'ADMIN' | 'MEMBER',
   ) {
-    return this.commandService.updateMemberRole(userId, { groupId, deviceId, role });
+    return this.commandService.updateMemberRole(userId, {
+      groupId,
+      deviceId,
+      role,
+    });
   }
 
   @Delete(':groupId/members/:deviceId')
@@ -107,7 +129,10 @@ export class E2eeGroupController {
     @Param('groupId') groupId: string,
     @Query('limit') limit?: string,
   ) {
-    return this.queryService.getPendingEnvelopes(groupId, limit ? parseInt(limit, 10) : 50);
+    return this.queryService.getPendingEnvelopes(
+      groupId,
+      limit ? parseInt(limit, 10) : 50,
+    );
   }
 
   @Get(':groupId/envelopes/pending/count')

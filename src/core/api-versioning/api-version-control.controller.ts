@@ -32,7 +32,12 @@ export class ApiVersionControlController {
   @Get()
   @Version('2')
   @ApiOperation({ summary: 'Version catalog (evolved v2 view)' })
-  v2(): { version: number; current: number; deprecated: number[]; catalog: ApiVersionCatalog } {
+  v2(): {
+    version: number;
+    current: number;
+    deprecated: number[];
+    catalog: ApiVersionCatalog;
+  } {
     const catalog = this.versions.catalog();
     return {
       version: 2,

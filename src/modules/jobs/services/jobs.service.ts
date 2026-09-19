@@ -1,10 +1,18 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { BackgroundJobsRepository } from '../repositories/jobs.repository';
 import { JobsQueueService } from '../queues/jobs-queue.service';
 import { StructuredLogger } from '../../../core/logger/structured-logger';
 import { MetricsService } from '../../../core/metrics/metrics.service';
-import { BackgroundJobDeadLetter, BackgroundJobStatus, BackgroundJobPriority } from '@prisma/client';
+import {
+  BackgroundJobDeadLetter,
+  BackgroundJobStatus,
+  BackgroundJobPriority,
+} from '@prisma/client';
 
 @Injectable()
 export class JobsService {
@@ -31,14 +39,19 @@ export class JobsService {
     },
   ) {
     if (input.idempotencyKey) {
-      const existing = await this.jobsRepo.findJobByIdempotencyKey(input.idempotencyKey);
+      const existing = await this.jobsRepo.findJobByIdempotencyKey(
+        input.idempotencyKey,
+      );
       if (existing) {
         this.log.debug({
           module: 'jobs',
           operation: 'enqueue.deduplicated',
           userId,
           entityId: existing.id,
-          details: { queueName: input.queueName, idempotencyKey: input.idempotencyKey },
+          details: {
+            queueName: input.queueName,
+            idempotencyKey: input.idempotencyKey,
+          },
         });
         this.metrics.increment('jobs_deduplicated_total', {
           queue: input.queueName,
@@ -63,14 +76,19 @@ export class JobsService {
     });
 
     if (!input.scheduledAt) {
-      await this.queueService.addJob(input.queueName, input.name, input.payload, {
-        priority: input.priority || 'NORMAL',
-        maxRetries: input.maxRetries ?? 3,
-        tags: input.tags,
-        correlationId: input.correlationId,
-        idempotencyKey: input.idempotencyKey,
-        userId,
-      });
+      await this.queueService.addJob(
+        input.queueName,
+        input.name,
+        input.payload,
+        {
+          priority: input.priority || 'NORMAL',
+          maxRetries: input.maxRetries ?? 3,
+          tags: input.tags,
+          correlationId: input.correlationId,
+          idempotencyKey: input.idempotencyKey,
+          userId,
+        },
+      );
     }
 
     this.log.info({
@@ -140,7 +158,7 @@ export class JobsService {
     });
 
     return {
-      jobs: jobs.map(j => this.mapJob(j)),
+      jobs: jobs.map((j) => this.mapJob(j)),
     };
   }
 
@@ -357,11 +375,18 @@ export class JobsService {
 
     const owned = await this.filterOwnedDeadLetters(userId, deadLetters);
 
-    return { deadLetters: owned.map(d => this.mapDeadLetter(d)) };
+    return { deadLetters: owned.map((d) => this.mapDeadLetter(d)) };
   }
 
-  async resolveDeadLetter(userId: string, deadLetterId: string, resolutionNotes: string) {
-    const deadLetter = await this.assertDeadLetterOwnership(userId, deadLetterId);
+  async resolveDeadLetter(
+    userId: string,
+    deadLetterId: string,
+    resolutionNotes: string,
+  ) {
+    const deadLetter = await this.assertDeadLetterOwnership(
+      userId,
+      deadLetterId,
+    );
     if (!deadLetter) {
       throw new NotFoundException('Dead letter not found');
     }
@@ -374,7 +399,10 @@ export class JobsService {
   }
 
   async retryDeadLetter(userId: string, deadLetterId: string) {
-    const deadLetter = await this.assertDeadLetterOwnership(userId, deadLetterId);
+    const deadLetter = await this.assertDeadLetterOwnership(
+      userId,
+      deadLetterId,
+    );
     if (!deadLetter) {
       throw new NotFoundException('Dead letter not found');
     }
@@ -410,7 +438,7 @@ export class JobsService {
       'jobs:analytics',
     ];
     const results = await Promise.all(
-      queues.map(q => this.jobsRepo.getAggregatedMetrics(q, days)),
+      queues.map((q) => this.jobsRepo.getAggregatedMetrics(q, days)),
     );
 
     return queues.reduce(

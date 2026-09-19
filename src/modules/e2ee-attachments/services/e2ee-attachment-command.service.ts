@@ -10,7 +10,13 @@ import { E2eeSessionRepository } from '../../e2ee-sessions/repositories/e2ee-ses
 import { E2eeGroupRepository } from '../../e2ee-groups/repositories/e2ee-group.repository';
 import { E2eeDeviceRepository } from '../../e2ee-devices/repositories/e2ee-device.repository';
 import { AttachmentStorageService } from '../../messages/services/attachment-storage.service';
-import { CreateAttachmentRequest, UploadCompleteRequest, UploadFailedRequest, AddThumbnailRequest, LinkMessageRequest } from '../dto/attachment.request';
+import {
+  CreateAttachmentRequest,
+  UploadCompleteRequest,
+  UploadFailedRequest,
+  AddThumbnailRequest,
+  LinkMessageRequest,
+} from '../dto/attachment.request';
 import { serializeAttachment } from '../serializers/e2ee-attachment.serializer';
 
 @Injectable()
@@ -25,9 +31,13 @@ export class E2eeAttachmentCommandService {
   ) {}
 
   async createAttachment(userId: string, dto: CreateAttachmentRequest) {
-    const senderDevice = await this.deviceRepo.findActiveById(dto.senderDeviceId);
+    const senderDevice = await this.deviceRepo.findActiveById(
+      dto.senderDeviceId,
+    );
     if (!senderDevice || senderDevice.userId !== userId) {
-      throw new NotFoundException('Sender device not found or not owned by user');
+      throw new NotFoundException(
+        'Sender device not found or not owned by user',
+      );
     }
 
     // Validate session or group
@@ -50,18 +60,25 @@ export class E2eeAttachmentCommandService {
         throw new BadRequestException('Group not found or not active');
       }
 
-      const member = await this.groupRepo.findMember(dto.groupId, dto.senderDeviceId);
+      const member = await this.groupRepo.findMember(
+        dto.groupId,
+        dto.senderDeviceId,
+      );
       if (!member || !member.isActive) {
         throw new ForbiddenException('Sender is not a member of this group');
       }
     }
 
     if (!dto.sessionId && !dto.groupId) {
-      throw new BadRequestException('Either sessionId or groupId must be provided');
+      throw new BadRequestException(
+        'Either sessionId or groupId must be provided',
+      );
     }
 
     if (dto.sessionId && dto.groupId) {
-      throw new BadRequestException('Cannot provide both sessionId and groupId');
+      throw new BadRequestException(
+        'Cannot provide both sessionId and groupId',
+      );
     }
 
     // Generate storage key (sanitized to avoid path traversal / weird chars)
@@ -105,7 +122,10 @@ export class E2eeAttachmentCommandService {
       throw new BadRequestException('Attachment is not in pending state');
     }
 
-    const updated = await this.attachmentRepo.updateStatus(dto.attachmentId, 'UPLOADED');
+    const updated = await this.attachmentRepo.updateStatus(
+      dto.attachmentId,
+      'UPLOADED',
+    );
     return { success: true, attachment: serializeAttachment(updated) };
   }
 
@@ -115,7 +135,11 @@ export class E2eeAttachmentCommandService {
       throw new NotFoundException('Attachment not found');
     }
 
-    const updated = await this.attachmentRepo.updateStatus(dto.attachmentId, 'FAILED', dto.error);
+    const updated = await this.attachmentRepo.updateStatus(
+      dto.attachmentId,
+      'FAILED',
+      dto.error,
+    );
     return { success: true, attachment: serializeAttachment(updated) };
   }
 
@@ -126,16 +150,21 @@ export class E2eeAttachmentCommandService {
     }
 
     if (attachment.status !== 'UPLOADED') {
-      throw new BadRequestException('Attachment must be uploaded before adding thumbnail');
+      throw new BadRequestException(
+        'Attachment must be uploaded before adding thumbnail',
+      );
     }
 
-    const updated = await this.attachmentRepo.updateThumbnail(dto.attachmentId, {
-      thumbnailStorageKey: dto.thumbnailStorageKey,
-      thumbnailMimeType: dto.thumbnailMimeType,
-      thumbnailSizeBytes: dto.thumbnailSizeBytes,
-      encryptedThumbnailKey: dto.encryptedThumbnailKey,
-      thumbnailHash: dto.thumbnailHash,
-    });
+    const updated = await this.attachmentRepo.updateThumbnail(
+      dto.attachmentId,
+      {
+        thumbnailStorageKey: dto.thumbnailStorageKey,
+        thumbnailMimeType: dto.thumbnailMimeType,
+        thumbnailSizeBytes: dto.thumbnailSizeBytes,
+        encryptedThumbnailKey: dto.encryptedThumbnailKey,
+        thumbnailHash: dto.thumbnailHash,
+      },
+    );
 
     return { success: true, attachment: serializeAttachment(updated) };
   }
@@ -150,7 +179,10 @@ export class E2eeAttachmentCommandService {
       throw new BadRequestException('Attachment already linked to a message');
     }
 
-    const updated = await this.attachmentRepo.linkMessage(dto.attachmentId, dto.messageId);
+    const updated = await this.attachmentRepo.linkMessage(
+      dto.attachmentId,
+      dto.messageId,
+    );
     return { success: true, attachment: serializeAttachment(updated) };
   }
 
@@ -160,7 +192,9 @@ export class E2eeAttachmentCommandService {
       throw new NotFoundException('Attachment not found');
     }
 
-    const senderDevice = await this.deviceRepo.findActiveById(attachment.senderDeviceId);
+    const senderDevice = await this.deviceRepo.findActiveById(
+      attachment.senderDeviceId,
+    );
     if (!senderDevice || senderDevice.userId !== userId) {
       throw new ForbiddenException('Not authorized to delete this attachment');
     }

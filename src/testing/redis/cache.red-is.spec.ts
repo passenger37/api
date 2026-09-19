@@ -61,8 +61,12 @@ describe('Redis Integration: Cache', () => {
       return null;
     };
 
-    await expect(cache.remember<any>('test', key, 60, loader)).resolves.toBeNull();
-    await expect(cache.remember<any>('test', key, 60, loader)).resolves.toBeNull();
+    await expect(
+      cache.remember<any>('test', key, 60, loader),
+    ).resolves.toBeNull();
+    await expect(
+      cache.remember<any>('test', key, 60, loader),
+    ).resolves.toBeNull();
     expect(loads).toBe(2);
     await expect(cache.get<any>('test', key)).resolves.toBeNull();
   });

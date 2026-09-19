@@ -9,7 +9,12 @@ import { E2eeDeliveryQueryService } from './services/e2ee-delivery-query.service
 import { E2eeDeliveryController } from './controllers/e2ee-delivery.controller';
 
 @Module({
-  imports: [PrismaModule, E2eeTransportModule, E2eeGroupsModule, E2eeDevicesModule],
+  imports: [
+    PrismaModule,
+    E2eeTransportModule,
+    E2eeGroupsModule,
+    E2eeDevicesModule,
+  ],
   controllers: [E2eeDeliveryController],
   providers: [
     E2eeDeliveryRepository,

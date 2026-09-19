@@ -1,17 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Prisma,
-  PostReportReason,
-  ReportStatus,
-} from '@prisma/client';
+import { Prisma, PostReportReason, ReportStatus } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
 import { TwoFieldCursor } from '../pagination/community-cursor';
 import { COMMUNITY_POST_REPORT_SELECT } from '../constants/community-post.select';
 
-export type CommunityPostReportSelectRow = Prisma.CommunityPostReportGetPayload<{
-  select: typeof COMMUNITY_POST_REPORT_SELECT;
-}>;
+export type CommunityPostReportSelectRow =
+  Prisma.CommunityPostReportGetPayload<{
+    select: typeof COMMUNITY_POST_REPORT_SELECT;
+  }>;
 
 export interface CommunityPostReportInput {
   postId: string;
@@ -112,7 +109,9 @@ export class CommunityPostReportRepository {
     });
   }
 
-  private cursorWhere(cursor?: TwoFieldCursor): Prisma.CommunityPostReportWhereInput {
+  private cursorWhere(
+    cursor?: TwoFieldCursor,
+  ): Prisma.CommunityPostReportWhereInput {
     if (!cursor) {
       return {};
     }

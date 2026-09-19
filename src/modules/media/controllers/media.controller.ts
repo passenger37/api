@@ -8,12 +8,22 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { MediaProcessingService } from '../services/media-processing.service';
 import { MediaQueueService } from '../queues/media-queue.service';
-import { MediaJobDto, ProcessAttachmentDto, MediaJobStatusDto, MediaConfigDto } from '../dto/media.dto';
+import {
+  MediaJobDto,
+  ProcessAttachmentDto,
+  MediaJobStatusDto,
+  MediaConfigDto,
+} from '../dto/media.dto';
 
 @ApiTags('Media Pipeline')
 @ApiBearerAuth()
@@ -38,16 +48,24 @@ export class MediaController {
 
     switch (dto.type) {
       case 'THUMBNAIL':
-        jobId = await this.mediaProcessing.enqueueThumbnailJob(dto.attachmentId, dto.input);
+        jobId = await this.mediaProcessing.enqueueThumbnailJob(
+          dto.attachmentId,
+          dto.input,
+        );
         break;
       case 'TRANSCODE':
-        jobId = await this.mediaProcessing.enqueueTranscodeJob(dto.attachmentId, dto.input);
+        jobId = await this.mediaProcessing.enqueueTranscodeJob(
+          dto.attachmentId,
+          dto.input,
+        );
         break;
       case 'AV_SCAN':
         jobId = await this.mediaProcessing.enqueueAvScanJob(dto.attachmentId);
         break;
       case 'METADATA_EXTRACTION':
-        jobId = await this.mediaProcessing.enqueueMetadataExtractionJob(dto.attachmentId);
+        jobId = await this.mediaProcessing.enqueueMetadataExtractionJob(
+          dto.attachmentId,
+        );
         break;
       default:
         throw new BadRequestException('Unknown job type');
@@ -57,12 +75,16 @@ export class MediaController {
   }
 
   @Post('process')
-  @ApiOperation({ summary: 'Process attachment with full pipeline or selected jobs' })
+  @ApiOperation({
+    summary: 'Process attachment with full pipeline or selected jobs',
+  })
   async processAttachment(
     @CurrentUser('id') userId: string,
     @Body() dto: ProcessAttachmentDto,
   ) {
-    const jobIds = await this.mediaProcessing.enqueueFullPipeline(dto.attachmentId);
+    const jobIds = await this.mediaProcessing.enqueueFullPipeline(
+      dto.attachmentId,
+    );
     return { success: true, jobIds };
   }
 

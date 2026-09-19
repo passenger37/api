@@ -57,10 +57,12 @@ describe('Failure Injection: WebSocket instance unavailable (40.90)', () => {
     socket.on('connect_error', () => undefined);
 
     const ackError = await new Promise<Error>((resolve) => {
-      socket.timeout(2000).emit('join-channel', {}, (err: Error, res: unknown) => {
-        if (err) resolve(err);
-        else resolve(new Error(`unexpected ack: ${JSON.stringify(res)}`));
-      });
+      socket
+        .timeout(2000)
+        .emit('join-channel', {}, (err: Error, res: unknown) => {
+          if (err) resolve(err);
+          else resolve(new Error(`unexpected ack: ${JSON.stringify(res)}`));
+        });
     });
 
     expect(ackError).toBeDefined();

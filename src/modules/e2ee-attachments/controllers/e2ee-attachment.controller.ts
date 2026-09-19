@@ -1,10 +1,27 @@
-import { Controller, Post, Get, Delete, Body, Param, Query, UseGuards, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  BadRequestException,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { E2eeAttachmentCommandService } from '../services/e2ee-attachment-command.service';
 import { E2eeAttachmentQueryService } from '../services/e2ee-attachment-query.service';
-import { CreateAttachmentRequest, UploadCompleteRequest, UploadFailedRequest, AddThumbnailRequest, LinkMessageRequest, GetAttachmentsRequest } from '../dto/attachment.request';
+import {
+  CreateAttachmentRequest,
+  UploadCompleteRequest,
+  UploadFailedRequest,
+  AddThumbnailRequest,
+  LinkMessageRequest,
+  GetAttachmentsRequest,
+} from '../dto/attachment.request';
 
 @ApiTags('E2EE Attachments')
 @ApiBearerAuth()
@@ -17,7 +34,9 @@ export class E2eeAttachmentController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new E2EE attachment (get signed upload URL)' })
+  @ApiOperation({
+    summary: 'Create a new E2EE attachment (get signed upload URL)',
+  })
   async createAttachment(
     @CurrentUser('id') userId: string,
     @Body() dto: CreateAttachmentRequest,
@@ -37,7 +56,9 @@ export class E2eeAttachmentController {
     if (query.groupId) {
       return this.queryService.getAttachmentsByGroup(userId, query);
     }
-    throw new BadRequestException('Either sessionId or groupId must be provided');
+    throw new BadRequestException(
+      'Either sessionId or groupId must be provided',
+    );
   }
 
   @Get('device/:deviceId')
@@ -47,7 +68,11 @@ export class E2eeAttachmentController {
     @Param('deviceId') deviceId: string,
     @Query() query: GetAttachmentsRequest,
   ) {
-    return this.queryService.getAttachmentsBySenderDevice(userId, deviceId, query);
+    return this.queryService.getAttachmentsBySenderDevice(
+      userId,
+      deviceId,
+      query,
+    );
   }
 
   @Get(':attachmentId')

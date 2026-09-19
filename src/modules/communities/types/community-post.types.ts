@@ -21,8 +21,8 @@ import {
 export type CommunityPostWithRelations = CommunityPost & {
   category?: CommunityCategory | null;
   author?: User | null;
-  originalPost?: CommunityPost & { author?: User | null } | null;
-  quotedPost?: CommunityPost & { author?: User | null } | null;
+  originalPost?: (CommunityPost & { author?: User | null }) | null;
+  quotedPost?: (CommunityPost & { author?: User | null }) | null;
   quotes?: CommunityPost[];
   comments?: CommunityComment[];
   votes?: CommunityPostVote[];
@@ -161,7 +161,11 @@ export interface CommunityPostModerationInput {
 }
 
 export type FeedSort = 'LATEST' | 'TOP' | 'HOT' | 'CONTROVERSIAL';
-export type PostReportStatus = 'PENDING' | 'REVIEWING' | 'RESOLVED' | 'DISMISSED';
+export type PostReportStatus =
+  | 'PENDING'
+  | 'REVIEWING'
+  | 'RESOLVED'
+  | 'DISMISSED';
 
 export interface CommunityPostListQuery {
   cursor?: string | null;

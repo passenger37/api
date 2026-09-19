@@ -85,7 +85,9 @@ describe('CommunityCommandService', () => {
   describe('create', () => {
     it('should create a community and assign the owner as admin', async () => {
       slugService.generate.mockResolvedValue('nexus');
-      serverMemberRepository.findByServerAndUser.mockResolvedValue({ id: 'm1' });
+      serverMemberRepository.findByServerAndUser.mockResolvedValue({
+        id: 'm1',
+      });
       serverPermissionService.hasPermission.mockResolvedValue(true);
       repository.create.mockResolvedValue({ ...communityRecord, id: 'c1' });
       moderatorRepository.upsert.mockResolvedValue({ id: 'm1' });

@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { E2eeDeliveryQueue, E2eeGroupDeliveryQueue, Prisma, E2eeDeliveryStatus } from '@prisma/client';
+import {
+  E2eeDeliveryQueue,
+  E2eeGroupDeliveryQueue,
+  Prisma,
+  E2eeDeliveryStatus,
+} from '@prisma/client';
 
 @Injectable()
 export class E2eeDeliveryRepository {
@@ -33,9 +38,7 @@ export class E2eeDeliveryRepository {
     });
   }
 
-  async findReadyForRetry(
-    limit = 100,
-  ): Promise<E2eeDeliveryQueue[]> {
+  async findReadyForRetry(limit = 100): Promise<E2eeDeliveryQueue[]> {
     return this.prisma.e2eeDeliveryQueue.findMany({
       where: {
         status: 'PENDING',
@@ -62,7 +65,9 @@ export class E2eeDeliveryRepository {
       data.attempts = { increment: 1 };
     }
     if (status === 'PENDING') {
-      data.nextRetryAt = new Date(Date.now() + Math.min(2 ** 5 * 1000, 3600000)); // Exponential backoff
+      data.nextRetryAt = new Date(
+        Date.now() + Math.min(2 ** 5 * 1000, 3600000),
+      ); // Exponential backoff
     }
     return this.prisma.e2eeDeliveryQueue.update({ where: { id }, data });
   }
@@ -99,7 +104,9 @@ export class E2eeDeliveryRepository {
     return client.e2eeGroupDeliveryQueue.create({ data });
   }
 
-  async findGroupDeliveryById(id: string): Promise<E2eeGroupDeliveryQueue | null> {
+  async findGroupDeliveryById(
+    id: string,
+  ): Promise<E2eeGroupDeliveryQueue | null> {
     return this.prisma.e2eeGroupDeliveryQueue.findUnique({ where: { id } });
   }
 
@@ -144,7 +151,9 @@ export class E2eeDeliveryRepository {
       data.attempts = { increment: 1 };
     }
     if (status === 'PENDING') {
-      data.nextRetryAt = new Date(Date.now() + Math.min(2 ** 5 * 1000, 3600000));
+      data.nextRetryAt = new Date(
+        Date.now() + Math.min(2 ** 5 * 1000, 3600000),
+      );
     }
     return this.prisma.e2eeGroupDeliveryQueue.update({ where: { id }, data });
   }
@@ -156,7 +165,9 @@ export class E2eeDeliveryRepository {
     });
   }
 
-  async countPendingGroupByTargetDevice(targetDeviceId: string): Promise<number> {
+  async countPendingGroupByTargetDevice(
+    targetDeviceId: string,
+  ): Promise<number> {
     return this.prisma.e2eeGroupDeliveryQueue.count({
       where: { targetDeviceId, status: 'PENDING' },
     });
