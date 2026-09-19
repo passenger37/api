@@ -12,11 +12,13 @@ import { UserFactory } from '../../users/factories/user.factory';
 import { AuthorizationAuditService } from './authorization-audit.service';
 import { AuditActions } from '../constants/audit-actions';
 import { AuthService } from './auth.service';
+import { AuthorizationService } from './authorization.service';
 import { RoleService } from './role.service';
 
 describe('AuthService', () => {
   const usersService = {
     updateLastSeen: jest.fn(),
+    getUserRoles: jest.fn().mockResolvedValue([]),
   } as unknown as UsersService;
 
   const userQueryService = {
@@ -61,16 +63,21 @@ describe('AuthService', () => {
     assignRole: jest.fn(),
   } as unknown as RoleService;
 
+  const authorizationService = {
+    getUserRoles: jest.fn().mockResolvedValue([]),
+  } as unknown as AuthorizationService;
+
   const service = new AuthService(
-    usersService as never,
-    userQueryService as never,
-    passwordService as never,
-    tokenService as never,
-    sessionsService as never,
+    usersService,
+    userQueryService,
+    passwordService,
+    tokenService,
+    sessionsService,
     userFactory,
-    userCommandService as never,
-    auditService as never,
-    roleService as never,
+    userCommandService,
+    auditService,
+    roleService,
+    authorizationService,
   );
 
   const activeUser = {
@@ -89,6 +96,7 @@ describe('AuthService', () => {
 
     (auditService.log as jest.Mock).mockResolvedValue({});
     (passwordService.verify as jest.Mock).mockResolvedValue(true);
+    (authorizationService.getUserRoles as jest.Mock).mockResolvedValue([]);
   });
 
   describe('register', () => {

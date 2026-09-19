@@ -84,7 +84,7 @@ describe('RoleRepository', () => {
     const dto = { name: 'MOD', description: 'Moderator' };
     prisma.role.create.mockResolvedValue({ ...dto, isSystem: false });
 
-    const result = await repository.create(dto as any);
+    const result = await repository.create(dto);
 
     expect(prisma.role.create).toHaveBeenCalledWith({
       data: { name: 'MOD', description: 'Moderator', isSystem: false },
@@ -99,7 +99,7 @@ describe('RoleRepository', () => {
   it('should update a role', async () => {
     prisma.role.update.mockResolvedValue({ id: 'role-1', name: 'MOD' });
 
-    await repository.update('role-1', { name: 'MOD' } as any);
+    await repository.update('role-1', { name: 'MOD' });
 
     expect(prisma.role.update).toHaveBeenCalledWith({
       where: { id: 'role-1' },

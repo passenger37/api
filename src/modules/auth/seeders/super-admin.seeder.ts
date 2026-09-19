@@ -27,8 +27,12 @@ export class SuperAdminSeeder {
     }
 
     // Check by both email and username to avoid unique constraint failures
-    const existingByEmail = await this.prisma.user.findUnique({ where: { email } });
-    const existingByUsername = await this.prisma.user.findUnique({ where: { username } });
+    const existingByEmail = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    const existingByUsername = await this.prisma.user.findUnique({
+      where: { username },
+    });
 
     if (existingByEmail || existingByUsername) {
       this.logger.log('Super Admin already exists.');

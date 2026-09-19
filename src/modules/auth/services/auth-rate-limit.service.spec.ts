@@ -6,9 +6,6 @@ describe('AuthRateLimitService', () => {
   const redis = {
     incr: jest.fn(),
     expire: jest.fn(),
-  } as unknown as {
-    incr: jest.Mock;
-    expire: jest.Mock;
   };
 
   const service = new AuthRateLimitService(redis as never);

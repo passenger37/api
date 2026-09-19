@@ -21,7 +21,7 @@ describe('AuthorizationBootstrapService', () => {
       roleSeeder as never,
       rolePermissionSeeder as never,
       superAdminSeeder as never,
-      locks as never,
+      locks,
     );
   });
 
