@@ -31,7 +31,8 @@ export class CommentResponse {
   @ApiProperty() replyCount!: number;
   @ApiProperty() version!: number;
   @ApiProperty({ type: CommentAuthorResponse }) author!: CommentAuthorResponse;
-  @ApiProperty({ type: CommentViewerStateResponse }) viewer!: CommentViewerStateResponse;
+  @ApiProperty({ type: CommentViewerStateResponse })
+  viewer!: CommentViewerStateResponse;
   @ApiProperty() createdAt!: Date;
   @ApiProperty() updatedAt!: Date;
   @ApiPropertyOptional() editedAt?: Date | null;

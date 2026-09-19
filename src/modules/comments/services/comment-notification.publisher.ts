@@ -120,12 +120,14 @@ export class CommentNotificationPublisher {
     }
   }
 
-  private async publish(event: Omit<DomainNotificationEvent, 'eventId'>): Promise<void> {
+  private async publish(
+    event: Omit<DomainNotificationEvent, 'eventId'>,
+  ): Promise<void> {
     try {
-      await this.pubSub.publish<DomainNotificationEvent>(
-        DOMAIN_EVENT_CHANNEL,
-        { eventId: randomUUID(), ...event },
-      );
+      await this.pubSub.publish<DomainNotificationEvent>(DOMAIN_EVENT_CHANNEL, {
+        eventId: randomUUID(),
+        ...event,
+      });
     } catch (error) {
       this.logger.error('Failed to publish comment notification event.', error);
     }

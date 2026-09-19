@@ -11,7 +11,13 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+} from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
@@ -23,8 +29,14 @@ import { CommentAuthorizationService } from '../services/comment-authorization.s
 import { CommentReportService } from '../services/comment-report.service';
 
 import { CreateCommentRequest } from '../dto/request/create-comment.request';
-import { ListCommentsQuery, ReactToCommentRequest } from '../dto/query/list-comments.query';
-import { CommentResponse, CommentListResponse } from '../dto/response/comment.response';
+import {
+  ListCommentsQuery,
+  ReactToCommentRequest,
+} from '../dto/query/list-comments.query';
+import {
+  CommentResponse,
+  CommentListResponse,
+} from '../dto/response/comment.response';
 import { CommentReportRequest } from '../dto/request/comment-report.request';
 import { CommentSortMode } from '../constants/comment.constants';
 
@@ -41,8 +53,13 @@ export class CommentsController {
   ) {}
 
   @Post(':postId/comments')
-  @ApiOperation({ summary: 'Create a comment on a post (personal, community or channel)' })
-  @ApiParam({ name: 'postId', description: 'Post ID (Post.id or CommunityPost.id)' })
+  @ApiOperation({
+    summary: 'Create a comment on a post (personal, community or channel)',
+  })
+  @ApiParam({
+    name: 'postId',
+    description: 'Post ID (Post.id or CommunityPost.id)',
+  })
   @ApiResponse({ status: 201, type: CommentResponse })
   async createComment(
     @Param('postId') postId: string,
@@ -61,7 +78,10 @@ export class CommentsController {
 
   @Get(':postId/comments')
   @ApiOperation({ summary: 'List root comments on a post' })
-  @ApiParam({ name: 'postId', description: 'Post ID (Post.id or CommunityPost.id)' })
+  @ApiParam({
+    name: 'postId',
+    description: 'Post ID (Post.id or CommunityPost.id)',
+  })
   @ApiResponse({ status: 200, type: CommentListResponse })
   async listComments(
     @Param('postId') postId: string,

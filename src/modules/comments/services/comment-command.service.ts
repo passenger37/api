@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { CommentPostType, VoteType, CommentStatus } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
@@ -63,10 +59,15 @@ export class CommentCommandService {
       input.postType,
     );
 
-    await this.authorizationService.assertCanAccessPost(postContext, input.authorId);
+    await this.authorizationService.assertCanAccessPost(
+      postContext,
+      input.authorId,
+    );
 
     if (input.parentCommentId) {
-      const parent = await this.commentRepository.findById(input.parentCommentId);
+      const parent = await this.commentRepository.findById(
+        input.parentCommentId,
+      );
 
       if (!parent) {
         throw new CommentNotFoundException(input.parentCommentId);
@@ -90,7 +91,10 @@ export class CommentCommandService {
       );
 
       if (input.parentCommentId) {
-        await this.commentRepository.incrementReplyCount(input.parentCommentId, tx);
+        await this.commentRepository.incrementReplyCount(
+          input.parentCommentId,
+          tx,
+        );
       }
 
       // Increment denormalized comment count on the parent post
@@ -106,7 +110,9 @@ export class CommentCommandService {
     // Decoupled notifications: root comment → post author; reply → parent's
     // author; any content mentioning @username → mentioned users.
     if (input.parentCommentId) {
-      const parent = await this.commentRepository.findById(input.parentCommentId);
+      const parent = await this.commentRepository.findById(
+        input.parentCommentId,
+      );
       await this.notificationPublisher.publishCommentReply({
         postId: input.postId,
         postType: input.postType,
@@ -134,7 +140,9 @@ export class CommentCommandService {
       });
     }
 
-    const commentWithAuthor = await this.commentRepository.findByIdWithAuthor(comment.id);
+    const commentWithAuthor = await this.commentRepository.findByIdWithAuthor(
+      comment.id,
+    );
 
     const response = CommentMapper.toResponse(commentWithAuthor!, {
       viewerVote: null,
@@ -151,7 +159,9 @@ export class CommentCommandService {
   async editComment(input: EditCommentInput): Promise<CommentResponseData> {
     this.validateContent(input.content);
 
-    const existing = await this.commentRepository.findByIdWithAuthor(input.commentId);
+    const existing = await this.commentRepository.findByIdWithAuthor(
+      input.commentId,
+    );
 
     if (!existing) {
       throw new CommentNotFoundException(input.commentId);
@@ -163,22 +173,22 @@ export class CommentCommandService {
     );
 
     // Author verification is the primary gate; ownership is enforced below.
-    await this.authorizationService.assertCanAccessPost(postContext, input.authorId);
+    await this.authorizationService.assertCanAccessPost(
+      postContext,
+      input.authorId,
+    );
 
     if (existing.authorId !== input.authorId) {
       throw new BadRequestException('You can only edit your own comments');
     }
 
-    const updated = await this.commentRepository.update(
-      input.commentId,
-      {
-        content: input.content.trim(),
-        editedAt: new Date(),
-      },
-    );
+    const updated = await this.commentRepository.update(input.commentId, {
+      content: input.content.trim(),
+      editedAt: new Date(),
+    });
 
     const response = CommentMapper.toResponse(
-      { ...updated, author: existing.author } as any,
+      { ...updated, author: existing.author },
       {
         viewerVote: null,
         viewerCanEdit: true,
@@ -212,14 +222,18 @@ export class CommentCommandService {
 
     await this.prisma.$transaction(async (tx) => {
       await this.commentRepository.softDelete(commentId, tx);
-      await this.decrementPostCommentCount(existing.postId, existing.postType, tx);
+      await this.decrementPostCommentCount(
+        existing.postId,
+        existing.postType,
+        tx,
+      );
     });
 
     await this.realtimePublisher.publishCommentDeleted({
       postId: existing.postId,
       postType: existing.postType,
       commentId,
-      status: 'DELETED' as CommentStatus,
+      status: 'DELETED',
     });
   }
 
@@ -247,21 +261,31 @@ export class CommentCommandService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      await this.commentRepository.update(commentId, {
-        status: CommentStatus.REMOVED,
-      }, tx);
-      await this.decrementPostCommentCount(existing.postId, existing.postType, tx);
+      await this.commentRepository.update(
+        commentId,
+        {
+          status: CommentStatus.REMOVED,
+        },
+        tx,
+      );
+      await this.decrementPostCommentCount(
+        existing.postId,
+        existing.postType,
+        tx,
+      );
     });
 
     await this.realtimePublisher.publishCommentDeleted({
       postId: existing.postId,
       postType: existing.postType,
       commentId,
-      status: 'REMOVED' as CommentStatus,
+      status: 'REMOVED',
     });
   }
 
-  async reactToComment(input: ReactToCommentInput): Promise<{ vote: VoteType; scoreDelta: number }> {
+  async reactToComment(
+    input: ReactToCommentInput,
+  ): Promise<{ vote: VoteType; scoreDelta: number }> {
     const existing = await this.commentRepository.findById(input.commentId);
 
     if (!existing) {
@@ -273,7 +297,10 @@ export class CommentCommandService {
       existing.postType,
     );
 
-    await this.authorizationService.assertCanAccessPost(postContext, input.userId);
+    await this.authorizationService.assertCanAccessPost(
+      postContext,
+      input.userId,
+    );
 
     const result = await this.prisma.$transaction(async (tx) => {
       const reactionResult = await this.reactionRepository.upsert(
@@ -329,7 +356,10 @@ export class CommentCommandService {
     return result;
   }
 
-  async removeReaction(commentId: string, userId: string): Promise<{ scoreDelta: number }> {
+  async removeReaction(
+    commentId: string,
+    userId: string,
+  ): Promise<{ scoreDelta: number }> {
     const existing = await this.commentRepository.findById(commentId);
 
     if (!existing) {
@@ -344,7 +374,11 @@ export class CommentCommandService {
     await this.authorizationService.assertCanAccessPost(postContext, userId);
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const removed = await this.reactionRepository.remove(commentId, userId, tx);
+      const removed = await this.reactionRepository.remove(
+        commentId,
+        userId,
+        tx,
+      );
 
       if (!removed) {
         return { scoreDelta: 0 };
@@ -376,7 +410,9 @@ export class CommentCommandService {
     }
 
     if (content.length > COMMENT_DEFAULTS.MAX_CONTENT_LENGTH) {
-      throw new CommentContentTooLongException(COMMENT_DEFAULTS.MAX_CONTENT_LENGTH);
+      throw new CommentContentTooLongException(
+        COMMENT_DEFAULTS.MAX_CONTENT_LENGTH,
+      );
     }
   }
 

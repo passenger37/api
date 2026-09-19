@@ -15,7 +15,9 @@ export class CommentReportService {
     reason: CommentReportReason,
     description?: string,
   ): Promise<CommentReport> {
-    const comment = await this.prisma.comment.findUnique({ where: { id: commentId } });
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+    });
     if (!comment) throw new CommentNotFoundException(commentId);
 
     const report = await this.prisma.commentReport.create({
@@ -27,7 +29,9 @@ export class CommentReportService {
       },
     });
 
-    this.logger.log(`Comment report created: ${report.id} on comment ${commentId}`);
+    this.logger.log(
+      `Comment report created: ${report.id} on comment ${commentId}`,
+    );
     return report;
   }
 }

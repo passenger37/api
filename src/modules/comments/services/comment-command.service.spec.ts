@@ -9,7 +9,13 @@ import { CommentPostType } from '@prisma/client';
 describe('CommentCommandService (reactions & tree integrity)', () => {
   let service: CommentCommandService;
   let prisma: { $transaction: jest.Mock; user: { findMany: jest.Mock } };
-  let commentRepository: { findById: jest.Mock; create: jest.Mock; incrementReplyCount: jest.Mock; update: jest.Mock; findByIdWithAuthor: jest.Mock };
+  let commentRepository: {
+    findById: jest.Mock;
+    create: jest.Mock;
+    incrementReplyCount: jest.Mock;
+    update: jest.Mock;
+    findByIdWithAuthor: jest.Mock;
+  };
   let reactionRepository: {
     upsert: jest.Mock;
     remove: jest.Mock;
@@ -53,7 +59,15 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
   };
 
   beforeEach(() => {
-    prisma = { $transaction: jest.fn((fn) => fn({})), user: { findMany: jest.fn() } };
+    const tx = {
+      comment: { update: jest.fn() },
+      post: { update: jest.fn() },
+      communityPost: { update: jest.fn() },
+    };
+    prisma = {
+      $transaction: jest.fn((fn) => fn(tx)),
+      user: { findMany: jest.fn() },
+    };
     commentRepository = {
       findById: jest.fn(),
       create: jest.fn(),
@@ -67,7 +81,9 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
       updateCommentCounts: jest.fn(),
     };
     authorizationService = {
-      resolvePost: jest.fn().mockResolvedValue({ postId: 'p1', postType: 'PERSONAL' }),
+      resolvePost: jest
+        .fn()
+        .mockResolvedValue({ postId: 'p1', postType: 'PERSONAL' }),
       resolvePostType: jest.fn(),
       assertCanAccessPost: jest.fn(),
       canModerate: jest.fn().mockResolvedValue(false),
@@ -103,20 +119,26 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
         isNew: true,
       });
 
-      const result = await service.reactToComment({ commentId: 'c1', userId: 'u2', vote: 'UPVOTE' });
+      const result = await service.reactToComment({
+        commentId: 'c1',
+        userId: 'u2',
+        vote: 'UPVOTE',
+      });
 
       expect(reactionRepository.updateCommentCounts).toHaveBeenCalledWith(
         'c1',
         { upvotes: 1, downvotes: 0 },
-        {},
+        expect.any(Object),
       );
       expect(result.scoreDelta).toBe(1);
-      expect(notificationPublisher.publishCommentReaction).toHaveBeenCalledWith({
-        commentId: 'c1',
-        commentAuthorId: 'u1',
-        actorUserId: 'u2',
-        vote: 'UPVOTE',
-      });
+      expect(notificationPublisher.publishCommentReaction).toHaveBeenCalledWith(
+        {
+          commentId: 'c1',
+          commentAuthorId: 'u1',
+          actorUserId: 'u2',
+          vote: 'UPVOTE',
+        },
+      );
     });
 
     it('handles a fresh downvote: +1 downvote, scoreDelta -1', async () => {
@@ -126,12 +148,16 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
         isNew: true,
       });
 
-      const result = await service.reactToComment({ commentId: 'c1', userId: 'u2', vote: 'DOWNVOTE' });
+      const result = await service.reactToComment({
+        commentId: 'c1',
+        userId: 'u2',
+        vote: 'DOWNVOTE',
+      });
 
       expect(reactionRepository.updateCommentCounts).toHaveBeenCalledWith(
         'c1',
         { upvotes: 0, downvotes: 1 },
-        {},
+        expect.any(Object),
       );
       expect(result.scoreDelta).toBe(-1);
     });
@@ -144,12 +170,16 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
         previousVote: 'UPVOTE',
       });
 
-      const result = await service.reactToComment({ commentId: 'c1', userId: 'u2', vote: 'DOWNVOTE' });
+      const result = await service.reactToComment({
+        commentId: 'c1',
+        userId: 'u2',
+        vote: 'DOWNVOTE',
+      });
 
       expect(reactionRepository.updateCommentCounts).toHaveBeenCalledWith(
         'c1',
         { upvotes: -1, downvotes: 1 },
-        {},
+        expect.any(Object),
       );
       expect(result.scoreDelta).toBe(-2);
     });
@@ -162,12 +192,16 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
         previousVote: 'DOWNVOTE',
       });
 
-      const result = await service.reactToComment({ commentId: 'c1', userId: 'u2', vote: 'UPVOTE' });
+      const result = await service.reactToComment({
+        commentId: 'c1',
+        userId: 'u2',
+        vote: 'UPVOTE',
+      });
 
       expect(reactionRepository.updateCommentCounts).toHaveBeenCalledWith(
         'c1',
         { upvotes: 1, downvotes: -1 },
-        {},
+        expect.any(Object),
       );
       expect(result.scoreDelta).toBe(2);
     });
@@ -179,12 +213,16 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
         isNew: false,
       });
 
-      const result = await service.reactToComment({ commentId: 'c1', userId: 'u2', vote: 'UPVOTE' });
+      const result = await service.reactToComment({
+        commentId: 'c1',
+        userId: 'u2',
+        vote: 'UPVOTE',
+      });
 
       expect(reactionRepository.updateCommentCounts).toHaveBeenCalledWith(
         'c1',
         { upvotes: 0, downvotes: 0 },
-        {},
+        expect.any(Object),
       );
       expect(result.scoreDelta).toBe(0);
     });
@@ -200,7 +238,7 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
       expect(reactionRepository.updateCommentCounts).toHaveBeenCalledWith(
         'c1',
         { upvotes: -1, downvotes: 0 },
-        {},
+        expect.any(Object),
       );
       expect(result.scoreDelta).toBe(-1);
     });
@@ -214,7 +252,7 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
       expect(reactionRepository.updateCommentCounts).toHaveBeenCalledWith(
         'c1',
         { upvotes: 0, downvotes: -1 },
-        {},
+        expect.any(Object),
       );
       expect(result.scoreDelta).toBe(1);
     });
@@ -250,12 +288,16 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
           content: 'reply',
           parentCommentId: 'parent1',
         }),
-      ).rejects.toThrow('Reply parent comment does not belong to the same post');
+      ).rejects.toThrow(
+        'Reply parent comment does not belong to the same post',
+      );
     });
 
     it('rejects creation on a post the user cannot access', async () => {
       authorizationService.assertCanAccessPost.mockImplementation(() => {
-        throw new Error('You do not have permission to view or comment on this post');
+        throw new Error(
+          'You do not have permission to view or comment on this post',
+        );
       });
 
       await expect(
@@ -348,10 +390,7 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
         id: 'c4',
         author: { id: 'u2', username: 'u2' },
       });
-      prisma.user.findMany.mockResolvedValue([
-        { id: 'u1' },
-        { id: 'u3' },
-      ]);
+      prisma.user.findMany.mockResolvedValue([{ id: 'u1' }, { id: 'u3' }]);
 
       await service.createComment({
         postId: 'p1',
@@ -360,11 +399,13 @@ describe('CommentCommandService (reactions & tree integrity)', () => {
         content: 'hi @u1 and @u3',
       });
 
-      expect(notificationPublisher.publishCommentMentions).toHaveBeenCalledWith({
-        commentId: 'c4',
-        mentionedUserIds: ['u1', 'u3'],
-        actorUserId: 'u2',
-      });
+      expect(notificationPublisher.publishCommentMentions).toHaveBeenCalledWith(
+        {
+          commentId: 'c4',
+          mentionedUserIds: ['u1', 'u3'],
+          actorUserId: 'u2',
+        },
+      );
     });
   });
 });

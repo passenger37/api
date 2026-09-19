@@ -106,7 +106,9 @@ describe('CommentNotificationPublisher', () => {
     });
 
     expect(pubSub.publish).toHaveBeenCalledTimes(2);
-    const recipients = pubSub.publish.mock.calls.map(([, e]) => e.recipientUserId);
+    const recipients = pubSub.publish.mock.calls.map(
+      ([, e]) => e.recipientUserId,
+    );
     expect(recipients).toEqual(['user1', 'user2']);
   });
 

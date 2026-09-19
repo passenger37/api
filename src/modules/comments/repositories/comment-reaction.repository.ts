@@ -12,7 +12,11 @@ export class CommentReactionRepository {
     userId: string,
     vote: VoteType,
     tx?: Prisma.TransactionClient,
-  ): Promise<{ reaction: CommentReaction; isNew: boolean; previousVote?: VoteType }> {
+  ): Promise<{
+    reaction: CommentReaction;
+    isNew: boolean;
+    previousVote?: VoteType;
+  }> {
     const client = tx ?? this.prisma;
 
     const existing = await client.commentReaction.findUnique({

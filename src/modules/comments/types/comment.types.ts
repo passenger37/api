@@ -9,7 +9,10 @@ import {
 } from '@prisma/client';
 
 export type CommentWithAuthor = Comment & {
-  author: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl' | 'isVerified'>;
+  author: Pick<
+    User,
+    'id' | 'username' | 'displayName' | 'avatarUrl' | 'isVerified'
+  >;
 };
 
 export type CommentWithReplies = CommentWithAuthor & {

@@ -4,9 +4,17 @@ import { CommentPostType, VoteType } from '@prisma/client';
 import { CommentRepository } from '../repositories/comment.repository';
 import { CommentReactionRepository } from '../repositories/comment-reaction.repository';
 import { CommentNotFoundException } from '../exceptions/comment.exceptions';
-import { CommentResponseData, CommentListResponse } from '../types/comment.types';
+import {
+  CommentResponseData,
+  CommentListResponse,
+} from '../types/comment.types';
 import { CommentMapper } from '../mappers/comment.mapper';
-import { COMMENT_DEFAULTS, CommentSortMode, encodeCommentCursor, COMMENT_SORT } from '../constants/comment.constants';
+import {
+  COMMENT_DEFAULTS,
+  CommentSortMode,
+  encodeCommentCursor,
+  COMMENT_SORT,
+} from '../constants/comment.constants';
 import { CommentAuthorizationService } from './comment-authorization.service';
 
 @Injectable()
@@ -29,11 +37,21 @@ export class CommentQueryService {
       cursor?: string;
     } = {},
   ): Promise<CommentListResponse> {
-    const limit = Math.min(options.limit ?? COMMENT_DEFAULTS.DEFAULT_PAGE_SIZE, COMMENT_DEFAULTS.MAX_PAGE_SIZE);
+    const limit = Math.min(
+      options.limit ?? COMMENT_DEFAULTS.DEFAULT_PAGE_SIZE,
+      COMMENT_DEFAULTS.MAX_PAGE_SIZE,
+    );
     const sort = options.sort ?? COMMENT_SORT.BEST;
 
-    const postContext = await this.authorizationService.resolvePost(postId, postType);
-    await this.authorizationService.assertCanAccessPost(postContext, userId, false);
+    const postContext = await this.authorizationService.resolvePost(
+      postId,
+      postType,
+    );
+    await this.authorizationService.assertCanAccessPost(
+      postContext,
+      userId,
+      false,
+    );
 
     const comments = await this.commentRepository.listRootComments(
       postId,
@@ -47,14 +65,15 @@ export class CommentQueryService {
     const items = hasMore ? comments.slice(0, limit) : comments;
     const lastItem = items[items.length - 1];
 
-    const nextCursor = hasMore && lastItem
-      ? encodeCommentCursor({
-          sort,
-          upvoteCount: lastItem.upvoteCount,
-          createdAt: lastItem.createdAt,
-          id: lastItem.id,
-        })
-      : null;
+    const nextCursor =
+      hasMore && lastItem
+        ? encodeCommentCursor({
+            sort,
+            upvoteCount: lastItem.upvoteCount,
+            createdAt: lastItem.createdAt,
+            id: lastItem.id,
+          })
+        : null;
 
     const enriched = await this.enrichWithViewerState(items, userId);
 
@@ -70,7 +89,10 @@ export class CommentQueryService {
       cursor?: string;
     } = {},
   ): Promise<CommentListResponse> {
-    const limit = Math.min(options.limit ?? COMMENT_DEFAULTS.DEFAULT_PAGE_SIZE, COMMENT_DEFAULTS.MAX_PAGE_SIZE);
+    const limit = Math.min(
+      options.limit ?? COMMENT_DEFAULTS.DEFAULT_PAGE_SIZE,
+      COMMENT_DEFAULTS.MAX_PAGE_SIZE,
+    );
     const sort = options.sort ?? COMMENT_SORT.BEST;
 
     const parent = await this.commentRepository.findById(parentCommentId);
@@ -82,7 +104,11 @@ export class CommentQueryService {
       parent.postId,
       parent.postType,
     );
-    await this.authorizationService.assertCanAccessPost(postContext, userId, false);
+    await this.authorizationService.assertCanAccessPost(
+      postContext,
+      userId,
+      false,
+    );
 
     const replies = await this.commentRepository.listReplies(
       parentCommentId,
@@ -95,14 +121,15 @@ export class CommentQueryService {
     const items = hasMore ? replies.slice(0, limit) : replies;
     const lastItem = items[items.length - 1];
 
-    const nextCursor = hasMore && lastItem
-      ? encodeCommentCursor({
-          sort,
-          upvoteCount: lastItem.upvoteCount,
-          createdAt: lastItem.createdAt,
-          id: lastItem.id,
-        })
-      : null;
+    const nextCursor =
+      hasMore && lastItem
+        ? encodeCommentCursor({
+            sort,
+            upvoteCount: lastItem.upvoteCount,
+            createdAt: lastItem.createdAt,
+            id: lastItem.id,
+          })
+        : null;
 
     const enriched = await this.enrichWithViewerState(items, userId);
 
@@ -123,7 +150,11 @@ export class CommentQueryService {
       comment.postId,
       comment.postType,
     );
-    await this.authorizationService.assertCanAccessPost(postContext, userId, false);
+    await this.authorizationService.assertCanAccessPost(
+      postContext,
+      userId,
+      false,
+    );
 
     const [viewerVote] = await Promise.all([
       this.reactionRepository.findByCommentAndUser(commentId, userId),
@@ -143,13 +174,14 @@ export class CommentQueryService {
   ): Promise<CommentResponseData[]> {
     const commentIds = comments.map((c) => c.id);
     // Batch viewer votes to avoid per-comment queries (prevents N+1).
-    const viewerVotes: (VoteType | null)[] = commentIds.length > 0
-      ? await Promise.all(
-          commentIds.map((id) =>
-            this.reactionRepository.findByCommentAndUser(id, userId),
-          ),
-        )
-      : [];
+    const viewerVotes: (VoteType | null)[] =
+      commentIds.length > 0
+        ? await Promise.all(
+            commentIds.map((id) =>
+              this.reactionRepository.findByCommentAndUser(id, userId),
+            ),
+          )
+        : [];
 
     return comments.map((comment, index) => {
       const fullComment = comment as any;

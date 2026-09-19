@@ -11,7 +11,13 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+} from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
@@ -24,8 +30,15 @@ import { CommentModerationService } from '../services/comment-moderation.service
 import { CommentModerationRequest } from '../dto/request/comment-moderation.request';
 
 import { CreateCommentRequest } from '../dto/request/create-comment.request';
-import { ListCommentsQuery, ReactToCommentRequest } from '../dto/query/list-comments.query';
-import { CommentResponse, CommentListResponse, CommentReactionResponse } from '../dto/response/comment.response';
+import {
+  ListCommentsQuery,
+  ReactToCommentRequest,
+} from '../dto/query/list-comments.query';
+import {
+  CommentResponse,
+  CommentListResponse,
+  CommentReactionResponse,
+} from '../dto/response/comment.response';
 import { CommentSortMode } from '../constants/comment.constants';
 
 @ApiTags('Comments')

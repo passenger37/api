@@ -3,7 +3,11 @@ import { Prisma, Comment, CommentStatus } from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
 import { CommentWithAuthor } from '../types/comment.types';
-import { COMMENT_SORT, CommentSortMode, decodeCommentCursor } from '../constants/comment.constants';
+import {
+  COMMENT_SORT,
+  CommentSortMode,
+  decodeCommentCursor,
+} from '../constants/comment.constants';
 
 const COMMENT_AUTHOR_SELECT = {
   id: true,
@@ -48,7 +52,7 @@ export class CommentRepository {
     return this.prisma.comment.findUnique({
       where: { id },
       include: { author: { select: COMMENT_AUTHOR_SELECT } },
-    }) as Promise<CommentWithAuthor | null>;
+    });
   }
 
   async update(
@@ -66,13 +70,15 @@ export class CommentRepository {
 
     return client.comment.update({
       where: { id },
-      data: data.version === undefined
-        ? data
-        : { ...data, version: data.version as number },
+      data:
+        data.version === undefined ? data : { ...data, version: data.version },
     });
   }
 
-  async incrementReplyCount(id: string, tx?: Prisma.TransactionClient): Promise<void> {
+  async incrementReplyCount(
+    id: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
     const client = tx ?? this.prisma;
 
     await client.comment.update({
@@ -81,7 +87,10 @@ export class CommentRepository {
     });
   }
 
-  async decrementReplyCount(id: string, tx?: Prisma.TransactionClient): Promise<void> {
+  async decrementReplyCount(
+    id: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
     const client = tx ?? this.prisma;
 
     await client.comment.update({
@@ -115,7 +124,7 @@ export class CommentRepository {
       include: { author: { select: COMMENT_AUTHOR_SELECT } },
       orderBy,
       take: limit,
-    }) as Promise<CommentWithAuthor[]>;
+    });
   }
 
   async listReplies(
@@ -140,7 +149,7 @@ export class CommentRepository {
       include: { author: { select: COMMENT_AUTHOR_SELECT } },
       orderBy,
       take: limit,
-    }) as Promise<CommentWithAuthor[]>;
+    });
   }
 
   async countByPost(postId: string, postType: string): Promise<number> {
@@ -197,25 +206,36 @@ export class CommentRepository {
     const comparators = orderBy.map((entry) => {
       const key = Object.keys(entry)[0];
       const direction = entry[key];
-      const value = key === 'upvoteCount' ? cursor.upvoteCount : key === 'createdAt' ? cursor.createdAt : cursor.id;
+      const value =
+        key === 'upvoteCount'
+          ? cursor.upvoteCount
+          : key === 'createdAt'
+            ? cursor.createdAt
+            : cursor.id;
       return { key, direction, value };
     });
 
     // OR-chain: after the cursor means "greater than the first key, OR equal
     // to the first AND greater than the second, ...". For descending keys the
     // comparison flips (less-than continues past the cursor).
-    const orClauses: Prisma.CommentWhereInput[] = comparators.flatMap((entry, index) => {
-      const andChain = comparators.slice(0, index).map((c) => ({ [c.key]: c.value } as Prisma.CommentWhereInput));
-      const op = entry.direction === 'desc' ? 'lt' : 'gt';
-      return [
-        {
-          AND: [
-            ...andChain,
-            { [entry.key]: { [op]: entry.value } } as Prisma.CommentWhereInput,
-          ],
-        } as Prisma.CommentWhereInput,
-      ];
-    });
+    const orClauses: Prisma.CommentWhereInput[] = comparators.flatMap(
+      (entry, index) => {
+        const andChain = comparators
+          .slice(0, index)
+          .map((c) => ({ [c.key]: c.value }));
+        const op = entry.direction === 'desc' ? 'lt' : 'gt';
+        return [
+          {
+            AND: [
+              ...andChain,
+              {
+                [entry.key]: { [op]: entry.value },
+              },
+            ],
+          },
+        ];
+      },
+    );
 
     return { OR: orClauses };
   }

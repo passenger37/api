@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { PostVisibility, PostStatus, CommunityVisibility, CommunityPostStatus } from '@prisma/client';
+import {
+  PostVisibility,
+  PostStatus,
+  CommunityVisibility,
+  CommunityPostStatus,
+} from '@prisma/client';
 
 import { PrismaService } from '../../../core/database/prisma.service';
 import { UserSocialRepository } from '../../users/repositories/user-social.repository';
@@ -94,7 +99,11 @@ export class CommentAuthorizationService {
         },
       });
 
-      if (!post || post.isDeleted || post.status === CommunityPostStatus.DELETED) {
+      if (
+        !post ||
+        post.isDeleted ||
+        post.status === CommunityPostStatus.DELETED
+      ) {
         throw new PostNotFoundException(postId);
       }
 
@@ -229,7 +238,10 @@ export class CommentAuthorizationService {
     context: ResolvedPostContext,
     userId: string,
   ): Promise<void> {
-    const blocked = await this.socialRepository.existsBlock(context.authorId, userId);
+    const blocked = await this.socialRepository.existsBlock(
+      context.authorId,
+      userId,
+    );
     if (blocked) {
       throw new PostNotVisibleException();
     }
@@ -305,7 +317,8 @@ export class CommentAuthorizationService {
       community.id,
       userId,
     );
-    const isModerator = isMember ||
+    const isModerator =
+      isMember ||
       (await this.communityAccess.isModerator(community.id, userId)) ||
       community.ownerId === userId;
 

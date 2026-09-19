@@ -52,7 +52,9 @@ export function decodeCommentCursor(value: string): CommentCursor {
     throw new Error('Invalid comment cursor.');
   }
 
-  const isValidSort = Object.values(COMMENT_SORT).includes(sort as CommentSortMode);
+  const isValidSort = Object.values(COMMENT_SORT).includes(
+    sort as CommentSortMode,
+  );
 
   if (!isValidSort) {
     throw new Error('Invalid comment cursor.');

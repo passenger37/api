@@ -102,7 +102,9 @@ describe('CommentReactionRepository', () => {
     const result = await repository.remove('c1', 'u1');
 
     expect(result).toBeDefined();
-    expect(prisma.commentReaction.delete).toHaveBeenCalledWith({ where: { id: 'r1' } });
+    expect(prisma.commentReaction.delete).toHaveBeenCalledWith({
+      where: { id: 'r1' },
+    });
   });
 
   it('should return null when removing a non-existent reaction', async () => {

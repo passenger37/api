@@ -1,5 +1,8 @@
 import { CommentRepository } from './comment.repository';
-import { COMMENT_SORT, encodeCommentCursor } from '../constants/comment.constants';
+import {
+  COMMENT_SORT,
+  encodeCommentCursor,
+} from '../constants/comment.constants';
 
 describe('CommentRepository', () => {
   let repository: CommentRepository;
@@ -50,7 +53,9 @@ describe('CommentRepository', () => {
   it('should find a comment by id', async () => {
     await repository.findById('c1');
 
-    expect(prisma.comment.findUnique).toHaveBeenCalledWith({ where: { id: 'c1' } });
+    expect(prisma.comment.findUnique).toHaveBeenCalledWith({
+      where: { id: 'c1' },
+    });
   });
 
   it('should list root comments with the default sort and no cursor', async () => {
@@ -81,17 +86,22 @@ describe('CommentRepository', () => {
       id: 'c10',
     });
 
-    await repository.listRootComments('p1', 'COMMUNITY', 20, COMMENT_SORT.OLD, cursor);
+    await repository.listRootComments(
+      'p1',
+      'COMMUNITY',
+      20,
+      COMMENT_SORT.OLD,
+      cursor,
+    );
 
     const call = prisma.comment.findMany.mock.calls[0][0];
     expect(call.where.parentCommentId).toBeNull();
     expect(call.where.OR).toBeDefined();
-    expect(call.orderBy).toEqual([
-      { createdAt: 'asc' },
-      { id: 'asc' },
-    ]);
+    expect(call.orderBy).toEqual([{ createdAt: 'asc' }, { id: 'asc' }]);
     // Ascending sort continues with rows strictly after the cursor.
-    expect(call.where.OR[0].AND[0]).toEqual({ createdAt: { gt: new Date('2026-09-11T00:00:00.000Z') } });
+    expect(call.where.OR[0].AND[0]).toEqual({
+      createdAt: { gt: new Date('2026-09-11T00:00:00.000Z') },
+    });
   });
 
   it('should apply a keyset predicate when a cursor is provided (NEW descending)', async () => {
@@ -104,15 +114,20 @@ describe('CommentRepository', () => {
       id: 'c10',
     });
 
-    await repository.listRootComments('p1', 'PERSONAL', 20, COMMENT_SORT.NEW, cursor);
+    await repository.listRootComments(
+      'p1',
+      'PERSONAL',
+      20,
+      COMMENT_SORT.NEW,
+      cursor,
+    );
 
     const call = prisma.comment.findMany.mock.calls[0][0];
-    expect(call.orderBy).toEqual([
-      { createdAt: 'desc' },
-      { id: 'desc' },
-    ]);
+    expect(call.orderBy).toEqual([{ createdAt: 'desc' }, { id: 'desc' }]);
     // Descending sort continues with rows strictly before the cursor.
-    expect(call.where.OR[0].AND[0]).toEqual({ createdAt: { lt: new Date('2026-09-11T00:00:00.000Z') } });
+    expect(call.where.OR[0].AND[0]).toEqual({
+      createdAt: { lt: new Date('2026-09-11T00:00:00.000Z') },
+    });
   });
 
   it('should sort by NEW descending', async () => {
@@ -121,10 +136,7 @@ describe('CommentRepository', () => {
     await repository.listRootComments('p1', 'PERSONAL', 20, COMMENT_SORT.NEW);
 
     const call = prisma.comment.findMany.mock.calls[0][0];
-    expect(call.orderBy).toEqual([
-      { createdAt: 'desc' },
-      { id: 'desc' },
-    ]);
+    expect(call.orderBy).toEqual([{ createdAt: 'desc' }, { id: 'desc' }]);
   });
 
   it('should sort by TOP using upvote count', async () => {

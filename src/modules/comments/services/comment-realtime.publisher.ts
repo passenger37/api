@@ -1,13 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  CommentStatus,
-  CommentPostType,
-  VoteType,
-} from '@prisma/client';
+import { CommentStatus, CommentPostType, VoteType } from '@prisma/client';
 
 import { RedisPubSubService } from '../../../core/redis/redis-pub-sub.service';
 import { REALTIME_EVENT_CHANNEL } from '../../realtime/constants/realtime.constants';
-import { RealtimeEventPayload, RealtimeEventType } from '../../realtime/types/realtime.types';
+import {
+  RealtimeEventPayload,
+  RealtimeEventType,
+} from '../../realtime/types/realtime.types';
 import { CommentResponseData } from '../types/comment.types';
 
 /**
@@ -21,9 +20,7 @@ export class CommentRealtimePublisher {
 
   constructor(private readonly pubSub: RedisPubSubService) {}
 
-  async publishCommentCreated(
-    comment: CommentResponseData,
-  ): Promise<void> {
+  async publishCommentCreated(comment: CommentResponseData): Promise<void> {
     await this.publish({
       type: RealtimeEventType.COMMENT_CREATED,
       postId: comment.postId,
@@ -33,9 +30,7 @@ export class CommentRealtimePublisher {
     });
   }
 
-  async publishCommentUpdated(
-    comment: CommentResponseData,
-  ): Promise<void> {
+  async publishCommentUpdated(comment: CommentResponseData): Promise<void> {
     await this.publish({
       type: RealtimeEventType.COMMENT_UPDATED,
       postId: comment.postId,

@@ -26,8 +26,18 @@ describe('CommentRealtimePublisher', () => {
     updatedAt: new Date(),
     editedAt: null,
     deletedAt: null,
-    author: { id: 'u1', username: 'user', displayName: 'User', isVerified: false },
-    viewer: { viewerVote: null, viewerCanEdit: true, viewerCanDelete: true, viewerCanModerate: false },
+    author: {
+      id: 'u1',
+      username: 'user',
+      displayName: 'User',
+      isVerified: false,
+    },
+    viewer: {
+      viewerVote: null,
+      viewerCanEdit: true,
+      viewerCanDelete: true,
+      viewerCanModerate: false,
+    },
   };
 
   it('publishes a comment:created event to the realtime bus', async () => {

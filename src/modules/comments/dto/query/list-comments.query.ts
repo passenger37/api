@@ -1,7 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsIn, IsString } from 'class-validator';
 
-import { COMMENT_SORT, COMMENT_DEFAULTS } from '../../constants/comment.constants';
+import {
+  COMMENT_SORT,
+  COMMENT_DEFAULTS,
+} from '../../constants/comment.constants';
 
 export class ListCommentsQuery {
   @ApiPropertyOptional({ enum: ['BEST', 'TOP', 'NEW', 'OLD'], default: 'BEST' })
