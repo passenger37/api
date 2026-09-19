@@ -80,6 +80,7 @@ describe('DmCommandService', () => {
       attachmentService,
       gateway,
       searchService,
+      { publishDirectMessage: jest.fn().mockResolvedValue(undefined) },
     );
   });
 

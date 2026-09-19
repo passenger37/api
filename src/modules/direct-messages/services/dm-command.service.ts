@@ -25,6 +25,7 @@ import { DirectMessageChannelSettingsRepository } from '../repositories/direct-m
 import { serializeDirectMessage } from '../serializers/dm.serializer';
 import { DmGateway } from '../gateways/dm.gateway';
 import { DmAttachmentService } from './dm-attachment.service';
+import { DmNotificationPublisher } from './dm-notification.publisher';
 
 @Injectable()
 export class DmCommandService {
@@ -43,6 +44,7 @@ export class DmCommandService {
     @Inject(forwardRef(() => DmGateway))
     private readonly gateway: DmGateway,
     private readonly searchService: SearchService,
+    private readonly notificationPublisher: DmNotificationPublisher,
     @Optional()
     private readonly envelopeRepo?: E2eeEnvelopeRepository,
   ) {}
@@ -192,6 +194,17 @@ export class DmCommandService {
 
       this.gateway.broadcastMessageCreated(channelId, payload);
 
+      const partnerUserId =
+        channel.userAId === senderId ? channel.userBId : channel.userAId;
+
+      await this.notificationPublisher.publishDirectMessage({
+        channelId,
+        messageId: message.id,
+        recipientUserId: partnerUserId,
+        actorUserId: senderId,
+        content: message.content,
+      });
+
       return {
         message: payload,
         deduplicated: false,
@@ -314,11 +327,7 @@ export class DmCommandService {
 
     await this.messageRepository.softDelete(messageId);
 
-    if (
-      message.isE2ee &&
-      message.clientMessageId &&
-      this.envelopeRepo
-    ) {
+    if (message.isE2ee && message.clientMessageId && this.envelopeRepo) {
       try {
         await this.envelopeRepo.deleteByClientMessageId(
           message.channelId,

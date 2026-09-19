@@ -28,6 +28,7 @@ import { E2eeSessionRepository } from '../e2ee-sessions/repositories/e2ee-sessio
 import { E2eeDeviceRepository } from '../e2ee-devices/repositories/e2ee-device.repository';
 import { DmCommandService } from './services/dm-command.service';
 import { DmQueryService } from './services/dm-query.service';
+import { DmNotificationPublisher } from './services/dm-notification.publisher';
 import { E2eeDmCommandService } from './services/e2ee-dm-command.service';
 import { DmReactionCommandService } from './services/dm-reaction-command.service';
 import { DmReactionQueryService } from './services/dm-reaction-query.service';
@@ -59,6 +60,7 @@ import { DisappearingMessageCleanupService } from './services/disappearing-messa
     DirectMessageAttachmentRepository,
     DmCommandService,
     DmQueryService,
+    DmNotificationPublisher,
     E2eeDmCommandService,
     E2eeEnvelopeRepository,
     E2eeSessionRepository,
