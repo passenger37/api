@@ -56,7 +56,11 @@ export class CallMetricsService {
     for (const [k, v] of Object.entries(raw)) {
       (metrics as Record<string, number>)[k] = parseInt(v, 10);
     }
-    const durations = await this.client.lRange(`${this.METRICS_KEY}:durations`, 0, -1);
+    const durations = await this.client.lRange(
+      `${this.METRICS_KEY}:durations`,
+      0,
+      -1,
+    );
     if (durations.length > 0) {
       const sum = durations.reduce((a, b) => a + parseInt(b, 10), 0);
       metrics.avgDurationMs = Math.round(sum / durations.length);

@@ -1,7 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CallRepository, CallParticipantRepository } from '../repositories/call.repository';
+import {
+  CallRepository,
+  CallParticipantRepository,
+} from '../repositories/call.repository';
 import { UserQueryService } from '../../users/services/user-query.service';
-import { CallParticipantWithUser, CallParticipantState } from '../types/calling.types';
+import {
+  CallParticipantWithUser,
+  CallParticipantState,
+} from '../types/calling.types';
 
 @Injectable()
 export class CallQueryService {
@@ -17,7 +23,9 @@ export class CallQueryService {
     return call;
   }
 
-  async getCallParticipants(callId: string): Promise<CallParticipantWithUser[]> {
+  async getCallParticipants(
+    callId: string,
+  ): Promise<CallParticipantWithUser[]> {
     const participants = await this.participantRepo.findByCallId(callId);
     const users = await Promise.all(
       participants.map((p) => this.userQueryService.findById(p.userId)),

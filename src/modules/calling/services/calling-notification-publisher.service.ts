@@ -69,7 +69,9 @@ export class CallingNotificationPublisher {
     });
   }
 
-  private entityTypeForScope(scope: CallScope | string): 'DIRECT_MESSAGE_CHANNEL' | 'CHANNEL' {
+  private entityTypeForScope(
+    scope: CallScope | string,
+  ): 'DIRECT_MESSAGE_CHANNEL' | 'CHANNEL' {
     return scope === CallScope.DM || scope === 'DM'
       ? 'DIRECT_MESSAGE_CHANNEL'
       : 'CHANNEL';
@@ -79,7 +81,10 @@ export class CallingNotificationPublisher {
     event: DomainNotificationEvent,
   ): Promise<void> {
     try {
-      await this.pubSub.publish<DomainNotificationEvent>(DOMAIN_EVENT_CHANNEL, event);
+      await this.pubSub.publish<DomainNotificationEvent>(
+        DOMAIN_EVENT_CHANNEL,
+        event,
+      );
     } catch (error) {
       this.logger.error('Failed to publish call notification event.', error);
     }

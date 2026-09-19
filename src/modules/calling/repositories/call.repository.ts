@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { Call, CallParticipant, Prisma, CallStatus, CallParticipantState } from '@prisma/client';
+import {
+  Call,
+  CallParticipant,
+  Prisma,
+  CallStatus,
+  CallParticipantState,
+} from '@prisma/client';
 import {
   LIVE_CALL_STATUSES,
   LIVE_PARTICIPANT_STATES,
@@ -23,7 +29,9 @@ export class CallRepository {
     return this.prisma.call.findUnique({ where: { id } });
   }
 
-  async findByIdWithParticipants(id: string): Promise<(Call & { participants: CallParticipant[] }) | null> {
+  async findByIdWithParticipants(
+    id: string,
+  ): Promise<(Call & { participants: CallParticipant[] }) | null> {
     return this.prisma.call.findUnique({
       where: { id },
       include: { participants: true },
@@ -39,7 +47,10 @@ export class CallRepository {
     return client.call.update({ where: { id }, data });
   }
 
-  async findActiveByScope(scope: string, scopeRef: string): Promise<Call | null> {
+  async findActiveByScope(
+    scope: string,
+    scopeRef: string,
+  ): Promise<Call | null> {
     return this.prisma.call.findFirst({
       where: {
         scope: scope as any,
@@ -53,7 +64,9 @@ export class CallRepository {
     const participant = await this.prisma.callParticipant.findFirst({
       where: {
         userId,
-        state: { in: LIVE_PARTICIPANT_STATES as unknown as CallParticipantState[] },
+        state: {
+          in: LIVE_PARTICIPANT_STATES as unknown as CallParticipantState[],
+        },
         call: { status: { in: LIVE_CALL_STATUSES as unknown as CallStatus[] } },
       },
       include: { call: true },
@@ -78,10 +91,7 @@ export class CallRepository {
     return this.prisma.call.findMany({
       where: {
         status: { in: TERMINAL_CALL_STATUSES as unknown as CallStatus[] },
-        OR: [
-          { creatorUserId: userId },
-          { participants: { some: { userId } } },
-        ],
+        OR: [{ creatorUserId: userId }, { participants: { some: { userId } } }],
       },
       include: { participants: true },
       orderBy: { updatedAt: 'desc' },
@@ -110,7 +120,11 @@ export class CallParticipantRepository {
     });
   }
 
-  async findByCallAndUser(callId: string, userId: string, deviceId?: string): Promise<CallParticipant | null> {
+  async findByCallAndUser(
+    callId: string,
+    userId: string,
+    deviceId?: string,
+  ): Promise<CallParticipant | null> {
     return this.prisma.callParticipant.findFirst({
       where: {
         callId,
@@ -138,7 +152,10 @@ export class CallParticipantRepository {
     const participant = await this.findByCallAndUser(callId, userId);
     if (!participant) return null;
     const client = tx ?? this.prisma;
-    return client.callParticipant.update({ where: { id: participant.id }, data });
+    return client.callParticipant.update({
+      where: { id: participant.id },
+      data,
+    });
   }
 
   async countActiveParticipants(callId: string): Promise<number> {

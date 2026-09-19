@@ -3,7 +3,10 @@ import { randomUUID } from 'crypto';
 
 import { RedisPubSubService } from '../../../core/redis/redis-pub-sub.service';
 import { CallStatus } from '@prisma/client';
-import { CALL_EVENT_CHANNEL, CallLifecycleAction } from '../constants/calling.constants';
+import {
+  CALL_EVENT_CHANNEL,
+  CallLifecycleAction,
+} from '../constants/calling.constants';
 
 export interface CallLifecycleEvent {
   eventId: string;

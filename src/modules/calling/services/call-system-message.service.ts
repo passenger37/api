@@ -13,7 +13,13 @@ export class CallSystemMessageService {
     callType: string,
   ): Promise<void> {
     const content = this.formatMissedCallContent(callType);
-    await this.createSystemMessage(conversationId, callerId, content, DirectMessageKind.CALL_MISSED, callId);
+    await this.createSystemMessage(
+      conversationId,
+      callerId,
+      content,
+      DirectMessageKind.CALL_MISSED,
+      callId,
+    );
   }
 
   async publishCallEnded(
@@ -24,7 +30,13 @@ export class CallSystemMessageService {
     durationSeconds: number,
   ): Promise<void> {
     const content = this.formatCallEndedContent(callType, durationSeconds);
-    await this.createSystemMessage(conversationId, callerId, content, DirectMessageKind.CALL_ENDED, callId);
+    await this.createSystemMessage(
+      conversationId,
+      callerId,
+      content,
+      DirectMessageKind.CALL_ENDED,
+      callId,
+    );
   }
 
   async publishCallRejected(
@@ -34,7 +46,13 @@ export class CallSystemMessageService {
     callType: string,
   ): Promise<void> {
     const content = this.formatCallRejectedContent(callType);
-    await this.createSystemMessage(conversationId, callerId, content, DirectMessageKind.CALL_REJECTED, callId);
+    await this.createSystemMessage(
+      conversationId,
+      callerId,
+      content,
+      DirectMessageKind.CALL_REJECTED,
+      callId,
+    );
   }
 
   private async createSystemMessage(
@@ -66,7 +84,10 @@ export class CallSystemMessageService {
     return `Missed ${callType.toLowerCase()} call`;
   }
 
-  private formatCallEndedContent(callType: string, durationSeconds: number): string {
+  private formatCallEndedContent(
+    callType: string,
+    durationSeconds: number,
+  ): string {
     const mins = Math.floor(durationSeconds / 60);
     const secs = durationSeconds % 60;
     if (mins > 0) {

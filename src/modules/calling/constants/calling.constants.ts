@@ -54,7 +54,11 @@ export const TERMINAL_CALL_STATUSES = [
 ] as const;
 
 /** Live participant states — a participant row that is still in the session. */
-export const LIVE_PARTICIPANT_STATES = ['JOINED', 'MUTED', 'CAMERA_OFF'] as const;
+export const LIVE_PARTICIPANT_STATES = [
+  'JOINED',
+  'MUTED',
+  'CAMERA_OFF',
+] as const;
 
 export const CALL_WINDOW_SECONDS = 10;
 
@@ -77,7 +81,8 @@ export type CallLifecycleAction =
   | 'PARTICIPANT_LEFT';
 
 export const callRoom = (callId: string): string => `call:${callId}`;
-export const callParticipantRoom = (userId: string): string => `call:user:${userId}`;
+export const callParticipantRoom = (userId: string): string =>
+  `call:user:${userId}`;
 
 export const DEFAULT_STUN_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },

@@ -8,7 +8,13 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { Logger, OnModuleDestroy, UseFilters, UseGuards, UsePipes } from '@nestjs/common';
+import {
+  Logger,
+  OnModuleDestroy,
+  UseFilters,
+  UseGuards,
+  UsePipes,
+} from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 
 import { WebSocketExceptionFilter } from '../../../common/filters/websocket-exception.filter';
@@ -82,7 +88,11 @@ import {
 @UsePipes(new WebSocketValidationPipe())
 @UseFilters(WebSocketExceptionFilter)
 export class CallingGateway
-  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, OnModuleDestroy
+  implements
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnGatewayInit,
+    OnModuleDestroy
 {
   private readonly logger = new Logger(CallingGateway.name);
 
@@ -154,10 +164,14 @@ export class CallingGateway
     // Reconnect reconciliation: rejoin active call rooms and push the current
     // call state so the client can resume media instead of hanging.
     try {
-      const active = await this.queryService.getUserActiveCall(authenticated.userId);
+      const active = await this.queryService.getUserActiveCall(
+        authenticated.userId,
+      );
       if (active) {
         await client.join(callRoom(active.id));
-        const participants = await this.queryService.getCallParticipants(active.id);
+        const participants = await this.queryService.getCallParticipants(
+          active.id,
+        );
         client.emit(CALL_EVENT_STATE, {
           callId: active.id,
           status: active.status,
@@ -182,7 +196,10 @@ export class CallingGateway
     try {
       await this.connectionLimit.release(userId);
     } catch (error) {
-      this.logger.warn(`Failed to release connection slot for ${userId}.`, error);
+      this.logger.warn(
+        `Failed to release connection slot for ${userId}.`,
+        error,
+      );
     }
 
     // Zombie-call cleanup: the user dropped mid-call -> mark LEFT, tear down
@@ -193,12 +210,18 @@ export class CallingGateway
 
       const room = callRoom(active.id);
       const wasRinging = active.status === 'RINGING';
-      const isCallee = wasRinging && active.scope === CallScope.DM && userId !== active.creatorUserId;
+      const isCallee =
+        wasRinging &&
+        active.scope === CallScope.DM &&
+        userId !== active.creatorUserId;
 
       try {
         await this.commandService.leaveCall(userId, active.id);
       } catch (error) {
-        this.logger.warn(`Disconnect leave failed for call ${active.id}.`, error);
+        this.logger.warn(
+          `Disconnect leave failed for call ${active.id}.`,
+          error,
+        );
       }
 
       this.server.to(room).emit(CALL_EVENT_PARTICIPANT_LEFT, {
@@ -230,7 +253,10 @@ export class CallingGateway
         await this.callEvents.publish('ENDED', after, userId);
       }
     } catch (error) {
-      this.logger.warn(`Unexpected error during disconnect cleanup for ${userId}.`, error);
+      this.logger.warn(
+        `Unexpected error during disconnect cleanup for ${userId}.`,
+        error,
+      );
     }
   }
 
@@ -274,7 +300,10 @@ export class CallingGateway
       const call = result.call;
 
       await this.callEvents.publish('CREATED', call, userId);
-      await this.abuseProtection.recordCallCreated(userId, context.ringTargetUserIds);
+      await this.abuseProtection.recordCallCreated(
+        userId,
+        context.ringTargetUserIds,
+      );
       await this.metrics.increment('callsCreated');
 
       // Notify creator
@@ -282,18 +311,23 @@ export class CallingGateway
 
       if (context.ringTargetUserIds.length > 0) {
         // DM scope: ring the peer.
-        const participants = await this.queryService.getCallParticipants(call.id);
-        const initiator = participants.find((p) => p.userId === userId)?.user ?? null;
+        const participants = await this.queryService.getCallParticipants(
+          call.id,
+        );
+        const initiator =
+          participants.find((p) => p.userId === userId)?.user ?? null;
 
         for (const targetUserId of context.ringTargetUserIds) {
-          this.server.to(callParticipantRoom(targetUserId)).emit(CALL_EVENT_RING, {
-            callId: call.id,
-            type: call.type,
-            scope: call.scope,
-            scopeRef: call.scopeRef,
-            initiatorUserId: userId,
-            initiator,
-          });
+          this.server
+            .to(callParticipantRoom(targetUserId))
+            .emit(CALL_EVENT_RING, {
+              callId: call.id,
+              type: call.type,
+              scope: call.scope,
+              scopeRef: call.scopeRef,
+              initiatorUserId: userId,
+              initiator,
+            });
 
           await this.notificationPublisher.publishIncomingCall({
             recipientUserId: targetUserId,
@@ -333,23 +367,31 @@ export class CallingGateway
 
       await this.authorization.authorizeJoin(userId, call);
 
-      const participant = await this.commandService.joinCall(userId, input.callId, input.deviceId);
+      const participant = await this.commandService.joinCall(
+        userId,
+        input.callId,
+        input.deviceId,
+      );
 
       await client.join(callRoom(input.callId));
 
       await this.callEvents.publish('PARTICIPANT_JOINED', call, userId);
 
       // Get current participants (with user info)
-      const participants = await this.queryService.getCallParticipants(input.callId);
+      const participants = await this.queryService.getCallParticipants(
+        input.callId,
+      );
       const joined = participants.find((p) => p.userId === userId) ?? null;
 
       // Notify other participants
-      this.server.to(callRoom(input.callId)).emit(CALL_EVENT_PARTICIPANT_JOINED, {
-        callId: input.callId,
-        userId,
-        deviceId: input.deviceId,
-        user: joined?.user ?? null,
-      });
+      this.server
+        .to(callRoom(input.callId))
+        .emit(CALL_EVENT_PARTICIPANT_JOINED, {
+          callId: input.callId,
+          userId,
+          deviceId: input.deviceId,
+          user: joined?.user ?? null,
+        });
 
       return {
         success: true,
@@ -476,7 +518,10 @@ export class CallingGateway
         windowSeconds: CALL_WINDOW_SECONDS,
       });
 
-      const updated = await this.commandService.rejectCall(userId, input.callId);
+      const updated = await this.commandService.rejectCall(
+        userId,
+        input.callId,
+      );
 
       await this.callEvents.publish('REJECTED', updated, userId);
       await this.abuseProtection.recordCallRejected(updated.creatorUserId);
@@ -581,9 +626,11 @@ export class CallingGateway
       const endedCall = await this.queryService.getCall(input.callId);
       await this.callEvents.publish('ENDED', endedCall, userId);
       await this.metrics.increment('callsEnded');
-      
+
       if (before.startedAt && endedCall.endedAt) {
-        const durationMs = new Date(endedCall.endedAt).getTime() - new Date(before.startedAt).getTime();
+        const durationMs =
+          new Date(endedCall.endedAt).getTime() -
+          new Date(before.startedAt).getTime();
         await this.metrics.recordCallDuration(durationMs);
       }
 
@@ -592,7 +639,7 @@ export class CallingGateway
           recipientUserId: before.creatorUserId,
           initiatorUserId: before.creatorUserId,
           callId: before.id,
-          scope: before.scope as CallScope,
+          scope: before.scope,
           callType: before.type,
           scopeRef: before.scopeRef,
         });
@@ -603,9 +650,15 @@ export class CallingGateway
           before.id,
           before.type,
         );
-      } else if (before.scope === CallScope.DM && before.startedAt && endedCall.endedAt) {
+      } else if (
+        before.scope === CallScope.DM &&
+        before.startedAt &&
+        endedCall.endedAt
+      ) {
         const durationSeconds = Math.floor(
-          (new Date(endedCall.endedAt).getTime() - new Date(before.startedAt).getTime()) / 1000,
+          (new Date(endedCall.endedAt).getTime() -
+            new Date(before.startedAt).getTime()) /
+            1000,
         );
         await this.systemMessages.publishCallEnded(
           before.scopeRef,
@@ -642,13 +695,19 @@ export class CallingGateway
       });
 
       // Forward to target user
-      await this.commandService.assertCanSignal(userId, input.callId, input.targetUserId);
+      await this.commandService.assertCanSignal(
+        userId,
+        input.callId,
+        input.targetUserId,
+      );
 
-      this.server.to(callParticipantRoom(input.targetUserId)).emit(CALL_EVENT_WEBRTC_OFFER, {
-        callId: input.callId,
-        fromUserId: userId,
-        payload: input.payload,
-      });
+      this.server
+        .to(callParticipantRoom(input.targetUserId))
+        .emit(CALL_EVENT_WEBRTC_OFFER, {
+          callId: input.callId,
+          fromUserId: userId,
+          payload: input.payload,
+        });
 
       return { success: true, event };
     } catch (exception) {
@@ -670,13 +729,19 @@ export class CallingGateway
         windowSeconds: CALL_WINDOW_SECONDS,
       });
 
-      await this.commandService.assertCanSignal(userId, input.callId, input.targetUserId);
+      await this.commandService.assertCanSignal(
+        userId,
+        input.callId,
+        input.targetUserId,
+      );
 
-      this.server.to(callParticipantRoom(input.targetUserId)).emit(CALL_EVENT_WEBRTC_ANSWER, {
-        callId: input.callId,
-        fromUserId: userId,
-        payload: input.payload,
-      });
+      this.server
+        .to(callParticipantRoom(input.targetUserId))
+        .emit(CALL_EVENT_WEBRTC_ANSWER, {
+          callId: input.callId,
+          fromUserId: userId,
+          payload: input.payload,
+        });
 
       return { success: true, event };
     } catch (exception) {
@@ -698,15 +763,21 @@ export class CallingGateway
         windowSeconds: CALL_WINDOW_SECONDS,
       });
 
-      await this.commandService.assertCanSignal(userId, input.callId, input.targetUserId);
+      await this.commandService.assertCanSignal(
+        userId,
+        input.callId,
+        input.targetUserId,
+      );
 
-      this.server.to(callParticipantRoom(input.targetUserId)).emit(CALL_EVENT_WEBRTC_ICE_CANDIDATE, {
-        callId: input.callId,
-        fromUserId: userId,
-        candidate: input.candidate,
-        sdpMid: input.sdpMid,
-        sdpMLineIndex: input.sdpMLineIndex,
-      });
+      this.server
+        .to(callParticipantRoom(input.targetUserId))
+        .emit(CALL_EVENT_WEBRTC_ICE_CANDIDATE, {
+          callId: input.callId,
+          fromUserId: userId,
+          candidate: input.candidate,
+          sdpMid: input.sdpMid,
+          sdpMLineIndex: input.sdpMLineIndex,
+        });
 
       return { success: true, event };
     } catch (exception) {
@@ -732,7 +803,11 @@ export class CallingGateway
       // For now, allow self-mute only
       const targetUserId = userId;
 
-      await this.commandService.muteParticipant(userId, input.callId, targetUserId);
+      await this.commandService.muteParticipant(
+        userId,
+        input.callId,
+        targetUserId,
+      );
 
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_MUTE, {
         callId: input.callId,
@@ -761,7 +836,11 @@ export class CallingGateway
 
       const targetUserId = userId;
 
-      await this.commandService.unmuteParticipant(userId, input.callId, targetUserId);
+      await this.commandService.unmuteParticipant(
+        userId,
+        input.callId,
+        targetUserId,
+      );
 
       this.server.to(callRoom(input.callId)).emit(CALL_EVENT_UNMUTE, {
         callId: input.callId,

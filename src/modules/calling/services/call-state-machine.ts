@@ -101,7 +101,8 @@ export class CallStateMachine {
 
     while (queue.length > 0) {
       const current = queue.shift() as string;
-      for (const next of CallStateMachine.TRANSITIONS[current as CallStatus] ?? []) {
+      for (const next of CallStateMachine.TRANSITIONS[current as CallStatus] ??
+        []) {
         if (next === to) {
           return true;
         }

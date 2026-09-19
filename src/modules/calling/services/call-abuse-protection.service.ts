@@ -29,33 +29,64 @@ export class CallAbuseProtectionService {
     await this.checkCooldown(callerId);
   }
 
-  async recordCallCreated(callerId: string, targetUserIds: string[]): Promise<void> {
+  async recordCallCreated(
+    callerId: string,
+    targetUserIds: string[],
+  ): Promise<void> {
     const now = Date.now();
     const pipeline = this.client.multi();
-    pipeline.zAdd(`call:create:${callerId}`, { score: now, value: `${now}:${callerId}` });
-    pipeline.expire(`call:create:${callerId}`, Math.ceil(this.CALL_CREATE_WINDOW_MS / 1000));
+    pipeline.zAdd(`call:create:${callerId}`, {
+      score: now,
+      value: `${now}:${callerId}`,
+    });
+    pipeline.expire(
+      `call:create:${callerId}`,
+      Math.ceil(this.CALL_CREATE_WINDOW_MS / 1000),
+    );
     for (const targetId of targetUserIds) {
-      pipeline.zAdd(`call:recipient:${callerId}`, { score: now, value: targetId });
-      pipeline.expire(`call:recipient:${callerId}`, Math.ceil(this.UNIQUE_RECIPIENT_WINDOW_MS / 1000));
+      pipeline.zAdd(`call:recipient:${callerId}`, {
+        score: now,
+        value: targetId,
+      });
+      pipeline.expire(
+        `call:recipient:${callerId}`,
+        Math.ceil(this.UNIQUE_RECIPIENT_WINDOW_MS / 1000),
+      );
     }
     await pipeline.exec();
   }
 
   async recordCallRejected(callerId: string): Promise<void> {
     const now = Date.now();
-    await this.client.zAdd(`call:rejected:${callerId}`, { score: now, value: `${now}` });
-    await this.client.expire(`call:rejected:${callerId}`, Math.ceil(this.CALL_CREATE_WINDOW_MS / 1000));
+    await this.client.zAdd(`call:rejected:${callerId}`, {
+      score: now,
+      value: `${now}`,
+    });
+    await this.client.expire(
+      `call:rejected:${callerId}`,
+      Math.ceil(this.CALL_CREATE_WINDOW_MS / 1000),
+    );
   }
 
   async recordCallAccepted(callerId: string): Promise<void> {
     const now = Date.now();
-    await this.client.zAdd(`call:accepted:${callerId}`, { score: now, value: `${now}` });
-    await this.client.expire(`call:accepted:${callerId}`, Math.ceil(this.CALL_CREATE_WINDOW_MS / 1000));
+    await this.client.zAdd(`call:accepted:${callerId}`, {
+      score: now,
+      value: `${now}`,
+    });
+    await this.client.expire(
+      `call:accepted:${callerId}`,
+      Math.ceil(this.CALL_CREATE_WINDOW_MS / 1000),
+    );
   }
 
   private async checkCallFrequency(userId: string): Promise<void> {
     const windowStart = Date.now() - this.CALL_CREATE_WINDOW_MS;
-    const count = await this.client.zCount(`call:create:${userId}`, windowStart, '+inf');
+    const count = await this.client.zCount(
+      `call:create:${userId}`,
+      windowStart,
+      '+inf',
+    );
     if (count >= this.CALL_CREATE_LIMIT) {
       throw new ForbiddenException(
         'CALL_RATE_LIMIT: too many call attempts. Please wait before trying again.',
@@ -63,7 +94,10 @@ export class CallAbuseProtectionService {
     }
   }
 
-  private async checkUniqueRecipients(callerId: string, targetUserIds: string[]): Promise<void> {
+  private async checkUniqueRecipients(
+    callerId: string,
+    targetUserIds: string[],
+  ): Promise<void> {
     const windowStart = Date.now() - this.UNIQUE_RECIPIENT_WINDOW_MS;
     const recipients = await this.client.zRange(
       `call:recipient:${callerId}`,

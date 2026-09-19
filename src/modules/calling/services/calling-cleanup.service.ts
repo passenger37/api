@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 
 import { CallStatus } from '@prisma/client';
 import { CallRepository } from '../repositories/call.repository';
@@ -41,14 +46,11 @@ export class CallingCleanupService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    this.timer = setInterval(
-      () => {
-        void this.sweep().catch((error) => {
-          this.logger.error('Calling cleanup sweep failed.', error);
-        });
-      },
-      CALL_CLEANUP_INTERVAL_SECONDS * 1000,
-    );
+    this.timer = setInterval(() => {
+      void this.sweep().catch((error) => {
+        this.logger.error('Calling cleanup sweep failed.', error);
+      });
+    }, CALL_CLEANUP_INTERVAL_SECONDS * 1000);
     this.timer.unref?.();
   }
 
@@ -102,7 +104,9 @@ export class CallingCleanupService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (results.length > 0) {
-      this.logger.log(`Calling cleanup expired ${results.length} stale call(s).`);
+      this.logger.log(
+        `Calling cleanup expired ${results.length} stale call(s).`,
+      );
     }
 
     return results;

@@ -12,7 +12,10 @@ import { WebSocketConnectionLimitService } from '../../common/websocket/auth/web
 import { WebSocketRateLimitService } from '../../common/websocket/rate-limit/websocket-rate-limit.service';
 import { WebSocketErrorNormalizer } from '../../common/websocket/error/websocket-error.normalizer';
 
-import { CallRepository, CallParticipantRepository } from './repositories/call.repository';
+import {
+  CallRepository,
+  CallParticipantRepository,
+} from './repositories/call.repository';
 import { CallCommandService } from './services/call-command.service';
 import { CallQueryService } from './services/call-query.service';
 import { CallAuthorizationService } from './services/call-authorization.service';

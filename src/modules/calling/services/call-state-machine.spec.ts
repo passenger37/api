@@ -21,27 +21,45 @@ describe('CallStateMachine', () => {
   });
 
   it('rejects an accept after the call ended (terminal state)', () => {
-    expect(CallStateMachine.canReach(CallStatus.ENDED, CallStatus.ACTIVE)).toBe(false);
+    expect(CallStateMachine.canReach(CallStatus.ENDED, CallStatus.ACTIVE)).toBe(
+      false,
+    );
   });
 
   it('rejects ending a cancelled or rejected call', () => {
-    expect(CallStateMachine.canReach(CallStatus.CANCELLED, CallStatus.ENDED)).toBe(false);
-    expect(CallStateMachine.canReach(CallStatus.REJECTED, CallStatus.ENDED)).toBe(false);
+    expect(
+      CallStateMachine.canReach(CallStatus.CANCELLED, CallStatus.ENDED),
+    ).toBe(false);
+    expect(
+      CallStateMachine.canReach(CallStatus.REJECTED, CallStatus.ENDED),
+    ).toBe(false);
   });
 
   it('rejects resurrecting a failed call', () => {
-    expect(CallStateMachine.canReach(CallStatus.FAILED, CallStatus.CONNECTING)).toBe(false);
-    expect(CallStateMachine.canReach(CallStatus.FAILED, CallStatus.ACTIVE)).toBe(false);
+    expect(
+      CallStateMachine.canReach(CallStatus.FAILED, CallStatus.CONNECTING),
+    ).toBe(false);
+    expect(
+      CallStateMachine.canReach(CallStatus.FAILED, CallStatus.ACTIVE),
+    ).toBe(false);
   });
 
   it('allows fast-forwarding through intermediate states (RINGING to ACTIVE)', () => {
-    expect(CallStateMachine.canReach(CallStatus.RINGING, CallStatus.ACTIVE)).toBe(true);
+    expect(
+      CallStateMachine.canReach(CallStatus.RINGING, CallStatus.ACTIVE),
+    ).toBe(true);
   });
 
   it('allows declining and failure escapes from ringing', () => {
-    expect(CallStateMachine.canReach(CallStatus.RINGING, CallStatus.REJECTED)).toBe(true);
-    expect(CallStateMachine.canReach(CallStatus.RINGING, CallStatus.CANCELLED)).toBe(true);
-    expect(CallStateMachine.canReach(CallStatus.RINGING, CallStatus.FAILED)).toBe(true);
+    expect(
+      CallStateMachine.canReach(CallStatus.RINGING, CallStatus.REJECTED),
+    ).toBe(true);
+    expect(
+      CallStateMachine.canReach(CallStatus.RINGING, CallStatus.CANCELLED),
+    ).toBe(true);
+    expect(
+      CallStateMachine.canReach(CallStatus.RINGING, CallStatus.FAILED),
+    ).toBe(true);
   });
 
   it('assertReachable throws for illegal transitions', () => {

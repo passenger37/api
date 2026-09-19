@@ -1,8 +1,20 @@
 import { CallCommandService } from './call-command.service';
 import { CallQueryService } from './call-query.service';
-import { CallRepository, CallParticipantRepository } from '../repositories/call.repository';
-import { CallType, CallScope, CallStatus, CallParticipantState } from '../types/calling.types';
-import { NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  CallRepository,
+  CallParticipantRepository,
+} from '../repositories/call.repository';
+import {
+  CallType,
+  CallScope,
+  CallStatus,
+  CallParticipantState,
+} from '../types/calling.types';
+import {
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 
 describe('CallCommandService', () => {
   let service: CallCommandService;
@@ -23,10 +35,16 @@ describe('CallCommandService', () => {
 
     callRepo = {
       findById: jest.fn(async (id: string) => store.get(`call:${id}`) ?? null),
-      findByIdWithParticipants: jest.fn(async (id: string) => store.get(`call:${id}`) ?? null),
+      findByIdWithParticipants: jest.fn(
+        async (id: string) => store.get(`call:${id}`) ?? null,
+      ),
       findActiveByScope: jest.fn(async (scope: string, scopeRef: string) => {
         for (const [, v] of store) {
-          if (v.scope === scope && v.scopeRef === scopeRef && ['RINGING', 'ACTIVE'].includes(v.status)) {
+          if (
+            v.scope === scope &&
+            v.scopeRef === scopeRef &&
+            ['RINGING', 'ACTIVE'].includes(v.status)
+          ) {
             return v;
           }
         }
@@ -34,14 +52,32 @@ describe('CallCommandService', () => {
       }),
       findUserActiveCall: jest.fn(async (userId: string) => {
         for (const [, v] of store) {
-          if (v.creatorUserId === userId && ['RINGING', 'ACTIVE'].includes(v.status)) return v;
-          if (v.participants?.some((p: any) => p.userId === userId && ['JOINED', 'MUTED', 'CAMERA_OFF'].includes(p.state))) return v;
+          if (
+            v.creatorUserId === userId &&
+            ['RINGING', 'ACTIVE'].includes(v.status)
+          )
+            return v;
+          if (
+            v.participants?.some(
+              (p: any) =>
+                p.userId === userId &&
+                ['JOINED', 'MUTED', 'CAMERA_OFF'].includes(p.state),
+            )
+          )
+            return v;
         }
         return null;
       }),
       create: jest.fn(async (data: any, tx?: any) => {
         const id = `call-${callIdCounter++}`;
-        const call = { id, ...data, status: data.status ?? 'RINGING', participants: [], createdAt: new Date(), updatedAt: new Date() };
+        const call = {
+          id,
+          ...data,
+          status: data.status ?? 'RINGING',
+          participants: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
         store.set(`call:${id}`, call);
         return call;
       }),
@@ -59,16 +95,29 @@ describe('CallCommandService', () => {
         const call = store.get(`call:${callId}`);
         return call?.participants ?? [];
       }),
-      findByCallAndUser: jest.fn(async (callId: string, userId: string, deviceId?: string) => {
-        const call = store.get(`call:${callId}`);
-        if (!call) return null;
-        return call.participants.find((p: any) => p.userId === userId && (!deviceId || p.deviceId === deviceId)) ?? null;
-      }),
+      findByCallAndUser: jest.fn(
+        async (callId: string, userId: string, deviceId?: string) => {
+          const call = store.get(`call:${callId}`);
+          if (!call) return null;
+          return (
+            call.participants.find(
+              (p: any) =>
+                p.userId === userId && (!deviceId || p.deviceId === deviceId),
+            ) ?? null
+          );
+        },
+      ),
       create: jest.fn(async (data: any, tx?: any) => {
         const call = store.get(`call:${data.call.connect.id}`);
         if (!call) throw new NotFoundException('Call not found');
         const id = `participant-${participantIdCounter++}`;
-        const participant = { id, ...data, joinedAt: new Date(), leftAt: null, state: data.state ?? 'JOINED' };
+        const participant = {
+          id,
+          ...data,
+          joinedAt: new Date(),
+          leftAt: null,
+          state: data.state ?? 'JOINED',
+        };
         if (!call.participants) call.participants = [];
         call.participants.push(participant);
         return participant;
@@ -76,21 +125,30 @@ describe('CallCommandService', () => {
       update: jest.fn(async (id: string, data: any) => {
         for (const [, call] of store) {
           const p = call.participants?.find((p: any) => p.id === id);
-          if (p) { Object.assign(p, data, { updatedAt: new Date() }); return p; }
+          if (p) {
+            Object.assign(p, data, { updatedAt: new Date() });
+            return p;
+          }
         }
         throw new NotFoundException('Participant not found');
       }),
-      updateByCallAndUser: jest.fn(async (callId: string, userId: string, data: any, tx?: any) => {
-        const call = store.get(`call:${callId}`);
-        if (!call) return null;
-        const p = call.participants?.find((p: any) => p.userId === userId);
-        if (!p) return null;
-        Object.assign(p, data, { updatedAt: new Date() });
-        return p;
-      }),
+      updateByCallAndUser: jest.fn(
+        async (callId: string, userId: string, data: any, tx?: any) => {
+          const call = store.get(`call:${callId}`);
+          if (!call) return null;
+          const p = call.participants?.find((p: any) => p.userId === userId);
+          if (!p) return null;
+          Object.assign(p, data, { updatedAt: new Date() });
+          return p;
+        },
+      ),
       countActiveParticipants: jest.fn(async (callId: string) => {
         const call = store.get(`call:${callId}`);
-        return call.participants?.filter((p: any) => ['JOINED', 'MUTED', 'CAMERA_OFF'].includes(p.state)).length ?? 0;
+        return (
+          call.participants?.filter((p: any) =>
+            ['JOINED', 'MUTED', 'CAMERA_OFF'].includes(p.state),
+          ).length ?? 0
+        );
       }),
     };
 
@@ -99,7 +157,11 @@ describe('CallCommandService', () => {
     };
 
     userQueryService = {
-      findById: jest.fn(async (id: string) => ({ id, username: `user-${id}`, avatarUrl: null })),
+      findById: jest.fn(async (id: string) => ({
+        id,
+        username: `user-${id}`,
+        avatarUrl: null,
+      })),
     };
 
     authorization = {
@@ -112,12 +174,18 @@ describe('CallCommandService', () => {
         ) {
           return;
         }
-        if (['ACTIVE'].includes(call.status) && call.participants?.some(
-          (p: any) => p.userId === userId && p.state !== 'LEFT' && p.leftAt === null,
-        )) {
+        if (
+          ['ACTIVE'].includes(call.status) &&
+          call.participants?.some(
+            (p: any) =>
+              p.userId === userId && p.state !== 'LEFT' && p.leftAt === null,
+          )
+        ) {
           return;
         }
-        throw new ForbiddenException('NOT_CALL_PARTICIPANT: cannot accept this call.');
+        throw new ForbiddenException(
+          'NOT_CALL_PARTICIPANT: cannot accept this call.',
+        );
       }),
       assertCanReject: jest.fn(async (userId: string, call: any) => {
         if (userId === call.creatorUserId) return;
@@ -128,31 +196,52 @@ describe('CallCommandService', () => {
         ) {
           return;
         }
-        throw new ForbiddenException('NOT_CALL_PARTICIPANT: cannot reject this call.');
+        throw new ForbiddenException(
+          'NOT_CALL_PARTICIPANT: cannot reject this call.',
+        );
       }),
       assertCanCancel: jest.fn(async (userId: string, call: any) => {
         if (userId !== call.creatorUserId) {
-          throw new ForbiddenException('Only the call creator can cancel this call.');
+          throw new ForbiddenException(
+            'Only the call creator can cancel this call.',
+          );
         }
       }),
       assertCanEnd: jest.fn(async (userId: string, call: any) => {
         if (userId === call.creatorUserId) return;
-        if (call.participants?.some(
-          (p: any) => p.userId === userId && p.state !== 'LEFT' && p.leftAt === null,
-        )) {
+        if (
+          call.participants?.some(
+            (p: any) =>
+              p.userId === userId && p.state !== 'LEFT' && p.leftAt === null,
+          )
+        ) {
           return;
         }
-        throw new ForbiddenException('NOT_CALL_PARTICIPANT: cannot end this call.');
+        throw new ForbiddenException(
+          'NOT_CALL_PARTICIPANT: cannot end this call.',
+        );
       }),
-      assertCanControlParticipant: jest.fn(async (userId: string, call: any, targetUserId: string) => {
-        if (userId === targetUserId) return;
-        throw new ForbiddenException('CALL_PERMISSION_DENIED');
-      }),
+      assertCanControlParticipant: jest.fn(
+        async (userId: string, call: any, targetUserId: string) => {
+          if (userId === targetUserId) return;
+          throw new ForbiddenException('CALL_PERMISSION_DENIED');
+        },
+      ),
       assertCanSignal: jest.fn(async () => undefined),
     };
 
-    queryService = new CallQueryService(callRepo, participantRepo, userQueryService);
-    service = new CallCommandService(prisma, callRepo, participantRepo, queryService, authorization);
+    queryService = new CallQueryService(
+      callRepo,
+      participantRepo,
+      userQueryService,
+    );
+    service = new CallCommandService(
+      prisma,
+      callRepo,
+      participantRepo,
+      queryService,
+      authorization,
+    );
   });
 
   it('creates a call and adds creator as participant', async () => {
@@ -172,23 +261,35 @@ describe('CallCommandService', () => {
   });
 
   it('throws when user already has an active call', async () => {
-    await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
     await expect(
-      service.createCall('u1', { type: 'VIDEO', scope: 'DM', scopeRef: 'dm2' })
+      service.createCall('u1', { type: 'VIDEO', scope: 'DM', scopeRef: 'dm2' }),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('throws when active call exists in same scope by different user', async () => {
-    await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
     await expect(
-      service.createCall('u2', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' })
+      service.createCall('u2', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' }),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('allows creator to accept the call', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
     const result = await service.acceptCall('u1', call.id);
 
@@ -197,7 +298,11 @@ describe('CallCommandService', () => {
   });
 
   it('allows the ringing callee to accept the call', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
     const result = await service.acceptCall('u2', call.id);
 
@@ -205,13 +310,23 @@ describe('CallCommandService', () => {
   });
 
   it('rejects a stranger accepting the call', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
-    await expect(service.acceptCall('u9', call.id)).rejects.toThrow(ForbiddenException);
+    await expect(service.acceptCall('u9', call.id)).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('allows creator to reject the call', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
     const result = await service.rejectCall('u1', call.id);
 
@@ -220,7 +335,11 @@ describe('CallCommandService', () => {
   });
 
   it('allows the ringing callee to reject the call', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
     const result = await service.rejectCall('u2', call.id);
 
@@ -228,7 +347,11 @@ describe('CallCommandService', () => {
   });
 
   it('allows creator to cancel the call', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
     const result = await service.cancelCall('u1', call.id);
 
@@ -237,13 +360,23 @@ describe('CallCommandService', () => {
   });
 
   it('rejects non-creator cancelling the call', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
-    await expect(service.cancelCall('u2', call.id)).rejects.toThrow(ForbiddenException);
+    await expect(service.cancelCall('u2', call.id)).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('allows creator to end the call', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
     await service.acceptCall('u1', call.id);
 
     const result = await service.endCall('u1', call.id);
@@ -253,14 +386,24 @@ describe('CallCommandService', () => {
   });
 
   it('rejects an unrelated user ending the call', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
     await service.acceptCall('u1', call.id);
 
-    await expect(service.endCall('u9', call.id)).rejects.toThrow(ForbiddenException);
+    await expect(service.endCall('u9', call.id)).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('joins a call and marks active', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
     const participant = await service.joinCall('u2', call.id);
 
@@ -269,7 +412,11 @@ describe('CallCommandService', () => {
   });
 
   it('leaves a call and ends it when last participant leaves', async () => {
-    const { call: createdCall } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call: createdCall } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
     await service.acceptCall('u1', createdCall.id);
     await service.joinCall('u2', createdCall.id);
 
@@ -281,27 +428,41 @@ describe('CallCommandService', () => {
   });
 
   it('mutes self', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
     await service.acceptCall('u1', call.id);
     await service.joinCall('u2', call.id);
 
     await service.muteParticipant('u2', call.id, 'u2');
 
     const participant = await service.queryService.getCallParticipants(call.id);
-    const p = participant.find(p => p.userId === 'u2');
+    const p = participant.find((p) => p.userId === 'u2');
     expect(p.state).toBe('MUTED');
   });
 
   it('does not allow controlling another participant in a DM call', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
     await service.acceptCall('u1', call.id);
     await service.joinCall('u2', call.id);
 
-    await expect(service.muteParticipant('u1', call.id, 'u2')).rejects.toThrow(ForbiddenException);
+    await expect(service.muteParticipant('u1', call.id, 'u2')).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('unmutes self', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
     await service.acceptCall('u1', call.id);
     await service.joinCall('u2', call.id);
     await service.muteParticipant('u2', call.id, 'u2');
@@ -309,47 +470,77 @@ describe('CallCommandService', () => {
     await service.unmuteParticipant('u2', call.id, 'u2');
 
     const participant = await service.queryService.getCallParticipants(call.id);
-    const p = participant.find(p => p.userId === 'u2');
+    const p = participant.find((p) => p.userId === 'u2');
     expect(p.state).toBe('JOINED');
   });
 
   it('turns camera on/off for self', async () => {
-    const { call } = await service.createCall('u1', { type: 'VIDEO', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VIDEO',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
     await service.acceptCall('u1', call.id);
     await service.joinCall('u2', call.id);
 
     await service.setCamera('u2', call.id, 'u2', false);
-    let p = (await service.queryService.getCallParticipants(call.id)).find(p => p.userId === 'u2');
+    let p = (await service.queryService.getCallParticipants(call.id)).find(
+      (p) => p.userId === 'u2',
+    );
     expect(p.state).toBe('CAMERA_OFF');
 
     await service.setCamera('u2', call.id, 'u2', true);
-    p = (await service.queryService.getCallParticipants(call.id)).find(p => p.userId === 'u2');
+    p = (await service.queryService.getCallParticipants(call.id)).find(
+      (p) => p.userId === 'u2',
+    );
     expect(p.state).toBe('JOINED');
   });
 
   it('rejects camera on for a voice call', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
-    await expect(service.setCamera('u1', call.id, 'u1', true)).rejects.toThrow(BadRequestException);
+    await expect(service.setCamera('u1', call.id, 'u1', true)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('rejects accepting a call that already ended (invalid transition)', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
     await service.acceptCall('u1', call.id);
     await service.endCall('u1', call.id);
 
-    await expect(service.acceptCall('u1', call.id)).rejects.toThrow(BadRequestException);
+    await expect(service.acceptCall('u1', call.id)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('rejects ending a call that was cancelled (terminal state)', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
     await service.cancelCall('u1', call.id);
 
-    await expect(service.endCall('u1', call.id)).rejects.toThrow(BadRequestException);
+    await expect(service.endCall('u1', call.id)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('allows marking a ringing call failed (aborted session)', async () => {
-    const { call } = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const { call } = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
     const result = await service.failCall('u1', call.id);
 
@@ -357,9 +548,17 @@ describe('CallCommandService', () => {
   });
 
   it('returns the existing call when the same user re-creates the identical scope', async () => {
-    const first = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const first = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
-    const second = await service.createCall('u1', { type: 'VOICE', scope: 'DM', scopeRef: 'dm1' });
+    const second = await service.createCall('u1', {
+      type: 'VOICE',
+      scope: 'DM',
+      scopeRef: 'dm1',
+    });
 
     expect(second.call.id).toBe(first.call.id);
   });

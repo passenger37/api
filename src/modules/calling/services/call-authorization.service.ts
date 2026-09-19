@@ -100,7 +100,10 @@ export class CallAuthorizationService {
             ? peers.userBId
             : peers.userAId
           : null;
-        if (targetUserId && (await this.isBlockedEitherWay(userId, targetUserId))) {
+        if (
+          targetUserId &&
+          (await this.isBlockedEitherWay(userId, targetUserId))
+        ) {
           throw new ForbiddenException(
             'CALL_NOT_ALLOWED: a blocked user cannot join this call.',
           );
@@ -114,7 +117,10 @@ export class CallAuthorizationService {
           ServerPermission.CHANNEL_CALL_JOIN,
         );
         // Channel must still be a calling channel (may have been re-typed).
-        await this.requireCallCompatibleChannel(call.scopeRef, call.type as CallType);
+        await this.requireCallCompatibleChannel(
+          call.scopeRef,
+          call.type as CallType,
+        );
         return;
       }
       default:
@@ -142,7 +148,9 @@ export class CallAuthorizationService {
     if (await this.isActiveParticipant(call.id, userId)) {
       return;
     }
-    throw new ForbiddenException('NOT_CALL_PARTICIPANT: cannot accept this call.');
+    throw new ForbiddenException(
+      'NOT_CALL_PARTICIPANT: cannot accept this call.',
+    );
   }
 
   async assertCanReject(userId: string, call: Call): Promise<void> {
@@ -156,12 +164,16 @@ export class CallAuthorizationService {
     ) {
       return;
     }
-    throw new ForbiddenException('NOT_CALL_PARTICIPANT: cannot reject this call.');
+    throw new ForbiddenException(
+      'NOT_CALL_PARTICIPANT: cannot reject this call.',
+    );
   }
 
   async assertCanCancel(userId: string, call: Call): Promise<void> {
     if (call.creatorUserId !== userId) {
-      throw new ForbiddenException('Only the call creator can cancel this call.');
+      throw new ForbiddenException(
+        'Only the call creator can cancel this call.',
+      );
     }
   }
 
@@ -367,7 +379,10 @@ export class CallAuthorizationService {
   ): Promise<void> {
     const channel = await this.dmChannelRepository.findById(conversationId);
 
-    if (!channel || (channel.userAId !== userId && channel.userBId !== userId)) {
+    if (
+      !channel ||
+      (channel.userAId !== userId && channel.userBId !== userId)
+    ) {
       throw new ForbiddenException(
         'CONVERSATION_ACCESS_DENIED: you are not a participant of this conversation.',
       );
@@ -395,14 +410,23 @@ export class CallAuthorizationService {
    * Validate that a user still has permission to participate in a call.
    * Used for runtime permission revocation checks.
    */
-  async validateOngoingCallParticipation(call: Call, userId: string): Promise<void> {
+  async validateOngoingCallParticipation(
+    call: Call,
+    userId: string,
+  ): Promise<void> {
     switch (call.scope) {
       case CallScope.DM: {
         const channel = await this.dmChannelRepository.findById(call.scopeRef);
-        if (!channel || (channel.userAId !== userId && channel.userBId !== userId)) {
-          throw new ForbiddenException('CONVERSATION_ACCESS_DENIED: no longer a participant.');
+        if (
+          !channel ||
+          (channel.userAId !== userId && channel.userBId !== userId)
+        ) {
+          throw new ForbiddenException(
+            'CONVERSATION_ACCESS_DENIED: no longer a participant.',
+          );
         }
-        const targetUserId = channel.userAId === userId ? channel.userBId : channel.userAId;
+        const targetUserId =
+          channel.userAId === userId ? channel.userBId : channel.userAId;
         if (await this.isBlockedEitherWay(userId, targetUserId)) {
           throw new ForbiddenException('CALL_NOT_ALLOWED: blocked.');
         }
@@ -414,7 +438,10 @@ export class CallAuthorizationService {
           userId,
           ServerPermission.CHANNEL_CALL_JOIN,
         );
-        await this.requireCallCompatibleChannel(call.scopeRef, call.type as CallType);
+        await this.requireCallCompatibleChannel(
+          call.scopeRef,
+          call.type as CallType,
+        );
         return;
       }
       default:

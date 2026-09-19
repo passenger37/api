@@ -23,7 +23,11 @@ describe('CallingCleanupService', () => {
       publishMissedCall: jest.fn().mockResolvedValue(undefined),
     };
 
-    service = new CallingCleanupService(callRepo, callEvents, notificationPublisher);
+    service = new CallingCleanupService(
+      callRepo,
+      callEvents,
+      notificationPublisher,
+    );
   });
 
   it('does nothing when there are no stale calls', async () => {
