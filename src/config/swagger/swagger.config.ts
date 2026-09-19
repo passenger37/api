@@ -34,6 +34,7 @@ export const NEXUS_DOCUMENTATION_TAGS = [
   'Load Model',
   'API Versioning',
   'Bookmarks',
+  'Anonymous Chat',
 ] as const;
 
 /**

@@ -54,6 +54,7 @@ import { E2eeMetadataModule } from './modules/e2ee-metadata/e2ee-metadata.module
 import { E2eeDeliveryModule } from './modules/e2ee-delivery/e2ee-delivery.module';
 import { E2eeBackupModule } from './modules/e2ee-backup/e2ee-backup.module';
 import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
+import { AnonymousChatModule } from './modules/anonymous-chat/anonymous-chat.module';
 
 @Module({
   imports: [
@@ -108,6 +109,7 @@ import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
     E2eeDeliveryModule,
     E2eeBackupModule,
     BookmarksModule,
+    AnonymousChatModule,
   ],
   controllers: [],
   // providers: [AppService],
